@@ -1,4 +1,7 @@
 import type { Metadata } from 'next'
+import { GeistSans } from 'geist/font/sans'
+import { GeistMono } from 'geist/font/mono'
+import { GeistSerif } from 'geist/font/serif'
 import Link from 'next/link'
 import { Suspense } from 'react'
 import './globals.css'
@@ -12,7 +15,7 @@ export const metadata: Metadata = { title: 'Customer Intake', description: 'Sear
 // the request, who is signed in and the page itself, stream in behind Suspense. That is the whole rendering model.
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable} ${GeistSerif.variable}`}>
       <body>
         <header className="shell-header">
           <Link href="/" className="shell-brand">Customer Intake</Link>
