@@ -1,7 +1,8 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-// Runs on every request. Refreshes the Supabase session cookie and sends anonymous users to /login.
+// Runs on every matched request. Refreshes the Supabase session cookie, verifies the token's claims locally (no
+// round trip to the auth server; the server modules do the verified getUser), and sends anonymous users to /login.
 // It does NOT decide what a user may see; that is the server modules' job with fresh entitlements.
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request })
@@ -15,9 +16,9 @@ export async function proxy(request: NextRequest) {
       },
     },
   })
-  const { data } = await supabase.auth.getUser()
+  const { data } = await supabase.auth.getClaims()
   const isLogin = request.nextUrl.pathname.startsWith('/login')
-  if (!data.user && !isLogin) {
+  if (!data?.claims && !isLogin) {
     const url = request.nextUrl.clone(); url.pathname = '/login'; url.search = ''
     return NextResponse.redirect(url)
   }

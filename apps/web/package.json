@@ -13,7 +13,8 @@
     "db:schema": "tsx db/apply-schema.ts",
     "db:seed": "tsx db/seed.ts",
     "eval:mock": "vitest run --config vitest.eval.config.mts",
-    "eval:live": "vitest run --config vitest.live.config.mts"
+    "eval:live": "vitest run --config vitest.live.config.mts",
+    "db:users": "tsx db/create-users.ts"
   },
   "dependencies": {
     "@intake/contracts": "workspace:*",
