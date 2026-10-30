@@ -37,7 +37,23 @@ pnpm test
 pnpm check:boundaries
 pnpm build
 pnpm check:slop
+pnpm --filter web eval:mock        # offline: routing, privacy, validator, E01 to E12
+pnpm --filter web eval:live        # needs AI_GATEWAY_API_KEY: 3 reps per compare case, both models, writes eval/results/
+pnpm --filter web db:schema && pnpm --filter web db:seed       # DATABASE_URL: hub schema + synthetic seed
+pnpm --filter erp-stub db:schema                               # ERP_DATABASE_URL: the stub's ledger
+TEST_DATABASE_URL=... pnpm --filter web test                   # also runs the database-gated integration tests
 ```
+
+## The path, end to end
+
+1. Sign in. Region and role come from the database, not the session.
+2. Search the hub. Results are cached per region; the auth check runs before the cache.
+3. Request a new customer. The tax ID is normalised and checked in code: exact match stops, exact match elsewhere shows the region only, same company key pre-selects the group. Only a name match against a record with no tax ID reaches the model, which may only propose.
+4. Submit. Request, immutable revision, identity reservation and the start delivery commit together; the Workflow starts.
+5. Review. One global queue, oldest first. The decision binds to the revision and payload hash the reviewer saw; the first decision wins; the accepted decision and the wake delivery commit together.
+6. Create. The Workflow moves approved to creating under an owner guard and sends one command to the ERP stub: operation key (request plus approved revision), payload hash, canonical payload. Transient failures retry with the same key; the stub replays the same number; a changed payload is a conflict; a business rejection is definitive.
+7. Status. The request shows the ERP number at once and "pending next hub load" until the operator runs the load, which creates the golden record, releases the reservation and invalidates that region's search cache.
+8. Operations. Retry a pending delivery, reconcile an unknown-effect stop against the ERP's ledger, or return a no-effect stop to the requester. Nothing here creates a customer.
 
 ## Environment
 

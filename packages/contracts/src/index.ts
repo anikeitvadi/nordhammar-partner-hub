@@ -144,6 +144,9 @@ export type RequestEvent =
   | { type: 'stop'; category: StopCategory; effect: 'no_effect' | 'unknown'; reason: string }
   | { type: 'recover_to_draft' }
   | { type: 'golden_loaded'; goldenId: string }
+  // Operator reconciliation of a stop with unknown effect, from the ERP's own ledger: it did commit, or it provably did not.
+  | { type: 'reconciled_created'; erpCustomerNumber: string; createdAt: string }
+  | { type: 'reconciled_no_effect'; reason: string }
 
 export type Transition = { ok: true; next: RequestState } | { ok: false; reason: string }
 
@@ -171,5 +174,9 @@ export function transition(s: RequestState, e: RequestEvent): Transition {
       return s.kind === 'stopped' && s.effect === 'no_effect' ? { ok: true, next: { kind: 'draft', revision: s.revision, returnedReason: `stopped: ${s.reason}` } } : bad('only a stop with no effect returns to draft')
     case 'golden_loaded':
       return s.kind === 'created' ? { ok: true, next: { ...s, goldenId: e.goldenId } } : bad('only a created request gains a golden id')
+    case 'reconciled_created':
+      return s.kind === 'stopped' && s.effect === 'unknown' ? { ok: true, next: { kind: 'created', revision: s.revision, approval: s.approval, operationKey: s.operationKey, erpCustomerNumber: e.erpCustomerNumber, createdAt: e.createdAt, goldenId: null } } : bad('only a stop with unknown effect can be reconciled as created')
+    case 'reconciled_no_effect':
+      return s.kind === 'stopped' && s.effect === 'unknown' ? { ok: true, next: { ...s, effect: 'no_effect', reason: e.reason } } : bad('only a stop with unknown effect can be reconciled as no effect')
   }
 }

@@ -54,4 +54,10 @@ describe('transitions', () => {
     expect(transition(created, { type: 'stop', category: 'business', effect: 'no_effect', reason: 'x' }).ok).toBe(false)
     expect(transition(created, { type: 'send_back', reason: 'x' }).ok).toBe(false)
   })
+  it('an unknown-effect stop reconciles to created (the ERP had committed) or to no effect, never from a no-effect stop', () => {
+    const unknown = { kind: 'stopped' as const, revision: 1, approval, operationKey: 'k', category: 'transport' as const, effect: 'unknown' as const, reason: 'timeout' }
+    expect(transition(unknown, { type: 'reconciled_created', erpCustomerNumber: '26001', createdAt: 't' })).toMatchObject({ ok: true, next: { kind: 'created', erpCustomerNumber: '26001', operationKey: 'k' } })
+    expect(transition(unknown, { type: 'reconciled_no_effect', reason: 'ledger has no row' })).toMatchObject({ ok: true, next: { kind: 'stopped', effect: 'no_effect' } })
+    expect(transition({ ...unknown, effect: 'no_effect' }, { type: 'reconciled_created', erpCustomerNumber: '1', createdAt: 't' }).ok).toBe(false)
+  })
 })

@@ -33,7 +33,7 @@ async function Identity() {
   if (!principal) return null
   return (
     <span className="shell-region">
-      {visibleRegions(principal).join(', ') || 'no region'} · {principal.displayName} · {principal.role}
+      <Link href="/requests">My requests</Link>{principal.globalIdentity ? <> · <Link href="/reviews">Reviews</Link> · <Link href="/operations">Operations</Link></> : null} · {visibleRegions(principal).join(', ') || 'no region'} · {principal.displayName} · {principal.role}
       <form action={signOut} className="inline"><button type="submit" className="link">Sign out</button></form>
     </span>
   )

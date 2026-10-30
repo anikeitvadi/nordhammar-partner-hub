@@ -12,7 +12,8 @@
     "check:boundaries": "vitest run src/boundaries.test.ts",
     "db:schema": "tsx db/apply-schema.ts",
     "db:seed": "tsx db/seed.ts",
-    "eval:mock": "vitest run --config vitest.eval.config.mts"
+    "eval:mock": "vitest run --config vitest.eval.config.mts",
+    "eval:live": "vitest run --config vitest.live.config.mts"
   },
   "dependencies": {
     "@intake/contracts": "workspace:*",

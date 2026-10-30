@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { requirePrincipal } from '@/features/auth/principal.server'
 import { getRequest } from '@/features/requests/store.server'
@@ -18,7 +19,7 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
       <p>{describeState(s)}</p>
       {s.kind === 'created' ? <p className="panel"><strong>ERP customer number {s.erpCustomerNumber}</strong> ({r.payload.destination.erp}). {s.goldenId ? `Hub record ${s.goldenId}.` : 'Pending the next hub load; search will show it from the next day.'}</p> : null}
       {s.kind === 'stopped' ? <p className="panel error"><strong>Stopped ({s.category}, effect {s.effect === 'no_effect' ? 'none' : 'unknown'}):</strong> {s.reason}</p> : null}
-      {s.kind === 'draft' && s.returnedReason ? <p className="panel"><strong>Sent back:</strong> {s.returnedReason}</p> : null}
+      {s.kind === 'draft' && s.returnedReason ? <p className="panel"><strong>Sent back:</strong> {s.returnedReason} {r.requesterEmail === principal.email ? <Link href={`/requests/${r.requestId}/edit`}>Fix and resubmit</Link> : null}</p> : null}
       <h2>Submitted</h2>
       <dl className="facts">
         <dt>Tax ID</dt><dd>{r.payload.identity.scheme} {r.payload.identity.canonical}</dd>

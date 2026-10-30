@@ -34,3 +34,4 @@ button.link { background: none; color: var(--accent); padding: 0 0 0 12px; }
 .decide { margin-top: 16px; display: grid; gap: 12px; }
 button.danger { background: #b00020; }
 .submit { margin-top: 12px; }
+.actions form { margin: 2px 0; }
