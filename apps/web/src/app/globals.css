@@ -5,7 +5,8 @@
   --surface-2: #f0f1f3;
   --fg: #111214;
   --fg-2: #5b6068;
-  --fg-3: #8a9099;
+  --fg-3: #6b7079;   /* 5.0:1 on white: safe for body-size muted text */
+  --fg-4: #8a9099;   /* 3.4:1: large text (24px+) and table headers only */
   --hair: rgba(17, 18, 20, 0.08);
   --accent: #2256d9;
   --accent-ink: #ffffff;
