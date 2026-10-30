@@ -1,6 +1,27 @@
+import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-// Next 16 names this proxy.ts. Session refresh and the no-region gate arrive in Increment B.
-export function proxy(_request: NextRequest) {
-  return NextResponse.next()
+// Runs on every request. Refreshes the Supabase session cookie and sends anonymous users to /login.
+// It does NOT decide what a user may see; that is the server modules' job with fresh entitlements.
+export async function proxy(request: NextRequest) {
+  let response = NextResponse.next({ request })
+  const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!, {
+    cookies: {
+      getAll() { return request.cookies.getAll() },
+      setAll(toSet) {
+        for (const { name, value } of toSet) request.cookies.set(name, value)
+        response = NextResponse.next({ request })
+        for (const { name, value, options } of toSet) response.cookies.set(name, value, options)
+      },
+    },
+  })
+  const { data } = await supabase.auth.getUser()
+  const isLogin = request.nextUrl.pathname.startsWith('/login')
+  if (!data.user && !isLogin) {
+    const url = request.nextUrl.clone(); url.pathname = '/login'; url.search = ''
+    return NextResponse.redirect(url)
+  }
+  return response
 }
+
+export const config = { matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'] }

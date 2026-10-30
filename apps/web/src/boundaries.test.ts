@@ -38,17 +38,21 @@ function resolveLocal(from: string, spec: string): string | null {
 }
 
 const files = walk(SRC)
-const graph = new Map<string, { external: string[]; local: string[]; client: boolean }>()
+const graph = new Map<string, { external: string[]; local: string[]; client: boolean; action: boolean }>()
 for (const f of files) {
   const specs = importsOf(f)
   const local = specs.map((s) => resolveLocal(f, s)).filter((x): x is string => x !== null)
   const external = specs.filter((s) => !s.startsWith('.') && !s.startsWith('@/'))
-  const client = /^\s*['"]use client['"]/m.test(readFileSync(f, 'utf8'))
-  graph.set(f, { external, local, client })
+  const text = readFileSync(f, 'utf8')
+  const client = /^\s*['"]use client['"]/m.test(text)
+  // A 'use server' file is a Server Action module: the compiler replaces it with a reference in client bundles,
+  // so it is the one legal bridge from a client island to server code. Traversal stops at it.
+  const action = /^\s*['"]use server['"]/m.test(text)
+  graph.set(f, { external, local, client, action })
 }
 
 function reach(start: string, seen = new Set<string>()): Set<string> {
-  for (const dep of graph.get(start)?.local ?? []) if (!seen.has(dep)) { seen.add(dep); reach(dep, seen) }
+  for (const dep of graph.get(start)?.local ?? []) if (!seen.has(dep)) { seen.add(dep); if (!graph.get(dep)?.action) reach(dep, seen) }
   return seen
 }
 
@@ -60,6 +64,7 @@ describe('import walls', () => {
       const reached = [f, ...reach(f)]
       for (const r of reached) {
         const n = graph.get(r)!
+        if (n.action) continue
         const bad = n.external.some((e) => e === '@neondatabase/serverless' || e === 'server-only') || /\.server\.tsx?$/.test(r)
         if (bad) offenders.push(`${path.relative(SRC, f)} -> ${path.relative(SRC, r)}`)
       }

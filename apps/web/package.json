@@ -9,7 +9,10 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "check:boundaries": "vitest run src/boundaries.test.ts"
+    "check:boundaries": "vitest run src/boundaries.test.ts",
+    "db:schema": "tsx db/apply-schema.ts",
+    "db:seed": "tsx db/seed.ts",
+    "eval:mock": "vitest run --config vitest.eval.config.mts"
   },
   "dependencies": {
     "@intake/contracts": "workspace:*",
@@ -31,6 +34,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.4.3",
     "typescript": "6.0.3",
-    "vitest": "3.2.7"
+    "vitest": "3.2.7",
+    "tsx": "4.23.15"
   }
 }
