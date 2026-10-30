@@ -1,0 +1,20 @@
+{
+  "runId": "wrun_01M67J156J00QMWMNN6SZNYQ0G",
+  "stepId": "step_01M67J156J7Q0V98Y40HMDRKV5",
+  "stepName": "step//./tests/workflow/smoke.workflow//stampStep",
+  "status": "completed",
+  "input": {
+    "__type": "Uint8Array",
+    "data": "ZGV2bFt7ImFyZ3MiOjEsImNsb3N1cmVWYXJzIjotMSwidGhpc1ZhbCI6LTF9LFsyXSwiYXBwcm92ZSJd"
+  },
+  "attempt": 1,
+  "startedAt": "2026-10-30T23:23:59.828Z",
+  "createdAt": "2026-10-30T23:23:59.828Z",
+  "updatedAt": "2026-10-30T23:23:59.832Z",
+  "specVersion": 8,
+  "output": {
+    "__type": "Uint8Array",
+    "data": "ZGV2bFsiYXBwcm92ZUBzdGVwIl0="
+  },
+  "completedAt": "2026-10-30T23:23:59.832Z"
+}

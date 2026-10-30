@@ -260,6 +260,9 @@ importers:
       '@types/react-dom':
         specifier: ^19
         version: 19.3.0(@types/react@19.3.0)
+      '@workflow/vitest':
+        specifier: 5.0.6
+        version: 5.0.6(@swc/helpers@0.5.23)(supports-color@8.1.1)(vite@7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(tsx@4.23.15))(vitest@3.2.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(supports-color@8.1.1)(tsx@4.23.15))(ws@8.22.0)
       eslint:
         specifier: ^9
         version: 9.39.5(jiti@2.7.0)(supports-color@8.1.1)
@@ -1787,6 +1790,15 @@ packages:
 
   '@workflow/vite@5.0.6':
     resolution: {integrity: sha512-vKidXneLqPDBMj5vx4u4vxP2HeLD7Zw9wMN+SDqYXQFj0pEgJT3AE4kY1ufN+zgjKKBywgRpHKsPbZ3KCCIg+A==}
+
+  '@workflow/vitest@5.0.6':
+    resolution: {integrity: sha512-5rKSmfnVyVUgCg0IcqX7Z9Xh8Vo78gsft/nWtp0uad8s+hndryQL1L2MUeBdIgjsCNeL2JuZ6OkqEUxD6km1sw==}
+    peerDependencies:
+      vite: '>=6.0.0'
+      vitest: '>=3.1.0'
+    peerDependenciesMeta:
+      vite:
+        optional: true
 
   '@workflow/web@5.0.6':
     resolution: {integrity: sha512-WrKULOo/Ku0u4kJcTcd6dWPU9ak+nxPxvDubyu+vhlUrrdrBVhcYVCaymdAnBwrjFOszsdY5AdjlQljKc6aZkQ==}
@@ -5580,7 +5592,7 @@ snapshots:
 
   '@vercel/cli-config@0.3.1':
     dependencies:
-      xdg-app-paths: 5.1.0
+      xdg-app-paths: 5.5.1
       zod: 4.1.11
 
   '@vercel/cli-config@0.3.5':
@@ -5902,6 +5914,24 @@ snapshots:
   '@workflow/vite@5.0.6(@swc/helpers@0.5.23)(supports-color@8.1.1)(ws@8.22.0)':
     dependencies:
       '@workflow/builders': 5.0.6(@swc/helpers@0.5.23)(supports-color@8.1.1)(ws@8.22.0)
+    transitivePeerDependencies:
+      - '@opentelemetry/api'
+      - '@swc/helpers'
+      - bufferutil
+      - supports-color
+      - utf-8-validate
+      - ws
+
+  '@workflow/vitest@5.0.6(@swc/helpers@0.5.23)(supports-color@8.1.1)(vite@7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(tsx@4.23.15))(vitest@3.2.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(supports-color@8.1.1)(tsx@4.23.15))(ws@8.22.0)':
+    dependencies:
+      '@workflow/builders': 5.0.6(@swc/helpers@0.5.23)(supports-color@8.1.1)(ws@8.22.0)
+      '@workflow/core': 5.2.3(supports-color@8.1.1)(ws@8.22.0)
+      '@workflow/rollup': 5.0.6(@swc/helpers@0.5.23)(supports-color@8.1.1)(ws@8.22.0)
+      '@workflow/world': 5.0.5
+      '@workflow/world-local': 5.1.2
+      vitest: 3.2.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(supports-color@8.1.1)(tsx@4.23.15)
+    optionalDependencies:
+      vite: 7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(tsx@4.23.15)
     transitivePeerDependencies:
       - '@opentelemetry/api'
       - '@swc/helpers'

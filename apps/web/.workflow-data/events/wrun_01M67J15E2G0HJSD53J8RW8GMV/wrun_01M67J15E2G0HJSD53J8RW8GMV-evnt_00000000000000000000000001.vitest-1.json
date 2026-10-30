@@ -1,0 +1,24 @@
+{
+  "eventType": "run_created",
+  "runId": "wrun_01M67J15E2G0HJSD53J8RW8GMV",
+  "eventId": "evnt_00000000000000000000000001",
+  "createdAt": "2026-10-30T23:23:59.812Z",
+  "specVersion": 8,
+  "eventData": {
+    "deploymentId": "dpl_local@5.1.2",
+    "workflowName": "workflow//./tests/workflow/smoke.workflow//smokeWorkflow",
+    "input": {
+      "__type": "Uint8Array",
+      "data": "ZGV2bFtbMV0sInNtb2tlOjE3OTM0MDI2Mzk1NjYiXQ=="
+    },
+    "executionContext": {
+      "traceCarrier": {},
+      "workflowCoreVersion": "5.2.3",
+      "nodeVersion": "24.22.2",
+      "features": {
+        "encryption": false
+      },
+      "hookResumeInputVersion": 1
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "eventType": "step_started",
+  "specVersion": 8,
+  "correlationId": "step_01M67J156J7Q0V98Y40HMDRKV5",
+  "eventData": {
+    "stepName": "step//./tests/workflow/smoke.workflow//stampStep",
+    "workflowName": "workflow//./tests/workflow/smoke.workflow//smokeWorkflow",
+    "ownerMessageId": "msg_01M67J15EDFTQZRT7T1DZAK82C"
+  },
+  "runId": "wrun_01M67J156J00QMWMNN6SZNYQ0G",
+  "eventId": "evnt_00000000000000000000000006",
+  "createdAt": "2026-10-30T23:23:59.828Z"
+}

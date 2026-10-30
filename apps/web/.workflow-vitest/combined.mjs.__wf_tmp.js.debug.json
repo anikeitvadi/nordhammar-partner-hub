@@ -1,0 +1,9 @@
+{
+  "workflowFiles": [
+    "/Users/anikeit/customer-intake-demo/apps/web/src/features/execution/review.workflow.ts",
+    "/Users/anikeit/customer-intake-demo/apps/web/tests/workflow/smoke.workflow.ts"
+  ],
+  "serdeOnlyFiles": [
+    "/Users/anikeit/customer-intake-demo/node_modules/.pnpm/@workflow+core@5.2.3_supports-color@8.1.1_ws@8.22.0/node_modules/@workflow/core/dist/runtime/run.js"
+  ]
+}

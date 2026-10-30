@@ -14,7 +14,8 @@
     "db:seed": "tsx db/seed.ts",
     "eval:mock": "vitest run --config vitest.eval.config.mts",
     "eval:live": "vitest run --config vitest.live.config.mts",
-    "db:users": "tsx db/create-users.ts"
+    "db:users": "tsx db/create-users.ts",
+    "test:workflow": "vitest run --config vitest.workflow.config.mts"
   },
   "dependencies": {
     "@intake/contracts": "workspace:*",
@@ -34,6 +35,7 @@
     "@types/node": "^24",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@workflow/vitest": "5.0.6",
     "eslint": "^9",
     "eslint-config-next": "16.4.3",
     "tsx": "4.23.15",
