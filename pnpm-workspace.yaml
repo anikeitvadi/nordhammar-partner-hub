@@ -1,0 +1,16 @@
+packages:
+  - apps/*
+  - packages/*
+# pnpm 12 runs no postinstall script unless listed. These three are the compilers Next, Vitest and the Workflow SDK need.
+allowBuilds:
+  "@swc/core": true
+  esbuild: true
+  cbor-extract: true
+  sharp: false
+  unrs-resolver: false
+minimumReleaseAgeExclude:
+  - "@ai-sdk/gateway@4.0.131"
+  - "@ai-sdk/provider-utils@5.0.72"
+  - ai@7.0.158
+# The pins in this repo were chosen deliberately on 10/30/2026 and several are days old; the release-age gate would reject them.
+minimumReleaseAge: 0
