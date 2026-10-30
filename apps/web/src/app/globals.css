@@ -28,3 +28,9 @@ button.link { background: none; color: var(--accent); padding: 0 0 0 12px; }
 .proposal { margin-top: 8px; }
 .reasons li { color: var(--muted); }
 .muted { color: var(--muted); }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 999px; background: #eef1f5; font-size: 0.85rem; }
+.badge-created { background: #e3f6e8; } .badge-declined, .badge-stopped { background: #fde8e8; } .badge-under_review, .badge-submitted { background: #fff4d6; }
+.timeline { padding-left: 18px; } .timeline time { color: var(--muted); margin-right: 8px; }
+.decide { margin-top: 16px; display: grid; gap: 12px; }
+button.danger { background: #b00020; }
+.submit { margin-top: 12px; }

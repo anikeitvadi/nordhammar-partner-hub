@@ -1,0 +1,76 @@
+import { RetryableError } from 'workflow'
+import { operationKey, transition, type CanonicalPayload, type ErpCreateCommand, type RequestState, payloadHash } from '@intake/contracts'
+import { sql } from '@/lib/db'
+import { createCustomer, type ErpResult } from '@/features/erp/erp.server'
+
+export type WakePayload = { decisionId: string; decision: 'approve' | 'decline' | 'send_back' }
+
+export function hookToken(requestId: string, revision: number) { return `review:${requestId}:${revision}` }
+
+export async function markWakeDeliveredStep(requestId: string, revision: number, workflowRunId: string) {
+  'use step'
+  const db = sql()
+  await db.transaction([
+    db`update deliveries set status = 'delivered', updated_at = now() where request_id = ${requestId} and revision = ${revision} and kind = 'wake'`,
+    db`update requests set workflow_run_id = ${workflowRunId} where request_id = ${requestId}`,
+  ])
+}
+
+// approved → creating, atomically, and only once per revision: the conditional UPDATE is the permanent owner guard.
+// Returns the exact command (key + hash + canonical payload) the ERP step will send, or null if this revision is not approved.
+export async function startCreatingStep(requestId: string, revision: number, workflowRunId: string): Promise<ErpCreateCommand | null> {
+  'use step'
+  const db = sql()
+  const rows = await db`select r.state, v.payload, v.payload_hash from requests r join request_revisions v on v.request_id = r.request_id and v.revision = ${revision} where r.request_id = ${requestId} and r.current_revision = ${revision}`
+  const r = rows[0]
+  if (!r) return null
+  const state = r.state as RequestState
+  const payload = r.payload as CanonicalPayload
+  const key = operationKey(requestId, revision)
+  if (state.kind === 'creating' && state.operationKey === key) return { operationKey: key, payloadHash: r.payload_hash as string, payload } // resumed after a crash: same command
+  const t = transition(state, { type: 'start_creating', operationKey: key })
+  if (!t.ok) return null
+  if (state.kind !== 'approved' || state.approval.payloadHash !== (r.payload_hash as string)) return null
+  const hash = await payloadHash(payload)
+  if (hash !== (r.payload_hash as string)) return null // the stored hash must match the stored payload; if not, nothing is sent
+  await db.transaction([
+    db`update requests set state_kind = ${t.next.kind}, state = ${JSON.stringify(t.next)}::jsonb, workflow_run_id = ${workflowRunId}, updated_at = now() where request_id = ${requestId} and current_revision = ${revision} and state_kind = 'approved'`,
+    db`insert into request_events (request_id, kind, actor, detail) values (${requestId}, 'creating', 'workflow', ${JSON.stringify({ operationKey: key, workflowRunId })}::jsonb)`,
+  ])
+  return { operationKey: key, payloadHash: hash, payload }
+}
+
+// The only caller of createCustomer. Transient outcomes throw RetryableError so the SDK retries this step with the
+// SAME key and hash; everything else returns and the workflow moves on. Bounded: after the retries the step fails
+// and the run stops with effect unknown, which the operator reconciles through lookupOperation.
+export async function erpWriteStep(command: ErpCreateCommand): Promise<ErpResult> {
+  'use step'
+  const result = await createCustomer(command, { timeoutMs: 8000 })
+  if (result.outcome === 'transient') throw new RetryableError(result.reason, { retryAfter: 2000 })
+  return result
+}
+
+export async function finishStep(requestId: string, revision: number, result: ErpResult) {
+  'use step'
+  const db = sql()
+  const rows = await db`select state from requests where request_id = ${requestId} and current_revision = ${revision}`
+  const state = rows[0]?.state as RequestState | undefined
+  if (!state || state.kind !== 'creating') return
+  const now = new Date().toISOString()
+  let t: ReturnType<typeof transition>
+  switch (result.outcome) {
+    case 'created':
+    case 'replayed':
+      t = transition(state, { type: 'created', erpCustomerNumber: result.erpCustomerNumber, createdAt: now }); break
+    case 'rejected':
+      t = transition(state, { type: 'stop', category: result.category, effect: 'no_effect', reason: result.reason }); break
+    case 'transient':
+      // Retries exhausted: the ERP may have committed. Effect unknown; the operator reconciles by key before anything else happens.
+      t = transition(state, { type: 'stop', category: 'transport', effect: 'unknown', reason: result.reason }); break
+  }
+  if (!t.ok) return
+  await db.transaction([
+    db`update requests set state_kind = ${t.next.kind}, state = ${JSON.stringify(t.next)}::jsonb, updated_at = now() where request_id = ${requestId} and current_revision = ${revision} and state_kind = 'creating'`,
+    db`insert into request_events (request_id, kind, actor, detail) values (${requestId}, ${t.next.kind}, 'workflow', ${JSON.stringify(result)}::jsonb)`,
+  ])
+}

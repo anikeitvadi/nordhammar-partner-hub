@@ -3,7 +3,8 @@ import { useActionState } from 'react'
 import Link from 'next/link'
 import type { Region } from '@intake/contracts'
 import { checkMatches } from './actions'
-import type { CheckResult } from './types'
+import { submitRequestAction } from '@/features/requests/actions'
+import type { CheckResult, Echo } from './types'
 
 // The one client island in the intake path. Form state is browser state (fine). The result is whatever the Server
 // Action returned; nothing here mirrors server business state, and nothing here decides anything.
@@ -16,6 +17,7 @@ const COUNTRIES: Record<Region, { code: string; name: string }[]> = {
 export function IntakeForm({ regions, initialRegion, initialName }: { regions: Region[]; initialRegion: Region; initialName: string }) {
   const [result, action, pending] = useActionState<CheckResult | null, FormData>(checkMatches, null)
   return (
+    <>
     <form action={action} className="stack">
       <label>Region
         <select name="region" defaultValue={initialRegion} disabled={regions.length === 1}>{regions.map((r) => <option key={r} value={r}>{r}</option>)}</select>
@@ -29,7 +31,23 @@ export function IntakeForm({ regions, initialRegion, initialName }: { regions: R
       <label>Bill-to street <input name="street" placeholder="Rua Demo, 20" /></label>
       <label>City <input name="city" required /></label>
       <button type="submit" disabled={pending}>{pending ? 'Checking the hub…' : 'Check for matches'}</button>
-      {result ? <Matches result={result} /> : null}
+    </form>
+    {result ? <Matches result={result} /> : null}
+    </>
+  )
+}
+
+// The second form. Submission re-sends the echoed fields; the Server Action re-validates every one of them and
+// re-derives the principal, so these hidden inputs are a convenience for the user, never a source of truth.
+function SubmitForm({ echo, dupChoice, linkedGoldenId, reasonRequired }: { echo: Echo; dupChoice: 'new' | 'new_in_group' | 'not_related'; linkedGoldenId: string | null; reasonRequired: boolean }) {
+  return (
+    <form action={submitRequestAction} className="stack submit">
+      <input type="hidden" name="region" value={echo.region} /><input type="hidden" name="country" value={echo.country} />
+      <input type="hidden" name="legalName" value={echo.legalName} /><input type="hidden" name="taxId" value={echo.taxCanonical} />
+      <input type="hidden" name="street" value={echo.street ?? ''} /><input type="hidden" name="city" value={echo.city} />
+      <input type="hidden" name="dupChoice" value={dupChoice} />{linkedGoldenId ? <input type="hidden" name="linkedGoldenId" value={linkedGoldenId} /> : null}
+      {reasonRequired ? <label>Why is this not a duplicate? (the reviewer sees this next to the match) <input name="dupReason" required /></label> : null}
+      <button type="submit">{dupChoice === 'not_related' ? 'Continue as not related' : dupChoice === 'new_in_group' ? 'Continue as a new company in this group' : 'Submit request'}</button>
     </form>
   )
 }
@@ -40,8 +58,8 @@ function Matches({ result }: { result: CheckResult }) {
     case 'invalid': return <p role="alert" className="error">{{ missing: 'A tax ID is required.', invalid_format: 'That tax ID is not in the right format for this country.', invalid_checksum: 'That tax ID fails its check digits. Nothing was searched.', unsupported_country: 'That country is not supported yet.' }[result.reason]}</p>
     case 'exact_visible': return <div className="panel"><strong>This customer already exists.</strong> <Link href={`/customers/${result.candidate.goldenId}`}>{result.candidate.legalName}, {result.candidate.city}</Link>. The request cannot continue; if the record is wrong, request a change instead.</div>
     case 'exact_foreign': return <div className="panel"><strong>A customer with this tax ID exists in {result.region}.</strong> Contact the {result.region} team. One legal entity is not created twice.</div>
-    case 'related': return <div className="panel"><strong>Same company, different establishment.</strong> {result.candidate.legalName} ({result.candidate.city}) shares the company-level ID{result.candidate.groupName ? `, group ${result.candidate.groupName}` : ''}. Continue as a new company in this group. <em>Submission arrives in the next increment.</em></div>
-    case 'clear': return <div className="panel"><strong>No match in {result.echo.region}.</strong> This looks new. <em>Submission arrives in the next increment.</em></div>
+    case 'related': return <div className="panel"><strong>Same company, different establishment.</strong> {result.candidate.legalName} ({result.candidate.city}) shares the company-level ID{result.candidate.groupName ? `, group ${result.candidate.groupName}` : ''}. Continue as a new company in this group.<SubmitForm echo={result.echo} dupChoice="new_in_group" linkedGoldenId={result.candidate.goldenId} reasonRequired={false} /></div>
+    case 'clear': return <div className="panel"><strong>No match in {result.echo.region}.</strong> This looks new.<SubmitForm echo={result.echo} dupChoice="new" linkedGoldenId={null} reasonRequired={false} /></div>
     case 'compare': return (
       <div className="panel">
         <strong>Possible matches, {result.candidates.length} found.</strong>
@@ -53,7 +71,9 @@ function Matches({ result }: { result: CheckResult }) {
             <small>model: {result.outcome.model}</small>
           </div>
         ) : <p className="muted">Assessment unavailable ({result.outcome.reason}). The steward will compare these by hand.</p>}
-        <p>Choose: use one of these customers (open it), continue as a new company in the same group, or continue as not related with a reason for the reviewer. <em>Choices arrive in the next increment.</em></p>
+        <p>Choose: open one of these customers to use it (no request), continue as a new company in the same group, or continue as not related with a reason the reviewer will see.</p>
+        <SubmitForm echo={result.echo} dupChoice="new_in_group" linkedGoldenId={result.outcome.ai === 'available' && result.outcome.proposal.golden_id ? result.outcome.proposal.golden_id : result.candidates[0].goldenId} reasonRequired={false} />
+        <SubmitForm echo={result.echo} dupChoice="not_related" linkedGoldenId={result.outcome.ai === 'available' && result.outcome.proposal.golden_id ? result.outcome.proposal.golden_id : result.candidates[0].goldenId} reasonRequired={true} />
       </div>
     )
   }

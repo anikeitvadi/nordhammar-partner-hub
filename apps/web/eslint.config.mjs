@@ -10,7 +10,7 @@ const erpCreate = ["@/features/erp/erp.server", "**/features/erp/erp.server"];
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
-  globalIgnores([".next/**", "out/**", "build/**", "next-env.d.ts"]),
+  globalIgnores([".next/**", "out/**", "build/**", "next-env.d.ts", "src/app/.well-known/**"]),
   { rules: { "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }] } },
   {
     // Routes and client islands never touch the database client or the ERP create path.

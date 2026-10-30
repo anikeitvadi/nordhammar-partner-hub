@@ -1,0 +1,1 @@
+export default function Page() { return <main style={{ fontFamily: 'system-ui', padding: 24 }}><h1>ERP stub</h1><p>Stands in for the customer&apos;s ERP listener. Service-authenticated API only: POST /api/customers, GET /api/operations/:key.</p></main> }
