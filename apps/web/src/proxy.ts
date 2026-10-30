@@ -24,4 +24,5 @@ export async function proxy(request: NextRequest) {
   return response
 }
 
-export const config = { matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'] }
+// .well-known/workflow is the SDK's own queue/webhook surface; the proxy must not touch it (local runs fail otherwise).
+export const config = { matcher: ['/((?!_next/static|_next/image|favicon.ico|\\.well-known/workflow).*)'] }

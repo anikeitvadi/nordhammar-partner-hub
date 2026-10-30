@@ -1,4 +1,4 @@
-import { RetryableError } from 'workflow'
+import { RetryableError, getStepMetadata } from 'workflow'
 import { operationKey, transition, type CanonicalPayload, type ErpCreateCommand, type RequestState, payloadHash } from '@intake/contracts'
 import { sql } from '@/lib/db'
 import { createCustomer, type ErpResult } from '@/features/erp/erp.server'
@@ -46,9 +46,15 @@ export async function startCreatingStep(requestId: string, revision: number, wor
 export async function erpWriteStep(command: ErpCreateCommand): Promise<ErpResult> {
   'use step'
   const result = await createCustomer(command, { timeoutMs: 8000 })
-  if (result.outcome === 'transient') throw new RetryableError(result.reason, { retryAfter: 2000 })
+  if (result.outcome === 'transient') {
+    // The SDK retries immediately by default and has no built-in backoff; attempt-based delays: 1s, 2s, 4s.
+    const { attempt } = getStepMetadata()
+    throw new RetryableError(result.reason, { retryAfter: 1000 * 2 ** Math.max(0, attempt - 1) })
+  }
   return result
 }
+// Bound the retries: the initial call plus three retries, then the step fails and the run stops with effect unknown.
+erpWriteStep.maxRetries = 3
 
 export async function finishStep(requestId: string, revision: number, result: ErpResult) {
   'use step'
