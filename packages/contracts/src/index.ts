@@ -59,6 +59,12 @@ export function operationKey(requestId: string, approvedRevision: number): strin
   return `intake:${requestId}:revision:${approvedRevision}`
 }
 
+// The inverse, for anything that only holds the key (the ERP step, the ledger). Null for a key this app did not mint.
+export function parseOperationKey(key: string): { requestId: string; revision: number } | null {
+  const m = /^intake:([^:]+):revision:(\d+)$/.exec(key)
+  return m ? { requestId: m[1], revision: Number(m[2]) } : null
+}
+
 // What the model is allowed to say. Code validates every field against the candidates it was given.
 export const ProposalSchema = z.object({
   verdict: z.enum(['same', 'different', 'unsure']),

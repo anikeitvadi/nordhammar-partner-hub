@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { canonicalize, operationKey, payloadHash, transition, type Approval, type CanonicalPayload, type RequestState } from './index'
+import { canonicalize, operationKey, parseOperationKey, payloadHash, transition, type Approval, type CanonicalPayload, type RequestState } from './index'
 
 const payload: CanonicalPayload = {
   schemaVersion: 1, destination: { erp: 'MAPICS', region: 'BR' }, identity: { country: 'BR', scheme: 'CNPJ', canonical: '61000102000100' },
@@ -22,6 +22,8 @@ describe('canonical payload and hash', () => {
   })
   it('operation key binds the approved revision', () => {
     expect(operationKey('R-1', 2)).toBe('intake:R-1:revision:2')
+    expect(parseOperationKey('intake:R-1:revision:2')).toEqual({ requestId: 'R-1', revision: 2 })
+    expect(parseOperationKey('other:R-1')).toBeNull()
   })
 })
 
