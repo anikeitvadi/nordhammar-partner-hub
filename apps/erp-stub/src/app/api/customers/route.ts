@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { callerFromRequest } from '@/features/auth/caller'
 import { ErpCreateCommandSchema, payloadHash } from '@intake/contracts'
 import { apply } from '@/features/ledger/ledger'
 import { NeonStore } from '@/features/ledger/neon-store'
@@ -10,8 +11,8 @@ import { NeonStore } from '@/features/ledger/neon-store'
 //   [LOSTRESPONSE]  commit, then answer 503 (caller retries; replay returns the same number)
 //   [REJECT]        business rejection 422 (definitive)
 export async function POST(req: Request) {
-  const auth = req.headers.get('authorization') ?? ''
-  if (auth !== `Bearer ${process.env.ERP_SERVICE_TOKEN}`) return NextResponse.json({ reason: 'unauthorized' }, { status: 401 })
+  const caller = await callerFromRequest(req)
+  if (!caller) return NextResponse.json({ reason: 'unauthorized' }, { status: 401 })
   const parsed = ErpCreateCommandSchema.safeParse(await req.json().catch(() => null))
   if (!parsed.success) return NextResponse.json({ reason: 'malformed command' }, { status: 400 })
   const cmd = parsed.data

@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server'
+import { callerFromRequest } from '@/features/auth/caller'
 import { NeonStore } from '@/features/ledger/neon-store'
 
 // GET /api/operations/:key. Reconciliation for the operator: did this operation commit? 404 means not yet, not never.
 export async function GET(req: Request, { params }: { params: Promise<{ key: string }> }) {
-  const auth = req.headers.get('authorization') ?? ''
-  if (auth !== `Bearer ${process.env.ERP_SERVICE_TOKEN}`) return NextResponse.json({ reason: 'unauthorized' }, { status: 401 })
+  const caller = await callerFromRequest(req)
+  if (!caller) return NextResponse.json({ reason: 'unauthorized' }, { status: 401 })
   const url = process.env.ERP_DATABASE_URL
   if (!url) return NextResponse.json({ reason: 'stub database not configured' }, { status: 503 })
   const { key } = await params
