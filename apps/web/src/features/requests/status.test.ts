@@ -7,15 +7,15 @@ describe('timeline copy', () => {
       { kind: 'erp_attempt', detail: { attempt: 1, phase: 'sent' } },
       { kind: 'erp_attempt', detail: { attempt: 1, phase: 'transient', reason: 'ERP timed out', retryAfterMs: 1000 } },
       { kind: 'erp_attempt', detail: { attempt: 2, phase: 'sent' } },
-      { kind: 'erp_attempt', detail: { attempt: 2, phase: 'replayed', erpCustomerNumber: '26001' } },
-      { kind: 'created', detail: { outcome: 'replayed', erpCustomerNumber: '26001' } },
+      { kind: 'erp_attempt', detail: { attempt: 2, phase: 'replayed', erpNumber: '26001' } },
+      { kind: 'created', detail: { outcome: 'replayed', erpNumber: '26001' } },
     ].map((e) => describeEvent({ at: '2026-10-31T00:00:00Z', actor: 'workflow', ...e }))
     expect(lines).toEqual([
       'Attempt 1: sent to the ERP',
       'Attempt 1: ERP timed out; retrying in 1s with the same key',
       'Attempt 2: sent to the ERP',
       'Attempt 2: ERP replayed 26001, it had already committed',
-      'ERP assigned customer number 26001 (replayed: the ERP already had it)',
+      'ERP assigned number 26001 (replayed: the ERP already had it)',
     ])
   })
   it('says when retries are exhausted and what happens next', () => {

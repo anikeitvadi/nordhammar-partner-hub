@@ -1,80 +1,157 @@
 'use client'
-import { useActionState } from 'react'
+import { useActionState, useState, useTransition } from 'react'
 import Link from 'next/link'
-import type { Region } from '@intake/contracts'
+import type { Domain, Region } from '@intake/contracts'
 import { checkMatches } from './actions'
-import { submitRequestAction } from '@/features/requests/actions'
-import type { CheckResult, Echo } from './types'
+import { resubmitRequestAction, saveDraftAction, submitRequestAction } from '@/features/requests/actions'
+import { CUSTOMER_TYPES, INDUSTRIES, PAYMENT_TERMS, SECONDARY_IDS, SUPPLIER_TYPES, type FormValues } from '@/features/requests/payload'
+import type { CheckResult } from './types'
 
-// The one client island in the intake path. Form state is browser state (fine). The result is whatever the Server
-// Action returned; nothing here mirrors server business state, and nothing here decides anything.
-const TAX_LABEL: Record<string, string> = { BR: 'CNPJ', IN: 'GSTIN', US: 'EIN', CN: 'USCC', EU: 'VAT number' }
+// WF-04 + WF-05 as one island. Step 1 is identity: as soon as the legal name and the tax ID are there, the hub is
+// checked (on blur, before the rest of the form exists). Step 2 opens only when the check allows it. Form state is
+// browser state; every decision is the Server Action's, which re-derives the principal and re-validates everything.
+
+const TAX_LABEL: Record<string, string> = { BR: 'CNPJ', IN: 'GSTIN', US: 'EIN', CN: 'USCC', DE: 'VAT number', FR: 'VAT number', NL: 'VAT number', SE: 'VAT number', IT: 'VAT number', ES: 'VAT number', NO: 'VAT number', PT: 'VAT number', AT: 'VAT number', BE: 'VAT number', DK: 'VAT number', FI: 'VAT number', PL: 'VAT number', IE: 'VAT number' }
 const COUNTRIES: Record<Region, { code: string; name: string }[]> = {
   BR: [{ code: 'BR', name: 'Brazil' }], US: [{ code: 'US', name: 'United States' }], IN: [{ code: 'IN', name: 'India' }], CN: [{ code: 'CN', name: 'China' }],
-  EU: [{ code: 'DE', name: 'Germany' }, { code: 'FR', name: 'France' }, { code: 'NL', name: 'Netherlands' }, { code: 'SE', name: 'Sweden' }, { code: 'IT', name: 'Italy' }, { code: 'ES', name: 'Spain' }, { code: 'NO', name: 'Norway' }, { code: 'PT', name: 'Portugal' }],
+  EU: [{ code: 'DE', name: 'Germany' }, { code: 'FR', name: 'France' }, { code: 'NL', name: 'Netherlands' }, { code: 'SE', name: 'Sweden' }, { code: 'IT', name: 'Italy' }, { code: 'ES', name: 'Spain' }, { code: 'NO', name: 'Norway' }, { code: 'PT', name: 'Portugal' }, { code: 'FI', name: 'Finland' }, { code: 'DK', name: 'Denmark' }],
+}
+// Address fields per region, in the order people write them locally.
+const ADDRESS: Record<Region, { key: string; label: string; required?: boolean; width?: 'short' }[]> = {
+  BR: [{ key: 'postalCode', label: 'CEP', width: 'short' }, { key: 'street', label: 'Street', required: true }, { key: 'number', label: 'Number', width: 'short' }, { key: 'complement', label: 'Complemento' }, { key: 'district', label: 'Bairro', required: true }, { key: 'city', label: 'City', required: true }, { key: 'regionCode', label: 'UF', required: true, width: 'short' }],
+  US: [{ key: 'street', label: 'Street', required: true }, { key: 'number', label: 'Suite / unit', width: 'short' }, { key: 'city', label: 'City', required: true }, { key: 'regionCode', label: 'State', required: true, width: 'short' }, { key: 'postalCode', label: 'ZIP', width: 'short' }],
+  IN: [{ key: 'street', label: 'Street', required: true }, { key: 'number', label: 'Building', width: 'short' }, { key: 'district', label: 'Area' }, { key: 'city', label: 'City', required: true }, { key: 'regionCode', label: 'State', required: true, width: 'short' }, { key: 'postalCode', label: 'PIN', width: 'short' }],
+  CN: [{ key: 'regionCode', label: 'Province', width: 'short' }, { key: 'city', label: 'City', required: true }, { key: 'district', label: 'District' }, { key: 'street', label: 'Street', required: true }, { key: 'number', label: 'Number', width: 'short' }, { key: 'postalCode', label: 'Postal code', width: 'short' }],
+  EU: [{ key: 'street', label: 'Street', required: true }, { key: 'number', label: 'Number', width: 'short' }, { key: 'postalCode', label: 'Postal code', width: 'short' }, { key: 'city', label: 'City', required: true }],
 }
 
-export function IntakeForm({ regions, initialRegion, initialName }: { regions: Region[]; initialRegion: Region; initialName: string }) {
-  const [result, action, pending] = useActionState<CheckResult | null, FormData>(checkMatches, null)
+type Props = { domain: Domain; regions: Region[]; initialRegion: Region; initial: FormValues; mode: 'new' | 'resubmit'; requestId?: string; error?: string }
+
+export function IntakeForm({ domain, regions, initialRegion, initial, mode, requestId, error }: Props) {
+  const [region, setRegion] = useState<Region>(initialRegion)
+  const [country, setCountry] = useState(initial.country || COUNTRIES[initialRegion][0].code)
+  const [legalName, setLegalName] = useState(initial.legalName ?? '')
+  const [taxId, setTaxId] = useState(initial.taxId ?? '')
+  const [result, check, checking] = useActionState<CheckResult | null, FormData>(checkMatches, null)
+  const [, start] = useTransition()
+  const [choice, setChoice] = useState<{ dupChoice: 'new' | 'new_in_group' | 'not_related'; linkedGoldenId: string | null } | null>(mode === 'resubmit' ? { dupChoice: 'new', linkedGoldenId: null } : null)
+  const [shipTo, setShipTo] = useState(Boolean(initial['ship.street']))
+  const w = domain === 'customer' ? 'customer' : 'supplier'
+
+  const runCheck = () => {
+    if (!legalName.trim() || !taxId.trim()) return
+    const fd = new FormData()
+    fd.set('domain', domain); fd.set('region', region); fd.set('country', country); fd.set('legalName', legalName); fd.set('taxId', taxId)
+    start(() => check(fd))
+    setChoice(null)
+  }
+  const onRegion = (r: Region) => { setRegion(r); setCountry(COUNTRIES[r][0].code); setChoice(null) }
+  const stepTwoOpen = mode === 'resubmit' || (choice !== null && result !== null && (result.kind === 'clear' || result.kind === 'related' || result.kind === 'compare'))
+  const action = mode === 'resubmit' ? resubmitRequestAction : submitRequestAction
+
   return (
-    <>
-    <form action={action} className="stack">
-      <label>Region
-        <select name="region" defaultValue={initialRegion} disabled={regions.length === 1}>{regions.map((r) => <option key={r} value={r}>{r}</option>)}</select>
-        {regions.length === 1 ? <input type="hidden" name="region" value={initialRegion} /> : null}
-      </label>
-      <label>Country
-        <select name="country" defaultValue={COUNTRIES[initialRegion][0].code}>{regions.flatMap((r) => COUNTRIES[r]).map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}</select>
-      </label>
-      <label>Legal name <input name="legalName" defaultValue={initialName} required /></label>
-      <label>Tax ID ({TAX_LABEL[initialRegion]}) <input name="taxId" required /></label>
-      <label>Bill-to street <input name="street" placeholder="Rua Demo, 20" /></label>
-      <label>City <input name="city" required /></label>
-      <button type="submit" disabled={pending}>{pending ? 'Checking the hub…' : 'Check for matches'}</button>
+    <form action={action} className="intake">
+      <input type="hidden" name="domain" value={domain} />
+      <input type="hidden" name="region" value={region} />
+      {requestId ? <input type="hidden" name="requestId" value={requestId} /> : null}
+      {choice ? <><input type="hidden" name="dupChoice" value={choice.dupChoice} />{choice.linkedGoldenId ? <input type="hidden" name="linkedGoldenId" value={choice.linkedGoldenId} /> : null}</> : null}
+      {error ? <p role="alert" className="panel error">{error === 'taxid' ? 'That tax ID is not valid for the country.' : error === 'reason' ? 'Say why this is not a duplicate.' : error}</p> : null}
+
+      <fieldset className="card step">
+        <legend>1 · Who</legend>
+        <div className="grid2">
+          <label>Region
+            <select value={region} onChange={(e) => onRegion(e.target.value as Region)} disabled={regions.length === 1}>{regions.map((r) => <option key={r} value={r}>{r}</option>)}</select>
+          </label>
+          <label>Country
+            <select name="country" value={country} onChange={(e) => { setCountry(e.target.value); setChoice(null) }}>{COUNTRIES[region].map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}</select>
+          </label>
+        </div>
+        <label>Legal name <span className="req">*</span><input name="legalName" value={legalName} onChange={(e) => setLegalName(e.target.value)} onBlur={runCheck} required autoFocus={mode === 'new'} /></label>
+        {region === 'CN' ? <label>Legal name in Chinese <span className="req">*</span><input name="localName" defaultValue={initial.localName} lang="zh" /></label> : null}
+        <div className="grid2">
+          <label>{TAX_LABEL[country] ?? 'Tax ID'} <span className="req">*</span><input name="taxId" value={taxId} onChange={(e) => setTaxId(e.target.value)} onBlur={runCheck} required inputMode="text" /></label>
+          {(SECONDARY_IDS[region] ?? []).map((sec) => <label key={sec.scheme}>{sec.label}{sec.required ? <span className="req"> *</span> : null}<input name={`id_${sec.scheme}`} defaultValue={initial[`id_${sec.scheme}`]} /></label>)}
+          <label>DUNS <span className="muted">optional</span><input name="duns" defaultValue={initial.duns} placeholder="9 digits" maxLength={11} /></label>
+        </div>
+        <p className="muted small">The hub is checked as soon as the legal name and the tax ID are filled in, before anything else. {checking ? 'Checking the hub…' : null}</p>
+        {mode === 'new' ? <button type="button" className="secondary" onClick={runCheck} disabled={checking || !legalName.trim() || !taxId.trim()}>Check the hub</button> : null}
+        {result ? <Matches result={result} domain={domain} choose={(c) => setChoice(c)} chosen={choice} /> : null}
+      </fieldset>
+
+      <fieldset className={`card step ${stepTwoOpen ? '' : 'locked'}`} disabled={!stepTwoOpen}>
+        <legend>2 · Details</legend>
+        <div className="grid3">
+          <label>{domain === 'customer' ? 'Customer type' : 'Supplier category'}<select name="typeCode" defaultValue={initial.typeCode ?? ''}><option value="">—</option>{(domain === 'customer' ? CUSTOMER_TYPES : SUPPLIER_TYPES).map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
+          <label>Industry<select name="industry" defaultValue={initial.industry ?? ''}><option value="">—</option>{INDUSTRIES.map((i) => <option key={i} value={i}>{i}</option>)}</select></label>
+          <label>Payment terms <span className="muted">if known</span><select name="paymentTerms" defaultValue={initial.paymentTerms ?? ''}><option value="">finance decides</option>{PAYMENT_TERMS.map((t) => <option key={t} value={t}>{t}</option>)}</select></label>
+        </div>
+        <h3>{domain === 'customer' ? 'Bill-to address' : 'Remit-to address'} <span className="req">*</span></h3>
+        <AddressFields prefix="main" region={region} country={country} initial={initial} />
+        {domain === 'customer' ? (
+          shipTo ? <><h3>Ship-to address <button type="button" className="link" onClick={() => setShipTo(false)}>remove</button></h3><AddressFields prefix="ship" region={region} country={country} initial={initial} /></>
+          : <p><button type="button" className="link" onClick={() => setShipTo(true)}>+ Add a ship-to address</button></p>
+        ) : null}
+        <h3>Contact and reason</h3>
+        <div className="grid2">
+          <label>Contact name<input name="contactName" defaultValue={initial.contactName} /></label>
+          <label>Contact email<input name="contactEmail" type="email" defaultValue={initial.contactEmail} /></label>
+        </div>
+        <div className="grid2 reason">
+          <label>Why is this {w} needed? <span className="req">*</span><input name="reasonText" defaultValue={initial.reasonText} placeholder={domain === 'customer' ? 'New quote, new project, new site…' : 'New part, second source, new service…'} required={stepTwoOpen} /></label>
+          <label>Quote / PO reference <span className="muted">optional</span><input name="reasonReference" defaultValue={initial.reasonReference} placeholder="Q-2291" /></label>
+        </div>
+        {choice?.dupChoice === 'not_related' ? <label>Why is this not a duplicate? <span className="req">*</span> <span className="muted">the reviewer sees this next to the match</span><input name="dupReason" required /></label> : null}
+        <div className="row">
+          <button type="submit">{mode === 'resubmit' ? 'Submit' : 'Submit request'}</button>
+          {mode === 'new' ? <button type="submit" formAction={saveDraftAction} className="secondary">Save draft</button> : null}
+          <span className="muted">Nothing is created here. A reviewer approves; the ERP assigns the number.</span>
+        </div>
+      </fieldset>
     </form>
-    {result ? <Matches result={result} /> : null}
-    </>
   )
 }
 
-// The second form. Submission re-sends the echoed fields; the Server Action re-validates every one of them and
-// re-derives the principal, so these hidden inputs are a convenience for the user, never a source of truth.
-function SubmitForm({ echo, dupChoice, linkedGoldenId, reasonRequired }: { echo: Echo; dupChoice: 'new' | 'new_in_group' | 'not_related'; linkedGoldenId: string | null; reasonRequired: boolean }) {
+function AddressFields({ prefix, region, country, initial }: { prefix: string; region: Region; country: string; initial: FormValues }) {
   return (
-    <form action={submitRequestAction} className="stack submit">
-      <input type="hidden" name="region" value={echo.region} /><input type="hidden" name="country" value={echo.country} />
-      <input type="hidden" name="legalName" value={echo.legalName} /><input type="hidden" name="taxId" value={echo.taxCanonical} />
-      <input type="hidden" name="street" value={echo.street ?? ''} /><input type="hidden" name="city" value={echo.city} />
-      <input type="hidden" name="dupChoice" value={dupChoice} />{linkedGoldenId ? <input type="hidden" name="linkedGoldenId" value={linkedGoldenId} /> : null}
-      {reasonRequired ? <label>Why is this not a duplicate? (the reviewer sees this next to the match) <input name="dupReason" required /></label> : null}
-      <button type="submit">{dupChoice === 'not_related' ? 'Continue as not related' : dupChoice === 'new_in_group' ? 'Continue as a new company in this group' : 'Submit request'}</button>
-    </form>
+    <div className="addr-grid">
+      <input type="hidden" name={`${prefix}.country`} value={country} />
+      {ADDRESS[region].map((f) => (
+        <label key={f.key} className={f.width === 'short' ? 'short' : undefined}>{f.label}{f.required ? <span className="req"> *</span> : null}<input name={`${prefix}.${f.key}`} defaultValue={initial[`${prefix}.${f.key}`]} /></label>
+      ))}
+    </div>
   )
 }
 
-function Matches({ result }: { result: CheckResult }) {
+type Choice = { dupChoice: 'new' | 'new_in_group' | 'not_related'; linkedGoldenId: string | null }
+
+function Matches({ result, domain, choose, chosen }: { result: CheckResult; domain: Domain; choose: (c: Choice) => void; chosen: Choice | null }) {
+  const path = domain === 'customer' ? '/customers' : '/suppliers'
+  const pick = (c: Choice) => <button type="button" className={chosen?.dupChoice === c.dupChoice ? 'chosen' : 'secondary'} onClick={() => choose(c)}>{c.dupChoice === 'new' ? 'Continue: this is new' : c.dupChoice === 'new_in_group' ? 'Continue as a new company in this group' : 'Not related, continue'}</button>
   switch (result.kind) {
     case 'error': return <p role="alert" className="error">{result.message}</p>
     case 'invalid': return <p role="alert" className="error">{{ missing: 'A tax ID is required.', invalid_format: 'That tax ID is not in the right format for this country.', invalid_checksum: 'That tax ID fails its check digits. Nothing was searched.', unsupported_country: 'That country is not supported yet.' }[result.reason]}</p>
-    case 'exact_visible': return <div className="panel"><strong>This customer already exists.</strong> <Link href={`/customers/${result.candidate.goldenId}`}>{result.candidate.legalName}, {result.candidate.city}</Link>. The request cannot continue; if the record is wrong, request a change instead.</div>
-    case 'exact_foreign': return <div className="panel"><strong>A customer with this tax ID exists in {result.region}.</strong> Contact the {result.region} team. One legal entity is not created twice.</div>
-    case 'related': return <div className="panel"><strong>Same company, different establishment.</strong> {result.candidate.legalName} ({result.candidate.city}) shares the company-level ID{result.candidate.groupName ? `, group ${result.candidate.groupName}` : ''}. Continue as a new company in this group.<SubmitForm echo={result.echo} dupChoice="new_in_group" linkedGoldenId={result.candidate.goldenId} reasonRequired={false} /></div>
-    case 'clear': return <div className="panel"><strong>No match in {result.echo.region}.</strong> This looks new.<SubmitForm echo={result.echo} dupChoice="new" linkedGoldenId={null} reasonRequired={false} /></div>
-    case 'compare': return (
-      <div className="panel">
-        <strong>Possible matches, {result.candidates.length} found.</strong>
-        <ul>{result.candidates.map((c) => <li key={c.goldenId}><Link href={`/customers/${c.goldenId}`}>{c.legalName}</Link>, {c.city}{c.hasTaxId ? '' : ' · no tax ID on file'}{c.groupName ? ` · ${c.groupName}` : ''}</li>)}</ul>
-        {result.outcome.ai === 'available' ? (
-          <div className="proposal">
-            <p><strong>Assessment:</strong> {{ same: 'likely the same legal entity', different: 'likely a different legal entity', unsure: 'cannot be confirmed from the hub record' }[result.outcome.proposal.verdict]}{result.outcome.proposal.golden_id ? ` (${result.outcome.proposal.golden_id})` : ''}. A steward decides; nothing is merged automatically.</p>
-            <ul className="reasons">{result.outcome.proposal.reasons.map((r, i) => <li key={i}>{r.field}: {r.observation}. {r.explanation}</li>)}</ul>
-            <small>model: {result.outcome.model}</small>
-          </div>
-        ) : <p className="muted">Assessment unavailable ({result.outcome.reason}). The steward will compare these by hand.</p>}
-        <p>Choose: open one of these customers to use it (no request), continue as a new company in the same group, or continue as not related with a reason the reviewer will see.</p>
-        <SubmitForm echo={result.echo} dupChoice="new_in_group" linkedGoldenId={result.outcome.ai === 'available' && result.outcome.proposal.golden_id ? result.outcome.proposal.golden_id : result.candidates[0].goldenId} reasonRequired={false} />
-        <SubmitForm echo={result.echo} dupChoice="not_related" linkedGoldenId={result.outcome.ai === 'available' && result.outcome.proposal.golden_id ? result.outcome.proposal.golden_id : result.candidates[0].goldenId} reasonRequired={true} />
-      </div>
-    )
+    case 'exact_visible': return <div className="panel stop"><strong>This {domain} already exists.</strong> <Link href={`${path}?id=${result.candidate.goldenId}`}>{result.candidate.legalName}, {result.candidate.city}</Link>. The request cannot continue; if the record is wrong, request a change instead.</div>
+    case 'exact_foreign': return <div className="panel stop"><strong>A {domain} with this tax ID exists in {result.region}.</strong> Contact the {result.region} team. One legal entity is not created twice.</div>
+    case 'related': return <div className="panel"><strong>Same company, different establishment.</strong> {result.candidate.legalName} ({result.candidate.city}) shares the company-level ID{result.candidate.groupName ? `, group ${result.candidate.groupName}` : ''}. <div className="row">{pick({ dupChoice: 'new_in_group', linkedGoldenId: result.candidate.goldenId })}</div></div>
+    case 'clear': return <div className="panel ok"><strong>No match in {result.echo.region}.</strong> This looks new. <div className="row">{pick({ dupChoice: 'new', linkedGoldenId: null })}</div></div>
+    case 'compare': {
+      const linked = result.outcome.ai === 'available' && result.outcome.proposal.golden_id ? result.outcome.proposal.golden_id : result.candidates[0].goldenId
+      return (
+        <div className="panel">
+          <strong>Possible matches, {result.candidates.length} found.</strong>
+          <ul>{result.candidates.map((c) => <li key={c.goldenId}><Link href={`${path}?id=${c.goldenId}`}>{c.legalName}</Link>, {c.city}{c.hasTaxId ? '' : ' · no tax ID on file'}{c.groupName ? ` · ${c.groupName}` : ''}</li>)}</ul>
+          {result.outcome.ai === 'available' ? (
+            <div className="proposal">
+              <ul className="reasons">{result.outcome.proposal.reasons.map((r, i) => <li key={i}>{r.field}: {r.observation}. {r.explanation}</li>)}</ul>
+              <p><strong>Assessment:</strong> {{ same: 'likely the same legal entity', different: 'likely a different legal entity', unsure: 'cannot be confirmed from the hub record' }[result.outcome.proposal.verdict]}{result.outcome.proposal.golden_id ? ` (${result.outcome.proposal.golden_id})` : ''}. <span className="badge">AI</span> A steward decides; nothing is merged automatically.</p>
+              <small className="muted">model: {result.outcome.model}</small>
+            </div>
+          ) : <p className="muted">Assessment unavailable ({result.outcome.reason}). The steward will compare these by hand.</p>}
+          <p>Open one of these to use it (no request), or continue:</p>
+          <div className="row">{pick({ dupChoice: 'new_in_group', linkedGoldenId: linked })}{pick({ dupChoice: 'not_related', linkedGoldenId: linked })}</div>
+        </div>
+      )
+    }
   }
 }

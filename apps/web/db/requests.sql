@@ -1,6 +1,7 @@
 -- Intake requests. The database owns accepted business state and the timeline; the Workflow owns execution only.
 create table if not exists requests (
   request_id text primary key,
+  domain text not null default 'customer' check (domain in ('customer','supplier')),
   region text not null,
   requester_email text not null,
   current_revision int not null default 0,
@@ -55,9 +56,11 @@ create index if not exists request_events_by_request on request_events (request_
 -- One open request per comparable identity. Prevents two parallel requests for the same tax ID and holds the
 -- identity between ERP creation and the next hub load, when golden search cannot see it yet.
 create table if not exists identity_reservations (
-  tax_canonical text primary key,
+  domain text not null check (domain in ('customer','supplier')),
+  tax_canonical text not null,
   request_id text not null references requests(request_id),
-  reserved_at timestamptz not null default now()
+  reserved_at timestamptz not null default now(),
+  primary key (domain, tax_canonical)
 );
 
 -- Durable record of "the workflow needs to be told". The decision is accepted in the same transaction that writes this

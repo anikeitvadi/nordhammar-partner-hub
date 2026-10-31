@@ -14,7 +14,8 @@ function statementsOf(file: string): string[] {
   return noComments.split(';').map((chunk) => chunk.trim()).filter(Boolean)
 }
 
-for (const file of ['./schema.sql', './requests.sql']) {
+const files = process.argv.includes('--reset') ? ['./reset.sql', './schema.sql', './requests.sql'] : ['./schema.sql', './requests.sql']
+for (const file of files) {
   const statements = statementsOf(file)
   for (const s of statements) await sql.query(s)
   console.info(`${file}: applied ${statements.length} statements`)

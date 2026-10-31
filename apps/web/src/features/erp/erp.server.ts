@@ -5,7 +5,7 @@ import { getVercelOidcToken } from '@vercel/oidc'
 // Boundary 3 of 3. The only network path to the ERP stub. Classifies every outcome so the workflow step can decide
 // what to retry and what to stop on. 'transient' is the only category the caller may retry with the SAME key and hash.
 export type ErpResult =
-  | { outcome: 'created' | 'replayed'; erpCustomerNumber: string }
+  | { outcome: 'created' | 'replayed'; erpNumber: string }
   | { outcome: 'rejected'; category: 'business' | 'auth' | 'conflict'; reason: string }
   | { outcome: 'transient'; reason: string }
 
@@ -24,14 +24,16 @@ async function config() {
   return { base: base.replace(/\/$/, ''), token, mode }
 }
 
-export async function createCustomer(command: ErpCreateCommand, opts: { timeoutMs?: number } = {}): Promise<ErpResult> {
+// One function, two ERP masters: the payload's domain picks the customer or the supplier route on the stub.
+export async function createParty(command: ErpCreateCommand, opts: { timeoutMs?: number } = {}): Promise<ErpResult> {
   const { base, token } = await config()
   const ctrl = new AbortController(); const timer = setTimeout(() => ctrl.abort(), opts.timeoutMs ?? 8000)
   try {
-    const res = await fetch(`${base}/api/customers`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` }, body: JSON.stringify(command), signal: ctrl.signal, cache: 'no-store' })
-    const body = (await res.json().catch(() => ({}))) as { customerNumber?: string; reason?: string }
-    if (res.status === 201 && body.customerNumber) return { outcome: 'created', erpCustomerNumber: body.customerNumber }
-    if (res.status === 200 && body.customerNumber) return { outcome: 'replayed', erpCustomerNumber: body.customerNumber }
+    const res = await fetch(`${base}/api/${command.payload.domain === 'customer' ? 'customers' : 'suppliers'}`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` }, body: JSON.stringify(command), signal: ctrl.signal, cache: 'no-store' })
+    const body = (await res.json().catch(() => ({}))) as { number?: string; customerNumber?: string; reason?: string }
+    const num = body.number ?? body.customerNumber
+    if (res.status === 201 && num) return { outcome: 'created', erpNumber: num }
+    if (res.status === 200 && num) return { outcome: 'replayed', erpNumber: num }
     if (res.status === 409) return { outcome: 'rejected', category: 'conflict', reason: body.reason ?? 'same operation key with a different payload' }
     if (res.status === 422) return { outcome: 'rejected', category: 'business', reason: body.reason ?? 'rejected by the ERP' }
     if (res.status === 401 || res.status === 403) return { outcome: 'rejected', category: 'auth', reason: 'ERP rejected the service credential' }
@@ -42,10 +44,10 @@ export async function createCustomer(command: ErpCreateCommand, opts: { timeoutM
 }
 
 // Read-only reconciliation: "did it happen?" without the workflow. 404 is not proof a timed-out call cannot still commit.
-export async function lookupOperation(operationKey: string): Promise<{ found: true; customerNumber: string | null; status: string } | { found: false }> {
+export async function lookupOperation(operationKey: string): Promise<{ found: true; number: string | null; status: string } | { found: false }> {
   const { base, token } = await config()
   const res = await fetch(`${base}/api/operations/${encodeURIComponent(operationKey)}`, { headers: { authorization: `Bearer ${token}` }, cache: 'no-store' })
   if (res.status === 404) return { found: false }
-  const body = (await res.json()) as { customerNumber: string | null; status: string }
-  return { found: true, customerNumber: body.customerNumber, status: body.status }
+  const body = (await res.json()) as { number?: string | null; customerNumber?: string | null; status: string }
+  return { found: true, number: body.number ?? body.customerNumber ?? null, status: body.status }
 }

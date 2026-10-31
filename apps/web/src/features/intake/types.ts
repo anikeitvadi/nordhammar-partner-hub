@@ -1,7 +1,7 @@
-import type { ProposalOutcome, Region } from '@intake/contracts'
+import type { Domain, ProposalOutcome, Region } from '@intake/contracts'
 
 // What the form island is allowed to know. No rows, no foreign identities, no amounts.
-export type Echo = { region: Region; country: string; legalName: string; city: string; street: string | null; taxCanonical: string }
+export type Echo = { domain: Domain; region: Region; country: string; legalName: string; city: string; street: string | null; taxCanonical: string }
 export type CheckResult =
   | { kind: 'error'; message: string }
   | { kind: 'invalid'; reason: 'missing' | 'invalid_format' | 'invalid_checksum' | 'unsupported_country' }

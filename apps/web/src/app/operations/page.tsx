@@ -14,13 +14,13 @@ export default async function OperationsPage({ searchParams }: { searchParams: P
     <section>
       <h1>Operations</h1>
       {msg ? <p className="panel">{msg}</p> : null}
-      <form action={dailyLoadAction} className="row"><button type="submit">Run the daily hub load</button><span className="muted">Loads ERP-created customers into the hub and clears the search cache for their regions.</span></form>
+      <form action={dailyLoadAction} className="row"><button type="submit">Run the daily hub load</button><span className="muted">Loads ERP-created partners into the hub and clears the search cache for their regions.</span></form>
       <h2>Needs attention · {rows.length}</h2>
       {rows.length === 0 ? <p>Nothing stopped, nothing pending.</p> : (
-        <table className="results"><thead><tr><th>Request</th><th>Customer</th><th>Region</th><th>State</th><th>Pending deliveries</th><th>Actions</th></tr></thead>
+        <table className="results"><thead><tr><th>Request</th><th>Name</th><th>Domain</th><th>Region</th><th>State</th><th>Pending deliveries</th><th>Actions</th></tr></thead>
           <tbody>{rows.map((r) => (
             <tr key={r.requestId}>
-              <td><Link href={`/requests/${r.requestId}`}>{r.requestId}</Link></td><td>{r.legalName}</td><td>{r.region}</td>
+              <td><Link href={`/requests/${r.requestId}`}>{r.requestId}</Link></td><td>{r.legalName}</td><td>{r.domain}</td><td>{r.region}</td>
               <td><StatusBadge state={r.state} />{r.state.kind === 'stopped' ? <div className="muted">{r.state.category}, effect {r.state.effect === 'unknown' ? 'unknown' : 'none'}: {r.state.reason}</div> : null}</td>
               <td>{r.pendingDeliveries.length ? r.pendingDeliveries.map((d, i) => <div key={i}>{d.kind} · {d.attempts} attempt(s){d.lastError ? ` · ${d.lastError}` : ''}</div>) : '—'}</td>
               <td className="actions">

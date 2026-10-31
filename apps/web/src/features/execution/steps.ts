@@ -1,7 +1,7 @@
 import { RetryableError, getStepMetadata } from 'workflow'
-import { operationKey, parseOperationKey, transition, type CanonicalPayload, type ErpCreateCommand, type RequestState, payloadHash } from '@intake/contracts'
+import { operationKey, parseOperationKey, transition, type CanonicalPayload, type Domain, type ErpCreateCommand, type RequestState, payloadHash } from '@intake/contracts'
 import { sql } from '@/lib/db'
-import { createCustomer, type ErpResult } from '@/features/erp/erp.server'
+import { createParty, type ErpResult } from '@/features/erp/erp.server'
 
 export type WakePayload = { decisionId: string; decision: 'approve' | 'decline' | 'send_back' }
 
@@ -21,12 +21,12 @@ export async function markWakeDeliveredStep(requestId: string, revision: number,
 export async function startCreatingStep(requestId: string, revision: number, workflowRunId: string): Promise<ErpCreateCommand | null> {
   'use step'
   const db = sql()
-  const rows = await db`select r.state, v.payload, v.payload_hash from requests r join request_revisions v on v.request_id = r.request_id and v.revision = ${revision} where r.request_id = ${requestId} and r.current_revision = ${revision}`
+  const rows = await db`select r.state, r.domain, v.payload, v.payload_hash from requests r join request_revisions v on v.request_id = r.request_id and v.revision = ${revision} where r.request_id = ${requestId} and r.current_revision = ${revision}`
   const r = rows[0]
   if (!r) return null
   const state = r.state as RequestState
   const payload = r.payload as CanonicalPayload
-  const key = operationKey(requestId, revision)
+  const key = operationKey(r.domain as Domain, requestId, revision)
   if (state.kind === 'creating' && state.operationKey === key) return { operationKey: key, payloadHash: r.payload_hash as string, payload } // resumed after a crash: same command
   const t = transition(state, { type: 'start_creating', operationKey: key })
   if (!t.ok) return null
@@ -47,14 +47,14 @@ export async function erpWriteStep(command: ErpCreateCommand): Promise<ErpResult
   'use step'
   const { attempt } = getStepMetadata()
   await recordAttempt(command.operationKey, { attempt, phase: 'sent' })
-  const result = await createCustomer(command, { timeoutMs: 8000 })
+  const result = await createParty(command, { timeoutMs: 8000 })
   if (result.outcome === 'transient') {
     // The SDK retries immediately by default and has no built-in backoff; attempt-based delays: 1s, 2s, 4s.
     const retryAfterMs = 1000 * 2 ** Math.max(0, attempt - 1)
     await recordAttempt(command.operationKey, { attempt, phase: 'transient', reason: result.reason, retryAfterMs: attempt <= erpWriteStep.maxRetries ? retryAfterMs : null })
     throw new RetryableError(result.reason, { retryAfter: retryAfterMs })
   }
-  await recordAttempt(command.operationKey, { attempt, phase: result.outcome, erpCustomerNumber: 'erpCustomerNumber' in result ? result.erpCustomerNumber : null, reason: 'reason' in result ? result.reason : null })
+  await recordAttempt(command.operationKey, { attempt, phase: result.outcome, erpNumber: 'erpNumber' in result ? result.erpNumber : null, reason: 'reason' in result ? result.reason : null })
   return result
 }
 
@@ -81,7 +81,7 @@ export async function finishStep(requestId: string, revision: number, result: Er
   switch (result.outcome) {
     case 'created':
     case 'replayed':
-      t = transition(state, { type: 'created', erpCustomerNumber: result.erpCustomerNumber, createdAt: now }); break
+      t = transition(state, { type: 'created', erpNumber: result.erpNumber, createdAt: now }); break
     case 'rejected':
       t = transition(state, { type: 'stop', category: result.category, effect: 'no_effect', reason: result.reason }); break
     case 'transient':
