@@ -10,11 +10,11 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "check:boundaries": "vitest run src/boundaries.test.ts",
-    "db:schema": "tsx db/apply-schema.ts",
-    "db:seed": "tsx db/seed.ts",
+    "db:schema": "tsx db/apply-schema.mts",
+    "db:seed": "tsx db/seed.mts",
     "eval:mock": "vitest run --config vitest.eval.config.mts",
     "eval:live": "vitest run --config vitest.live.config.mts",
-    "db:users": "tsx db/create-users.ts",
+    "db:users": "tsx db/create-users.mts",
     "test:workflow": "vitest run --config vitest.workflow.config.mts"
   },
   "dependencies": {
