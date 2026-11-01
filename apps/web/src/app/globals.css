@@ -205,13 +205,26 @@ button.small, .button.small { height: 30px; padding: 0 12px; font-size: .85rem; 
 .ai-card .ai-verdict { font-size: 1.05rem; margin: 4px 0 6px; color: var(--fg); }
 .ai-card .reasons { margin: 0 0 8px; padding-left: 18px; }
 
+/* step 2 opens its height with the travel curve; its content fades in only after the height has finished */
+.step-body { display: grid; grid-template-rows: 0fr; transition: grid-template-rows var(--t-travel) var(--ease-travel); }
+.step-body > div { min-height: 0; overflow: hidden; opacity: 0; transition: opacity var(--t-color) var(--ease-arrive); padding: 0 4px; margin: 0 -4px; }
+.step-body.open { grid-template-rows: 1fr; }
+.step-body.open > div { opacity: 1; transition-delay: var(--t-travel); overflow: visible; }
+.step.locked .step-title { margin-bottom: 0; }
+/* change only what changed: the badge and the sentence crossfade in place, in a fixed slot */
+.status-line { min-height: 24px; }
+.status-sentence { min-height: 1.55em; }
+.arrive-fast { display: inline; animation: fade-in var(--t-color) var(--ease-arrive) both; }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+.payoff { font-size: 1.1rem; }
+.payoff .roll { font-variant-numeric: tabular-nums; }
 /* arrivals: a result, a toast-like panel, a new timeline row (app-motion-plan.md) */
 .arrive { animation: arrive var(--t-arrive) var(--ease-arrive) both; }
 @keyframes arrive { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
 .rise { animation: rise var(--t-arrive) var(--ease-arrive) both; }
 @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 .timeline li.new { display: grid; animation: row-open var(--t-travel) var(--ease-travel) both; }
-.timeline li.new > * { animation: arrive var(--t-arrive) var(--ease-arrive) both; animation-delay: var(--t-travel); }
+.timeline li.new > * { min-height: 0; overflow: hidden; animation: arrive var(--t-arrive) var(--ease-arrive) both; animation-delay: var(--t-travel); }
 @keyframes row-open { from { grid-template-rows: 0fr; padding-top: 0; padding-bottom: 0; } to { grid-template-rows: 1fr; } }
 .stagger > * { animation: arrive var(--t-arrive) var(--ease-arrive) both; animation-delay: calc(var(--i, 0) * 50ms); }
 /* the in-flight arc: turns only while something is being created */

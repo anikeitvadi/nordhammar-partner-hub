@@ -1,9 +1,11 @@
 'use client'
 import { Fragment, useEffect, useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import type { Domain, RequestState } from '@intake/contracts'
 import { StatusBadge, describeEvent, describeState, isLive, technicalEvent, type TimelineEvent } from './status'
 import { LocalTime } from '@/features/ui/time.client'
+import { RollingNumber } from '@/features/ui/rolling-number.client'
 
 type Snapshot = { state: RequestState; revision: number; updatedAt: string; events: TimelineEvent[] }
 
@@ -11,11 +13,16 @@ type Snapshot = { state: RequestState; revision: number; updatedAt: string; even
 // kind changes, the server-rendered panels (number, stop reason) are refreshed too. Nothing here is trusted: it is
 // the same scoped read the page did, repeated. Only the status sentence is a live region; the timeline is not, so a
 // screen reader hears one sentence per change, not the whole list every 2 s.
-export function LiveStatus({ requestId, domain, initial }: { requestId: string; domain: Domain; initial: Snapshot }) {
+export function LiveStatus({ requestId, domain, erp, initial }: { requestId: string; domain: Domain; erp: string; initial: Snapshot }) {
   const router = useRouter()
   const [snap, setSnap] = useState<Snapshot>(initial)
   const [failures, setFailures] = useState(0)
   const live = isLive(snap.state)
+  // what was already on the page when it loaded never animates; only what arrives while watching does
+  // counted on the rows the list shows (queued emails are not rows), so a row that arrives later is the first 'new' one
+  const [initialEvents] = useState(initial.events.filter((e) => e.kind !== 'email_queued').length)
+  const [landed] = useState(initial.state.kind === 'created')
+  const creating = snap.state.kind === 'approved' || snap.state.kind === 'creating'
 
   useEffect(() => {
     if (!live) return
@@ -42,12 +49,15 @@ export function LiveStatus({ requestId, domain, initial }: { requestId: string; 
   const emails = snap.events.some((e) => e.kind === 'email_queued')
   return (
     <>
-      <p><StatusBadge state={snap.state} />{snap.revision > 1 ? <span className="muted"> · version {snap.revision}</span> : null}{live ? <span className="muted small"> · {failures >= 3 ? 'Lost connection, retrying…' : 'Updates automatically'}</span> : null}</p>
-      <p aria-live="polite" role="status">{describeState(snap.state, domain)}</p>
+      <p className="status-line"><span key={snap.state.kind} className="arrive-fast"><StatusBadge state={snap.state} /></span>{snap.revision > 1 ? <span className="muted"> · version {snap.revision}</span> : null}{live ? <span className="muted small"> · {failures >= 3 ? 'Lost connection, retrying…' : 'Updates automatically'}</span> : null}</p>
+      <p aria-live="polite" role="status" className="status-sentence">{creating ? <span className="arc" aria-hidden="true" /> : null}<span key={snap.state.kind} className="arrive-fast">{describeState(snap.state, domain)}</span></p>
       <h2>Timeline</h2>
       <ol className="timeline">
-        {snap.events.filter((e) => e.kind !== 'email_queued').map((e, i) => <li key={i}><LocalTime iso={e.at} />{describeEvent(e)}</li>)}
+        {snap.events.filter((e) => e.kind !== 'email_queued').map((e, i) => <li key={i} className={i >= initialEvents ? 'new' : undefined}><LocalTime iso={e.at} /><span>{describeEvent(e)}</span></li>)}
       </ol>
+      {snap.state.kind === 'created' ? (
+        <p className="panel ok payoff"><strong>{erp} {domain === 'customer' ? 'customer' : 'supplier'} number <RollingNumber value={snap.state.erpNumber} roll={!landed} /></strong>. {snap.state.goldenId ? <Link href={`${domain === 'customer' ? '/customers' : '/suppliers'}?id=${snap.state.goldenId}`}>Open the hub record {snap.state.goldenId}</Link> : 'It appears in search after the next hub load (usually overnight). Until then this page is the record.'}</p>
+      ) : null}
       {emails ? <p className="muted small">Emails to the requester and the approver team are queued at each step; sending is not part of this build.</p> : null}
       {technical.length ? (
         <details className="tech">

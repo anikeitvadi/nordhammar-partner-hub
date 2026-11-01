@@ -39,7 +39,7 @@ export default async function OperationsPage({ searchParams }: { searchParams: P
   return (
     <section>
       <h1>Operations</h1>
-      {text ? <p className="panel" role="status">{text}</p> : null}
+      {text ? <p className="panel rise" role="status">{text}</p> : null}
       <form action={dailyLoadAction} className="row"><SubmitButton pendingLabel="Loading…">Run the daily hub load</SubmitButton><span className="muted">Loads ERP-created partners into the hub and clears the search cache for their regions.</span></form>
       {process.env.DEMO_CONTROLS_ENABLED === 'true' ? <form action={armLostResponseAction} className="row"><SubmitButton pendingLabel="Arming…" className="secondary">Demo: drop the next ERP response</SubmitButton><span className="muted">The ERP commits the create and we never hear back, once. Watch the retry replay the same number.</span></form> : null}
       <h2>Needs attention</h2>

@@ -18,14 +18,12 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
   const r = await getRequest(principal, id)
   if (!r) notFound()
   const s = r.state
-  const thing = r.domain === 'customer' ? 'customer' : 'supplier'
   const main = r.payload.addresses[0]
   return (
     <section>
       <h1>{r.legalName}</h1>
       <p className="muted"><code>{r.requestId}</code> · <span className="badge">{r.domain === 'customer' ? 'Customer' : 'Supplier'}</span> {r.region} · requested by {r.requesterEmail}</p>
-      <LiveStatus requestId={r.requestId} domain={r.domain} initial={{ state: s, revision: r.revision, updatedAt: r.updatedAt, events: r.events }} />
-      {s.kind === 'created' ? <p className="panel ok"><strong>{r.payload.destination.erp} {thing} number {s.erpNumber}</strong>. {s.goldenId ? <Link href={`${r.domain === 'customer' ? '/customers' : '/suppliers'}?id=${s.goldenId}`}>Open the hub record {s.goldenId}</Link> : 'It appears in search after the next hub load (usually overnight). Until then this page is the record.'}</p> : null}
+      <LiveStatus requestId={r.requestId} domain={r.domain} erp={r.payload.destination.erp} initial={{ state: s, revision: r.revision, updatedAt: r.updatedAt, events: r.events }} />
       {s.kind === 'stopped' ? <p className="panel error"><strong>Stopped.</strong> {s.effect === 'unknown' ? 'The ERP did not answer, so we do not yet know whether it was created. An operator checks with the ERP before anything is retried; no duplicate can be made.' : `${s.reason}. An operator will return this to you to fix.`}</p> : null}
       {s.kind === 'draft' ? <p className="panel">{s.returnedReason ? <><strong>Sent back:</strong> {s.returnedReason} </> : <><strong>Draft.</strong> Only you can see it. </>}{r.requesterEmail === principal.email ? <Link href={`/requests/${r.requestId}/edit`}>{s.returnedReason ? 'Fix and submit again' : 'Open and submit'}</Link> : null}</p> : null}
       <h2>What was submitted</h2>

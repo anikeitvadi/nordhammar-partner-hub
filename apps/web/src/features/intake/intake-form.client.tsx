@@ -96,16 +96,17 @@ export function IntakeForm({ domain, regions, initialRegion, initial, mode, requ
         </div>
         <p className="muted small">The hub is checked as soon as the legal name and the tax ID are filled in, before anything else.</p>
         {mode === 'new' ? <button type="button" className="secondary" onClick={() => void runCheck(true)} disabled={checking || !legalName.trim() || !taxId.trim()}>{checking ? 'Checking…' : 'Check the hub'}</button> : null}
-        <div aria-live="polite">
+        <div aria-live="polite" className="check-slot">
           {checking ? <p className="muted small" role="status">Checking the hub…</p> : null}
           {relocked ? <p className="locked-note" role="status">Step 2 is locked again: the name or tax ID changed and the hub check came back different. Choose again below.</p> : null}
-          {result && !checking ? <Matches result={result} domain={domain} choose={choose} chosen={choice} /> : null}
+          {result && !checking ? <div className="arrive" key={result.kind}><Matches result={result} domain={domain} choose={choose} chosen={choice} /></div> : null}
         </div>
       </fieldset>
 
       {!stepTwoOpen ? <p className="locked-note">{result === null ? 'Fill in the legal name and the tax ID above first. The hub is checked for duplicates before the rest of the form opens.' : result.kind === 'exact_visible' || result.kind === 'exact_foreign' ? 'This request cannot continue: the entity already exists.' : result.kind === 'invalid' || result.kind === 'error' ? 'Fix the tax ID above, then check the hub again.' : 'Pick one of the options above to open the rest of the form.'}</p> : null}
       <fieldset className={`card step ${stepTwoOpen ? '' : 'locked'}`} disabled={!stepTwoOpen}>
         <div className="step-title" ref={stepTwo} tabIndex={-1}>2 · Details</div>
+        <div className={`step-body${stepTwoOpen ? ' open' : ''}`}><div>
         <div className="grid3">
           <label>{domain === 'customer' ? 'Customer type' : 'Supplier category'}<select name="typeCode" defaultValue={initial.typeCode ?? ''}><option value="">—</option>{(domain === 'customer' ? CUSTOMER_TYPES : SUPPLIER_TYPES).map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
           <label>Industry<select name="industry" defaultValue={initial.industry ?? ''}><option value="">—</option>{INDUSTRIES.map((i) => <option key={i} value={i}>{i}</option>)}</select></label>
@@ -132,6 +133,7 @@ export function IntakeForm({ domain, regions, initialRegion, initial, mode, requ
           {mode === 'new' ? <SubmitButton pendingLabel="Saving…" formAction={saveDraftAction} className="secondary">Save draft</SubmitButton> : null}
           <span className="muted">Goes to the review queue. Nothing is created until a reviewer approves.</span>
         </div>
+        </div></div>
       </fieldset>
     </form>
   )
