@@ -164,7 +164,8 @@ h3 { font-family: var(--serif); font-size: 1.1rem; font-weight: 400; margin: 22p
 /* intake form */
 .intake { display: grid; gap: 18px; }
 .step { border: 0; padding: 22px 24px; margin: 0; min-width: 0; }
-.step legend { font-family: var(--serif); font-size: 1.25rem; padding: 0; margin-bottom: 10px; color: var(--fg); float: left; width: 100%; }
+.step { display: block; }
+.step-title { font-family: var(--serif); font-size: 1.25rem; margin: 0 0 10px; color: var(--fg); }
 .step.locked { opacity: .55; }
 .step label { display: grid; gap: 6px; font-size: .85rem; font-weight: 500; color: var(--fg-2); margin: 10px 0; }
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; }

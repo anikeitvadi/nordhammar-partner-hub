@@ -62,7 +62,7 @@ export function IntakeForm({ domain, regions, initialRegion, initial, mode, requ
       {error ? <p role="alert" className="panel error">{error === 'taxid' ? 'That tax ID is not valid for the country.' : error === 'reason' ? 'Say why this is not a duplicate.' : error}</p> : null}
 
       <fieldset className="card step">
-        <legend>1 · Who</legend>
+        <div className="step-title">1 · Who</div>
         <div className="grid2">
           <label>Region
             <select value={region} onChange={(e) => onRegion(e.target.value as Region)} disabled={regions.length === 1}>{regions.map((r) => <option key={r} value={r}>{r}</option>)}</select>
@@ -84,7 +84,7 @@ export function IntakeForm({ domain, regions, initialRegion, initial, mode, requ
       </fieldset>
 
       <fieldset className={`card step ${stepTwoOpen ? '' : 'locked'}`} disabled={!stepTwoOpen}>
-        <legend>2 · Details</legend>
+        <div className="step-title">2 · Details</div>
         <div className="grid3">
           <label>{domain === 'customer' ? 'Customer type' : 'Supplier category'}<select name="typeCode" defaultValue={initial.typeCode ?? ''}><option value="">—</option>{(domain === 'customer' ? CUSTOMER_TYPES : SUPPLIER_TYPES).map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
           <label>Industry<select name="industry" defaultValue={initial.industry ?? ''}><option value="">—</option>{INDUSTRIES.map((i) => <option key={i} value={i}>{i}</option>)}</select></label>
