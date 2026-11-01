@@ -1,13 +1,17 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { BarChart3, BookOpen, ClipboardCheck, FileText, Home, Truck, Users, Wrench } from 'lucide-react'
 
-// The nav marks the section you are in. aria-current is the one source of truth for the highlight.
-export function ShellNav({ items }: { items: { href: string; label: string }[] }) {
+// The rail's sections. One icon set, one size, one stroke; aria-current is the one source of truth for the highlight.
+const ICONS = { home: Home, customers: Users, suppliers: Truck, requests: FileText, reviews: ClipboardCheck, operations: Wrench, reports: BarChart3, how: BookOpen } as const
+export type NavItem = { href: string; label: string; icon: keyof typeof ICONS }
+
+export function ShellNav({ items }: { items: NavItem[] }) {
   const path = usePathname()
   return (
-    <nav className="shell-nav">
-      {items.map((i) => <Link key={i.href} href={i.href} aria-current={path === i.href || path.startsWith(`${i.href}/`) ? 'page' : undefined}>{i.label}</Link>)}
+    <nav className="rail-nav" aria-label="Sections">
+      {items.map((i) => { const Icon = ICONS[i.icon]; const current = i.href === '/' ? path === '/' : path === i.href || path.startsWith(`${i.href}/`); return <Link key={i.href} href={i.href} aria-current={current ? 'page' : undefined}><Icon size={16} strokeWidth={1.75} aria-hidden="true" />{i.label}</Link> })}
     </nav>
   )
 }

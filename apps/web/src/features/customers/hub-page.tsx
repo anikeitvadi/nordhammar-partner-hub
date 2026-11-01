@@ -33,7 +33,6 @@ export async function HubPage({ domain, searchParams }: { domain: Domain; search
           <h1>{w.many}</h1>
           <p>Every {w.one} we already have, in every region. Search before you request a new one.</p>
         </div>
-        <Link href={requestHref} className="button">Request a new {w.one}</Link>
       </header>
       <form method="get" className="hub-search" role="search">
         {regions.length > 1 ? (
