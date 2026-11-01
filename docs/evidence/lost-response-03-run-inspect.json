@@ -1,0 +1,20 @@
+{
+  "runId": "wrun_41M6AHAKHE0GR1QZ9HMTK3H5SD",
+  "status": "completed",
+  "deploymentId": "dpl_7y64Yu66hgXL1nqLN5dfX9nZQbi6",
+  "workflowName": "workflow//./src/features/execution/review.workflow//reviewWorkflow",
+  "specVersion": 8,
+  "input": "🔒 Encrypted",
+  "output": "🔒 Encrypted",
+  "attributes": {},
+  "encryptionPublicKey": "0nvj1wJs/vUxJu4NHDyjOG9mnLgZyxsnMgtqzwZzbAY=",
+  "expiredAt": "2026-11-02T03:09:56.631Z",
+  "startedAt": "2026-11-01T03:09:24.143Z",
+  "completedAt": "2026-11-01T03:09:56.583Z",
+  "createdAt": "2026-11-01T03:09:23.993Z",
+  "updatedAt": "2026-11-01T03:09:56.753Z",
+  "blobStorageBytes": 3563,
+  "streamStorageBytes": 0,
+  "workflowCoreVersion": "5.2.3",
+  "region": "iad1"
+}

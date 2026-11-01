@@ -56,3 +56,13 @@ export async function lookupOperation(operationKey: string): Promise<{ found: tr
   const body = (await res.json()) as { number?: string | null; customerNumber?: string | null; status: string }
   return { found: true, number: body.number ?? body.customerNumber ?? null, status: body.status }
 }
+
+// Demo only: arm the stub's one-shot "drop the next response after commit" switch, with the same credential as the
+// write path. The stub refuses this unless its DEMO_CONTROLS_ENABLED is set. Never part of a real ERP integration.
+export async function armLostResponseFault(): Promise<{ ok: true; armedAt: string | null } | { ok: false; reason: string }> {
+  const { base, token } = await config()
+  const res = await fetch(`${base}/api/demo/faults`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` }, body: JSON.stringify({ lostResponse: true }), cache: 'no-store' })
+  if (!res.ok) return { ok: false, reason: `stub answered ${res.status}` }
+  const body = (await res.json()) as { armedAt: string | null }
+  return { ok: true, armedAt: body.armedAt }
+}

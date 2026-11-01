@@ -5,6 +5,7 @@ import { requirePrincipal } from '@/features/auth/principal.server'
 import { deliverPending } from './deliver.server'
 import { isOperator, reconcile, recoverToDraft } from './operator.server'
 import { runDailyLoad } from '@/features/customers/load.server'
+import { armLostResponseFault } from '@/features/erp/erp.server'
 
 function back(msg: string): never { redirect(`/operations?msg=${encodeURIComponent(msg)}`) }
 
@@ -43,4 +44,14 @@ export async function dailyLoadAction(): Promise<void> {
   for (const region of r.regions) updateTag(`hub:${region}`)
   revalidatePath('/operations')
   back(`hub load: ${r.loaded} customer(s) loaded${r.regions.length ? `, cache cleared for ${r.regions.join(', ')}` : ''}`)
+}
+
+// Demo control: the next successful ERP create loses its response, once. What the room watches: attempt 1 commits
+// and times out from our side, attempt 2 sends the same key, the ERP replays the number, one record.
+export async function armLostResponseAction(): Promise<void> {
+  const principal = await requirePrincipal()
+  if (!isOperator(principal)) back('not an operator')
+  if (process.env.DEMO_CONTROLS_ENABLED !== 'true') back('demo controls are off')
+  const r = await armLostResponseFault()
+  back(r.ok ? `ERP fault armed: the next create drops its response once (armed ${r.armedAt ? new Date(r.armedAt).toLocaleTimeString() : 'now'})` : `could not arm the fault: ${r.reason}`)
 }

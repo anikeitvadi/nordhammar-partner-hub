@@ -112,6 +112,8 @@ button.danger { background: var(--bad); }
 
 /* shell nav */
 .shell-brand span { color: var(--fg-3); font-family: var(--sans); font-size: .9rem; margin-left: 8px; }
+/* APP_VERSION_LABEL: a visible, harmless marker so a rolling release can be seen from the outside (set per deployment) */
+.shell-brand .version { font-style: normal; font-family: var(--mono); font-size: .75rem; margin-left: 10px; padding: 1px 6px; border-radius: 999px; background: var(--warn-soft); color: var(--warn); }
 .shell-nav { display: flex; gap: 18px; }
 .shell-nav a { color: var(--fg-2); font-size: .9rem; }
 .shell-nav a:hover { color: var(--fg); text-decoration: none; }

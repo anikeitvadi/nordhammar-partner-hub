@@ -18,7 +18,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable} ${GeistSerif.variable}`}>
       <body>
         <header className="shell-header">
-          <Link href="/customers" className="shell-brand">Nordhammar <span>Partner Hub</span></Link>
+          <Link href="/customers" className="shell-brand">Nordhammar <span>Partner Hub</span>{process.env.APP_VERSION_LABEL ? <em className="version">{process.env.APP_VERSION_LABEL}</em> : null}</Link>
           <Suspense fallback={<span className="shell-region">…</span>}>
             <Identity />
           </Suspense>

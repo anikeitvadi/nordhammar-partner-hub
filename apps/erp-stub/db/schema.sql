@@ -12,3 +12,10 @@ create table if not exists operations (
 alter table operations add column if not exists domain text not null default 'customer';
 create sequence if not exists customer_numbers start 26000;
 create sequence if not exists supplier_numbers start 70100;
+-- Demo fault switch (DEMO_CONTROLS_ENABLED=true only). One shot: armed by the operator, consumed by the next successful create.
+create table if not exists demo_faults (
+  id int primary key default 1 check (id = 1),
+  lost_response_armed boolean not null default false,
+  armed_at timestamptz
+);
+insert into demo_faults (id) values (1) on conflict (id) do nothing;

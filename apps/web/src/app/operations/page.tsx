@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { requirePrincipal } from '@/features/auth/principal.server'
 import { isOperator, listAttention } from '@/features/execution/operator.server'
-import { dailyLoadAction, reconcileAction, recoverAction, retryDeliveryAction } from '@/features/execution/actions'
+import { armLostResponseAction, dailyLoadAction, reconcileAction, recoverAction, retryDeliveryAction } from '@/features/execution/actions'
 import { StatusBadge } from '@/features/requests/status'
 
 // Everything here is a read or a replay-safe operation. No path on this page creates a customer.
@@ -15,6 +15,7 @@ export default async function OperationsPage({ searchParams }: { searchParams: P
       <h1>Operations</h1>
       {msg ? <p className="panel">{msg}</p> : null}
       <form action={dailyLoadAction} className="row"><button type="submit">Run the daily hub load</button><span className="muted">Loads ERP-created partners into the hub and clears the search cache for their regions.</span></form>
+      {process.env.DEMO_CONTROLS_ENABLED === 'true' ? <form action={armLostResponseAction} className="row"><button type="submit" className="secondary">Demo: drop the next ERP response</button><span className="muted">The ERP commits the create and we never hear back, once. Watch the retry replay the same number.</span></form> : null}
       <h2>Needs attention · {rows.length}</h2>
       {rows.length === 0 ? <p>Nothing stopped, nothing pending.</p> : (
         <table className="results"><thead><tr><th>Request</th><th>Name</th><th>Domain</th><th>Region</th><th>State</th><th>Pending deliveries</th><th>Actions</th></tr></thead>

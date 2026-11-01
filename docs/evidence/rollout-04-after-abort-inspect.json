@@ -1,0 +1,53 @@
+{
+ "state": "ABORTED",
+ "substate": null,
+ "currentDeployment": {
+  "id": "dpl_7y64Yu66hgXL1nqLN5dfX9nZQbi6",
+  "name": "customer-intake-web",
+  "url": "customer-intake-71egkhj4l-anakeet.vercel.app",
+  "target": "production",
+  "source": "cli",
+  "createdAt": 1793502063075,
+  "readyState": "READY",
+  "readyStateAt": 1793502083741
+ },
+ "canaryDeployment": {
+  "id": "dpl_dYVTVmb5vBXCzi1dVJxYFUkTeibY",
+  "name": "customer-intake-web",
+  "url": "customer-intake-r8912y1uf-anakeet.vercel.app",
+  "target": "production",
+  "source": "cli",
+  "createdAt": 1793502277726,
+  "readyState": "READY",
+  "readyStateAt": 1793502297092
+ },
+ "queuedDeploymentId": null,
+ "activeStage": null,
+ "nextStage": null,
+ "stages": [
+  {
+   "index": 0,
+   "isFinalStage": false,
+   "targetPercentage": 10,
+   "requireApproval": true,
+   "duration": null
+  },
+  {
+   "index": 1,
+   "isFinalStage": false,
+   "targetPercentage": 50,
+   "requireApproval": true,
+   "duration": null
+  },
+  {
+   "index": 2,
+   "isFinalStage": true,
+   "targetPercentage": 100,
+   "requireApproval": false,
+   "duration": null
+  }
+ ],
+ "advancementType": "manual-approval",
+ "startedAt": 1793502297270,
+ "updatedAt": 1793502451884
+}

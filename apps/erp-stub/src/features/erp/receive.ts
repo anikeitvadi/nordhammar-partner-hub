@@ -11,6 +11,7 @@ import { NeonStore } from '@/features/ledger/neon-store'
 // Fault controls (DEMO_CONTROLS_ENABLED=true only), driven by markers in the legal name so the demo can show each failure:
 //   [TIMEOUT]       hold the response for 20 s (caller times out; the operation is NOT committed)
 //   [LOSTRESPONSE]  commit, then answer 503 (caller retries; replay returns the same number)
+//   or the one-shot switch armed from the operator page (POST /api/demo/faults): same effect, clean legal name.
 //   [REJECT]        business rejection 422 (definitive)
 export async function receive(req: Request, domain: Domain): Promise<Response> {
   const caller = await callerFromRequest(req)
@@ -25,7 +26,12 @@ export async function receive(req: Request, domain: Domain): Promise<Response> {
   if (faults && /\[TIMEOUT\]/i.test(cmd.payload.legalName)) await new Promise((r) => setTimeout(r, 20_000))
   const url = process.env.ERP_DATABASE_URL
   if (!url) return NextResponse.json({ reason: 'stub database not configured' }, { status: 503 })
-  const result = await apply(new NeonStore(url), { operationKey: cmd.operationKey, domain, payloadHash: cmd.payloadHash, legalName: cmd.payload.legalName })
-  if (faults && /\[LOSTRESPONSE\]/i.test(cmd.payload.legalName) && result.status === 201) return NextResponse.json({ reason: 'response lost after commit (demo fault)' }, { status: 503 })
+  const store = new NeonStore(url)
+  const result = await apply(store, { operationKey: cmd.operationKey, domain, payloadHash: cmd.payloadHash, legalName: cmd.payload.legalName })
+  // The create is committed above. Dropping the response now is exactly the failure that creates duplicates in the
+  // real world: the caller never learns the number and retries. The replay rule is what makes the retry safe.
+  if (faults && result.status === 201 && (/\[LOSTRESPONSE\]/i.test(cmd.payload.legalName) || (await store.consumeLostResponse()))) {
+    return NextResponse.json({ reason: 'response lost after commit (demo fault)' }, { status: 503 })
+  }
   return NextResponse.json(result.status === 201 || result.status === 200 ? { number: result.customerNumber, customerNumber: result.customerNumber } : { reason: result.reason }, { status: result.status })
 }
