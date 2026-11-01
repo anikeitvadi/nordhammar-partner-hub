@@ -1,5 +1,5 @@
 'use client'
-import { useActionState, useState, useTransition } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
 import type { Domain, Region } from '@intake/contracts'
 import { checkMatches } from './actions'
@@ -32,18 +32,22 @@ export function IntakeForm({ domain, regions, initialRegion, initial, mode, requ
   const [country, setCountry] = useState(initial.country || COUNTRIES[initialRegion][0].code)
   const [legalName, setLegalName] = useState(initial.legalName ?? '')
   const [taxId, setTaxId] = useState(initial.taxId ?? '')
-  const [result, check, checking] = useActionState<CheckResult | null, FormData>(checkMatches, null)
-  const [, start] = useTransition()
+  // The check is a plain call to the Server Action from the event handler (not a form submission), so the island owns
+  // the pending flag and any failure is shown, never swallowed.
+  const [result, setResult] = useState<CheckResult | null>(null)
+  const [checking, setChecking] = useState(false)
   const [choice, setChoice] = useState<{ dupChoice: 'new' | 'new_in_group' | 'not_related'; linkedGoldenId: string | null } | null>(mode === 'resubmit' ? { dupChoice: 'new', linkedGoldenId: null } : null)
   const [shipTo, setShipTo] = useState(Boolean(initial['ship.street']))
   const w = domain === 'customer' ? 'customer' : 'supplier'
 
-  const runCheck = () => {
-    if (!legalName.trim() || !taxId.trim()) return
+  const runCheck = async () => {
+    if (!legalName.trim() || !taxId.trim() || checking) return
     const fd = new FormData()
     fd.set('domain', domain); fd.set('region', region); fd.set('country', country); fd.set('legalName', legalName); fd.set('taxId', taxId)
-    start(() => check(fd))
-    setChoice(null)
+    setChoice(null); setChecking(true)
+    try { setResult(await checkMatches(null, fd)) }
+    catch (e) { setResult({ kind: 'error', message: `The hub check failed: ${e instanceof Error ? e.message : 'unknown error'}. Try again.` }) }
+    finally { setChecking(false) }
   }
   const onRegion = (r: Region) => { setRegion(r); setCountry(COUNTRIES[r][0].code); setChoice(null) }
   const stepTwoOpen = mode === 'resubmit' || (choice !== null && result !== null && (result.kind === 'clear' || result.kind === 'related' || result.kind === 'compare'))
@@ -67,15 +71,15 @@ export function IntakeForm({ domain, regions, initialRegion, initial, mode, requ
             <select name="country" value={country} onChange={(e) => { setCountry(e.target.value); setChoice(null) }}>{COUNTRIES[region].map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}</select>
           </label>
         </div>
-        <label>Legal name <span className="req">*</span><input name="legalName" value={legalName} onChange={(e) => setLegalName(e.target.value)} onBlur={runCheck} required autoFocus={mode === 'new'} /></label>
+        <label>Legal name <span className="req">*</span><input name="legalName" value={legalName} onChange={(e) => setLegalName(e.target.value)} onBlur={() => void runCheck()} required autoFocus={mode === 'new'} /></label>
         {region === 'CN' ? <label>Legal name in Chinese <span className="req">*</span><input name="localName" defaultValue={initial.localName} lang="zh" /></label> : null}
         <div className="grid2">
-          <label>{TAX_LABEL[country] ?? 'Tax ID'} <span className="req">*</span><input name="taxId" value={taxId} onChange={(e) => setTaxId(e.target.value)} onBlur={runCheck} required inputMode="text" /></label>
+          <label>{TAX_LABEL[country] ?? 'Tax ID'} <span className="req">*</span><input name="taxId" value={taxId} onChange={(e) => setTaxId(e.target.value)} onBlur={() => void runCheck()} required inputMode="text" /></label>
           {(SECONDARY_IDS[region] ?? []).map((sec) => <label key={sec.scheme}>{sec.label}{sec.required ? <span className="req"> *</span> : null}<input name={`id_${sec.scheme}`} defaultValue={initial[`id_${sec.scheme}`]} /></label>)}
           <label>DUNS <span className="muted">optional</span><input name="duns" defaultValue={initial.duns} placeholder="9 digits" maxLength={11} /></label>
         </div>
         <p className="muted small">The hub is checked as soon as the legal name and the tax ID are filled in, before anything else. {checking ? 'Checking the hub…' : null}</p>
-        {mode === 'new' ? <button type="button" className="secondary" onClick={runCheck} disabled={checking || !legalName.trim() || !taxId.trim()}>Check the hub</button> : null}
+        {mode === 'new' ? <button type="button" className="secondary" onClick={() => void runCheck()} disabled={checking || !legalName.trim() || !taxId.trim()}>{checking ? 'Checking…' : 'Check the hub'}</button> : null}
         {result ? <Matches result={result} domain={domain} choose={(c) => setChoice(c)} chosen={choice} /> : null}
       </fieldset>
 
