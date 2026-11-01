@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { typeLabel } from '@/features/requests/payload'
 import type { Domain, Region } from '@intake/contracts'
 import { requirePrincipal } from '@/features/auth/principal.server'
 import { hasAnyRegion, visibleRegions } from '@/features/auth/scope'
@@ -39,7 +40,6 @@ export async function HubPage({ domain, searchParams }: { domain: Domain; search
           <select name="region" defaultValue={region} aria-label="Region">{regions.map((r) => <option key={r} value={r}>{r}</option>)}</select>
         ) : <><input type="hidden" name="region" value={region} /><span className="badge badge-region">Region: {region} (fixed)</span></>}
         <input name="q" defaultValue={q} placeholder="Name, tax ID, DUNS, city or ERP number" aria-label="Search" autoFocus={!q && !id} />
-        {id ? <input type="hidden" name="id" value={id} /> : null}
         <button type="submit">Search</button>
       </form>
       <div className="split">
@@ -49,20 +49,21 @@ export async function HubPage({ domain, searchParams }: { domain: Domain; search
           {q && outcome.results.length === 0 && !outcome.foreignRegion ? (
             <p className="panel">No {w.one} matches in {region}. <Link href={requestHref}>Request a new {w.one}</Link> with this text carried over.</p>
           ) : null}
-          <ul className="result-list">
-            {outcome.results.map((r) => (
-              <li key={r.goldenId} className={r.goldenId === selected?.goldenId ? 'selected' : undefined}>
+          <ul className={`result-list${q && !id ? ' stagger' : ''}`}>
+            {outcome.results.map((r, i) => (
+              <li key={r.goldenId} className={r.goldenId === selected?.goldenId ? 'selected' : undefined} style={{ '--i': i } as React.CSSProperties}>
                 <Link href={`${w.path}?${new URLSearchParams({ q, region, id: r.goldenId }).toString()}#detail`}>
                   <span className="rl-name">{r.legalName}</span>
-                  <span className="rl-meta">{r.city} · {r.region} · {r.erpNumber ? `${r.region === 'EU' ? 'IFS' : 'MAPICS'} ${r.erpNumber}` : 'no ERP number'}</span>
-                  <span className="rl-tags">{r.typeCode ? <span className="badge">{r.typeCode.replace('_', ' ')}</span> : null}{r.status !== 'active' ? <span className="badge badge-stopped">{r.status}</span> : null}</span>
+                  <span className="rl-meta">{r.city} · {r.region}</span>
+                  <span className="rl-erp">{r.erpNumber ? `${r.region === 'EU' ? 'IFS' : 'MAPICS'} ${r.erpNumber}` : 'no ERP number yet'}</span>
+                  <span className="rl-tags">{r.typeCode ? <span className="badge">{typeLabel(r.typeCode)}</span> : null}{r.status !== 'active' ? <span className="badge badge-stopped">{r.status}</span> : null}</span>
                 </Link>
               </li>
             ))}
           </ul>
         </div>
         <div className="split-detail" id="detail">
-          {selected ? <PartyDetail party={selected} compact /> : outcome.results.length > 0 ? (
+          {selected ? <div className="party-body" key={selected.goldenId}><PartyDetail party={selected} compact /></div> : outcome.results.length > 0 ? (
             <div className="empty">
               <p><strong>Select a record</strong></p>
               <p className="muted">Identifiers, group, addresses, sources and the ERP number, as the hub holds them today.</p>

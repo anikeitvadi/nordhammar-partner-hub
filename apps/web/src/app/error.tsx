@@ -9,7 +9,7 @@ export default function ErrorPage({ error, reset }: { error: Error & { digest?: 
       <h1>Something went wrong</h1>
       <p>The page could not be shown. Anything you had already submitted or approved is safe; this only affects the screen.</p>
       <div className="row">
-        <button type="button" onClick={() => reset()}>Try Again</button>
+        <button type="button" onClick={() => reset()}>Try again</button>
         <Link href="/customers" className="muted">Back to search</Link>
       </div>
       {error.digest ? <p className="muted small">Reference <code>{error.digest}</code></p> : null}

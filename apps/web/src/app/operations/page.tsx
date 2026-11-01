@@ -40,8 +40,8 @@ export default async function OperationsPage({ searchParams }: { searchParams: P
     <section>
       <h1>Operations</h1>
       {text ? <p className="panel" role="status">{text}</p> : null}
-      <form action={dailyLoadAction} className="row"><SubmitButton pendingLabel="Loading…">Run The Daily Hub Load</SubmitButton><span className="muted">Loads ERP-created partners into the hub and clears the search cache for their regions.</span></form>
-      {process.env.DEMO_CONTROLS_ENABLED === 'true' ? <form action={armLostResponseAction} className="row"><SubmitButton pendingLabel="Arming…" className="secondary">Demo: Drop The Next ERP Response</SubmitButton><span className="muted">The ERP commits the create and we never hear back, once. Watch the retry replay the same number.</span></form> : null}
+      <form action={dailyLoadAction} className="row"><SubmitButton pendingLabel="Loading…">Run the daily hub load</SubmitButton><span className="muted">Loads ERP-created partners into the hub and clears the search cache for their regions.</span></form>
+      {process.env.DEMO_CONTROLS_ENABLED === 'true' ? <form action={armLostResponseAction} className="row"><SubmitButton pendingLabel="Arming…" className="secondary">Demo: drop the next ERP response</SubmitButton><span className="muted">The ERP commits the create and we never hear back, once. Watch the retry replay the same number.</span></form> : null}
       <h2>Needs attention</h2>
       <p className="muted count" role="status">{rows.length === 0 ? 'Nothing stopped, nothing pending.' : `${rows.length} ${rows.length === 1 ? 'request needs' : 'requests need'} a look.`}</p>
       {rows.length === 0 ? null : (
@@ -52,9 +52,9 @@ export default async function OperationsPage({ searchParams }: { searchParams: P
               <td><StatusBadge state={r.state} />{r.state.kind === 'stopped' ? <div className="muted small">{STOP[r.state.category] ?? r.state.category}; {r.state.effect === 'unknown' ? 'not yet known whether it was created' : 'nothing was created'}</div> : null}</td>
               <td className="col-secondary">{r.pendingDeliveries.length ? r.pendingDeliveries.map((d, i) => <div key={i}>{d.kind} · {d.attempts} attempt(s){d.lastError ? ` · ${d.lastError}` : ''}</div>) : '—'}</td>
               <td className="actions">
-                {r.pendingDeliveries.length ? <form action={retryDeliveryAction} className="inline"><input type="hidden" name="requestId" value={r.requestId} /><SubmitButton pendingLabel="Retrying…">Retry Delivery</SubmitButton></form> : null}
-                {r.state.kind === 'stopped' && r.state.effect === 'unknown' ? <form action={reconcileAction} className="inline"><input type="hidden" name="requestId" value={r.requestId} /><SubmitButton pendingLabel="Checking…">Check With ERP</SubmitButton></form> : null}
-                {r.state.kind === 'stopped' && r.state.effect === 'no_effect' ? <form action={recoverAction} className="inline"><input type="hidden" name="requestId" value={r.requestId} /><SubmitButton pendingLabel="Returning…" confirm={`Return ${r.legalName} to the requester as a draft?`}>Return To Requester</SubmitButton></form> : null}
+                {r.pendingDeliveries.length ? <form action={retryDeliveryAction} className="inline"><input type="hidden" name="requestId" value={r.requestId} /><SubmitButton pendingLabel="Retrying…">Retry delivery</SubmitButton></form> : null}
+                {r.state.kind === 'stopped' && r.state.effect === 'unknown' ? <form action={reconcileAction} className="inline"><input type="hidden" name="requestId" value={r.requestId} /><SubmitButton pendingLabel="Checking…">Check with the ERP</SubmitButton></form> : null}
+                {r.state.kind === 'stopped' && r.state.effect === 'no_effect' ? <form action={recoverAction} className="inline"><input type="hidden" name="requestId" value={r.requestId} /><SubmitButton pendingLabel="Returning…" confirm={`Return ${r.legalName} to the requester as a draft?`}>Return to requester</SubmitButton></form> : null}
               </td>
             </tr>
           ))}</tbody></table>

@@ -128,8 +128,8 @@ export function IntakeForm({ domain, regions, initialRegion, initial, mode, requ
         </div>
         {choice?.dupChoice === 'not_related' ? <label>Why is this not a duplicate? <span className="req">*</span> <span className="muted">the reviewer sees this next to the match</span><input name="dupReason" required /></label> : null}
         <div className="row">
-          <SubmitButton pendingLabel="Submitting…">{mode === 'resubmit' ? 'Submit Again' : 'Submit Request'}</SubmitButton>
-          {mode === 'new' ? <SubmitButton pendingLabel="Saving…" formAction={saveDraftAction} className="secondary">Save Draft</SubmitButton> : null}
+          <SubmitButton pendingLabel="Submitting…">{mode === 'resubmit' ? 'Submit again' : 'Submit request'}</SubmitButton>
+          {mode === 'new' ? <SubmitButton pendingLabel="Saving…" formAction={saveDraftAction} className="secondary">Save draft</SubmitButton> : null}
           <span className="muted">Goes to the review queue. Nothing is created until a reviewer approves.</span>
         </div>
       </fieldset>

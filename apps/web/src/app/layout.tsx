@@ -8,6 +8,7 @@ import './globals.css'
 import { getPrincipal } from '@/features/auth/principal.server'
 import { visibleRegions } from '@/features/auth/scope'
 import { signOut } from '@/features/auth/actions'
+import { ShellNav } from '@/features/ui/shell-nav.client'
 
 export const metadata: Metadata = {
   title: { template: '%s · Nordhammar Partner Hub', default: 'Nordhammar Partner Hub' },
@@ -21,7 +22,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable} ${GeistSerif.variable}`}>
       <body>
         <header className="shell-header">
-          <Link href="/customers" className="shell-brand">Nordhammar <span>Partner Hub</span>{process.env.APP_VERSION_LABEL ? <em className="version">{process.env.APP_VERSION_LABEL}</em> : null}</Link>
+          <Link href="/" className="shell-brand">Nordhammar <span>Partner Hub</span>{process.env.APP_VERSION_LABEL ? <em className="version">{process.env.APP_VERSION_LABEL}</em> : null}</Link>
           <Suspense fallback={<span className="shell-who" style={{ minWidth: 220 }}>&nbsp;</span>}>
             <Identity />
           </Suspense>
@@ -39,7 +40,7 @@ async function Identity() {
   if (!principal) return null
   return (
     <span className="shell-region">
-      <nav className="shell-nav"><Link href="/customers">Customers</Link><Link href="/suppliers">Suppliers</Link><Link href="/requests">My requests</Link>{principal.globalIdentity ? <><Link href="/reviews">Reviews</Link><Link href="/operations">Operations</Link><Link href="/reports">Reports</Link></> : null}</nav>
+      <ShellNav items={[{ href: '/customers', label: 'Customers' }, { href: '/suppliers', label: 'Suppliers' }, { href: '/requests', label: 'My requests' }, ...(principal.globalIdentity ? [{ href: '/reviews', label: 'Reviews' }, { href: '/operations', label: 'Operations' }, { href: '/reports', label: 'Reports' }] : [])]} />
       <span className="shell-who"><span className="badge badge-region">{principal.globalIdentity ? 'All regions' : visibleRegions(principal).join(', ') || 'No region'}</span> {principal.displayName} · {principal.role}</span>
       <form action={signOut} className="inline"><button type="submit" className="link">Sign out</button></form>
     </span>

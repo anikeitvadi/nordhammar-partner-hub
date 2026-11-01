@@ -100,3 +100,10 @@ export function valuesFromPayload(p: CanonicalPayload): FormValues {
   put('ship', p.addresses.find((a) => a.kind === 'ship_to'))
   return out
 }
+
+// The label for a type code, for badges and detail rows. Codes never show raw.
+export function typeLabel(code: string | null | undefined): string | null {
+  if (!code) return null
+  const hit = [...CUSTOMER_TYPES, ...SUPPLIER_TYPES].find(([v]) => v === code)
+  return hit ? hit[1] : code.replace(/_/g, ' ')
+}
