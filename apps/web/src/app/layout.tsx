@@ -4,6 +4,9 @@ import { GeistMono } from 'geist/font/mono'
 import { GeistSerif } from 'geist/font/serif'
 import Link from 'next/link'
 import { Suspense } from 'react'
+import { Analytics } from '@vercel/analytics/next'
+import { SpeedInsights } from '@vercel/speed-insights/next'
+import { VercelToolbar } from '@vercel/toolbar/next'
 import './globals.css'
 import { getPrincipal } from '@/features/auth/principal.server'
 import { visibleRegions } from '@/features/auth/scope'
@@ -30,6 +33,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <main className="shell-main">
           <Suspense fallback={<section aria-busy="true" aria-label="Loading"><div className="skeleton skeleton-title" /><div className="skeleton skeleton-line" /><div className="skeleton skeleton-block" /></section>}>{children}</Suspense>
         </main>
+        {/* Real Core Web Vitals and page views for DECISIONS §6: measured, not claimed. Both are first-party scripts; no cookies. */}
+        <SpeedInsights />
+        <Analytics />
+        {/* The toolbar is where the demo flags are flipped in the room. It renders only for Vercel team members. */}
+        {process.env.TOOLBAR_ENABLED === 'true' ? <VercelToolbar /> : null}
       </body>
     </html>
   )

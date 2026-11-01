@@ -6,6 +6,7 @@ import { exactTaxIdLookup, findNameCandidates } from '@/features/customers/hub.s
 import { normalizeTaxId } from './normalize'
 import { preflight } from './match'
 import { proposeMatch } from './agent.server'
+import { aiSuggestion } from '@/features/flags/flags'
 import type { CheckResult } from './types'
 
 const COUNTRY_BY_REGION: Record<Region, string[]> = { BR: ['BR'], EU: ['DE', 'FR', 'NL', 'SE', 'IT', 'ES', 'NO', 'PT', 'AT', 'BE', 'DK', 'FI', 'PL', 'IE'], US: ['US'], IN: ['IN'], CN: ['CN'] }
@@ -37,7 +38,7 @@ export async function checkMatches(_prev: CheckResult | null, formData: FormData
     case 'related': return { kind: 'related', candidate: { goldenId: route.candidate.goldenId, legalName: route.candidate.legalName, city: route.candidate.city, groupName: route.candidate.groupName }, echo }
     case 'no_candidates': return { kind: 'clear', echo }
     case 'compare': {
-      const outcome = await proposeMatch({ legalName, taxId: n.taxId, city, street }, route.candidates)
+      const outcome = await proposeMatch({ legalName, taxId: n.taxId, city, street }, route.candidates, undefined, await aiSuggestion())
       return { kind: 'compare', candidates: route.candidates.map((c) => ({ goldenId: c.goldenId, legalName: c.legalName, city: c.city, hasTaxId: c.taxId !== null, groupName: c.groupName })), outcome, echo }
     }
   }

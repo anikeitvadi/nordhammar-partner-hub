@@ -27,8 +27,8 @@ export function buildPrompt(input: MatchInput, candidates: Candidate[]): string 
   return `Proposed customer: name "${input.legalName}"; tax ID ${input.taxId.scheme} ${input.taxId.canonical}; address ${input.street ? `"${input.street}, ${input.city}"` : `(city ${input.city})`}.\nCandidates:\n${cand}`
 }
 
-export async function proposeMatch(input: MatchInput, candidates: Candidate[], generate: GenerateFn = gatewayGenerate): Promise<ProposalOutcome> {
-  if (process.env.AI_ENABLED === 'false') return { ai: 'unavailable', reason: 'disabled' }
+export async function proposeMatch(input: MatchInput, candidates: Candidate[], generate: GenerateFn = gatewayGenerate, enabled: boolean = process.env.AI_ENABLED !== 'false'): Promise<ProposalOutcome> {
+  if (!enabled) return { ai: 'unavailable', reason: 'disabled' }
   if (candidates.length === 0) return { ai: 'unavailable', reason: 'no candidates to compare' }
   try {
     const { raw, model, usage, cost, generationId } = await generate({ instructions: INSTRUCTIONS, prompt: buildPrompt(input, candidates) })

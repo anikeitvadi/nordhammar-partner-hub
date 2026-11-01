@@ -1,4 +1,5 @@
 'use server'
+import { demoControls } from '@/features/flags/flags'
 import { redirect } from 'next/navigation'
 import { revalidatePath, updateTag } from 'next/cache'
 import { requirePrincipal } from '@/features/auth/principal.server'
@@ -51,7 +52,7 @@ export async function dailyLoadAction(): Promise<void> {
 export async function armLostResponseAction(): Promise<void> {
   const principal = await requirePrincipal()
   if (!isOperator(principal)) back('not_operator')
-  if (process.env.DEMO_CONTROLS_ENABLED !== 'true') back('demo_off')
+  if (!(await demoControls())) back('demo_off')
   const r = await armLostResponseFault()
   back(r.ok ? 'armed' : 'arm_failed')
 }

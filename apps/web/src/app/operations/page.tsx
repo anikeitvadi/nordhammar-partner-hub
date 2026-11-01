@@ -5,6 +5,7 @@ import { isOperator, listAttention } from '@/features/execution/operator.server'
 import { armLostResponseAction, dailyLoadAction, reconcileAction, recoverAction, retryDeliveryAction } from '@/features/execution/actions'
 import { StatusBadge } from '@/features/requests/status'
 import { SubmitButton } from '@/features/ui/submit-button.client'
+import { demoControls, erpLostResponse } from '@/features/flags/flags'
 
 export const metadata: Metadata = { title: 'Operations' }
 
@@ -34,14 +35,14 @@ export default async function OperationsPage({ searchParams }: { searchParams: P
   const principal = await requirePrincipal()
   if (!isOperator(principal)) return <section className="narrow card" style={{ marginTop: 48 }}><h1>Operations</h1><p>Your role does not include operations.</p></section>
   const { msg } = await searchParams
-  const rows = await listAttention(principal)
+  const [rows, demo, lost] = await Promise.all([listAttention(principal), demoControls(), erpLostResponse()])
   const text = message(msg)
   return (
     <section>
       <h1>Operations</h1>
       {text ? <p className="panel rise" role="status">{text}</p> : null}
       <form action={dailyLoadAction} className="row"><SubmitButton pendingLabel="Loading…">Run the daily hub load</SubmitButton><span className="muted">Loads ERP-created partners into the hub and clears the search cache for their regions.</span></form>
-      {process.env.DEMO_CONTROLS_ENABLED === 'true' ? <form action={armLostResponseAction} className="row"><SubmitButton pendingLabel="Arming…" className="secondary">Demo: drop the next ERP response</SubmitButton><span className="muted">The ERP commits the create and we never hear back, once. Watch the retry replay the same number.</span></form> : null}
+      {demo ? <form action={armLostResponseAction} className="row"><SubmitButton pendingLabel="Arming…" className="secondary">Demo: drop the next ERP response</SubmitButton><span className="muted">The ERP commits the create and we never hear back, once. Watch the retry replay the same number.{lost ? ' The erp-lost-response flag is on: every approval arms this by itself.' : ''}</span></form> : null}
       <h2>Needs attention</h2>
       <p className="muted count" role="status">{rows.length === 0 ? 'Nothing stopped, nothing pending.' : `${rows.length} ${rows.length === 1 ? 'request needs' : 'requests need'} a look.`}</p>
       {rows.length === 0 ? null : (

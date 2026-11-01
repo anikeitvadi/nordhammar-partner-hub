@@ -19,8 +19,10 @@ export async function proxy(request: NextRequest) {
     },
   })
   const { data } = await supabase.auth.getClaims()
-  const isLogin = request.nextUrl.pathname.startsWith('/login')
-  if (!data?.claims && !isLogin) {
+  // Public: the sign-in door, the link-preview image and the icon. Everything else needs a session.
+  const path = request.nextUrl.pathname
+  const isPublic = path.startsWith('/login') || path === '/opengraph-image' || path === '/icon.svg'
+  if (!data?.claims && !isPublic) {
     // Keep the deep link: after sign-in the user lands where they were going (same-origin path only).
     const url = request.nextUrl.clone(); const wanted = request.nextUrl.pathname + request.nextUrl.search
     url.pathname = '/login'; url.search = wanted && wanted !== '/' && !wanted.startsWith('/api/') ? `?next=${encodeURIComponent(wanted)}` : ''
@@ -30,4 +32,4 @@ export async function proxy(request: NextRequest) {
 }
 
 // .well-known/workflow is the SDK's own queue/webhook surface; the proxy must not touch it (local runs fail otherwise).
-export const config = { matcher: ['/((?!_next/static|_next/image|favicon.ico|\\.well-known/workflow).*)'] }
+export const config = { matcher: ['/((?!_next/static|_next/image|favicon.ico|\\.well-known/workflow|\\.well-known/vercel).*)'] }
