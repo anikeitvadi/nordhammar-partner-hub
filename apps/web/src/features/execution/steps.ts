@@ -1,7 +1,7 @@
 import { RetryableError, getStepMetadata } from 'workflow'
 import { operationKey, parseOperationKey, transition, type CanonicalPayload, type Domain, type ErpCreateCommand, type RequestState, payloadHash } from '@intake/contracts'
 import { sql } from '@/lib/db'
-import { createParty, type ErpResult } from '@/features/erp/erp.server'
+import { createParty, erpCredentialMode, type ErpResult } from '@/features/erp/erp.server'
 
 export type WakePayload = { decisionId: string; decision: 'approve' | 'decline' | 'send_back' }
 
@@ -46,7 +46,7 @@ export async function startCreatingStep(requestId: string, revision: number, wor
 export async function erpWriteStep(command: ErpCreateCommand): Promise<ErpResult> {
   'use step'
   const { attempt } = getStepMetadata()
-  await recordAttempt(command.operationKey, { attempt, phase: 'sent' })
+  await recordAttempt(command.operationKey, { attempt, phase: 'sent', credential: await erpCredentialMode() })
   const result = await createParty(command, { timeoutMs: 8000 })
   if (result.outcome === 'transient') {
     // The SDK retries immediately by default and has no built-in backoff; attempt-based delays: 1s, 2s, 4s.

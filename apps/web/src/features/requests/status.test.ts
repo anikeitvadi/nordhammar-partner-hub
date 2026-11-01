@@ -14,8 +14,8 @@ describe('timeline copy', () => {
       'Attempt 1: sent to the ERP',
       'Attempt 1: ERP timed out; retrying in 1s with the same key',
       'Attempt 2: sent to the ERP',
-      'Attempt 2: ERP replayed 26001, it had already committed',
-      'ERP assigned number 26001 (replayed: the ERP already had it)',
+      'Attempt 2: the ERP had already created it; we got the same number back, 26001',
+      'ERP assigned number 26001 (one record, even though the first answer was lost)',
     ])
   })
   it('says when retries are exhausted and what happens next', () => {

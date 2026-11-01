@@ -25,6 +25,11 @@ async function config() {
 }
 
 // One function, two ERP masters: the payload's domain picks the customer or the supplier route on the stub.
+// Which credential the next call would use. Recorded on the attempt timeline so the evidence says "oidc" or "secret".
+export async function erpCredentialMode(): Promise<'oidc' | 'secret'> {
+  try { return (await config()).mode } catch { return 'secret' }
+}
+
 export async function createParty(command: ErpCreateCommand, opts: { timeoutMs?: number } = {}): Promise<ErpResult> {
   const { base, token } = await config()
   const ctrl = new AbortController(); const timer = setTimeout(() => ctrl.abort(), opts.timeoutMs ?? 8000)

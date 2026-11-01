@@ -24,7 +24,7 @@ export function isLive(s: RequestState): boolean {
 
 export type TimelineEvent = { at: string; kind: string; actor: string | null; detail: unknown }
 
-type AttemptDetail = { attempt?: number; phase?: string; reason?: string | null; retryAfterMs?: number | null; erpNumber?: string | null }
+type AttemptDetail = { attempt?: number; phase?: string; reason?: string | null; retryAfterMs?: number | null; erpNumber?: string | null; credential?: string }
 
 // One sentence per event, in the words the requester would use. The retry-and-replay story is told here.
 export function describeEvent(e: TimelineEvent): string {
@@ -40,7 +40,7 @@ export function describeEvent(e: TimelineEvent): string {
     case 'send_back': return `Sent back${d.reason ? `: ${String(d.reason)}` : ''}`
     case 'creating': return 'Workflow claimed the write; one operation key issued'
     case 'erp_attempt': return describeAttempt(d as AttemptDetail)
-    case 'created': return `ERP assigned number ${String(d.erpNumber ?? '')}${d.outcome === 'replayed' ? ' (replayed: the ERP already had it)' : ''}`
+    case 'created': return `ERP assigned number ${String(d.erpNumber ?? '')}${d.outcome === 'replayed' ? ' (one record, even though the first answer was lost)' : ''}`
     case 'stopped': return `Stopped: ${String(d.reason ?? '')}${d.outcome === 'transient' ? '. Effect unknown; an operator reconciles by key' : ''}`
     case 'reconciled': return d.outcome === 'created' ? 'Reconciled from the ERP ledger: it had committed' : 'Reconciled from the ERP ledger: no effect'
     case 'returned_to_requester': return 'Returned to the requester as a draft'
@@ -52,10 +52,10 @@ export function describeEvent(e: TimelineEvent): string {
 function describeAttempt(d: AttemptDetail): string {
   const n = d.attempt ?? 1
   switch (d.phase) {
-    case 'sent': return `Attempt ${n}: sent to the ERP`
+    case 'sent': return `Attempt ${n}: sent to the ERP${d.credential ? ` (${d.credential === 'oidc' ? 'deployment identity' : 'shared secret'})` : ''}`
     case 'transient': return `Attempt ${n}: ${d.reason ?? 'no answer'}${d.retryAfterMs != null ? `; retrying in ${Math.round(d.retryAfterMs / 1000)}s with the same key` : '; retries exhausted'}`
     case 'created': return `Attempt ${n}: ERP created ${d.erpNumber ?? ''}`
-    case 'replayed': return `Attempt ${n}: ERP replayed ${d.erpNumber ?? ''}, it had already committed`
+    case 'replayed': return `Attempt ${n}: the ERP had already created it; we got the same number back, ${d.erpNumber ?? ''}`
     case 'rejected': return `Attempt ${n}: ERP refused${d.reason ? `: ${d.reason}` : ''}`
     default: return `Attempt ${n}`
   }
