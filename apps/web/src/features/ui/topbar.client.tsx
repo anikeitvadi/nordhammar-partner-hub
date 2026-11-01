@@ -7,7 +7,7 @@ import type { Region } from '@intake/contracts'
 
 // The content header: where you are, the search (⌘K focuses it from anywhere), and the one primary action for the
 // section. The hub pages keep their own search with the region; this one is the shortcut into it.
-const CRUMBS: [RegExp, string][] = [[/^\/$/, 'Home'], [/^\/customers/, 'Customers'], [/^\/suppliers/, 'Suppliers'], [/^\/requests/, 'My requests'], [/^\/reviews/, 'Reviews'], [/^\/operations/, 'Operations'], [/^\/reports/, 'Reports'], [/^\/intake/, 'New request'], [/^\/how-it-works/, 'How it works']]
+const CRUMBS: [RegExp, string][] = [[/^\/$/, 'Home'], [/^\/customers/, 'Customers'], [/^\/suppliers/, 'Suppliers'], [/^\/requests/, 'My requests'], [/^\/ask/, 'Ask the hub'], [/^\/reviews/, 'Reviews'], [/^\/operations/, 'Operations'], [/^\/reports/, 'Reports'], [/^\/intake/, 'New request'], [/^\/how-it-works/, 'How it works']]
 
 export function TopBar({ region }: { region: Region }) {
   const path = usePathname()

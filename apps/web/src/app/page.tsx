@@ -29,7 +29,7 @@ export default async function HomePage() {
       </div>
       <div className="bento">
         <div className="tile span2">
-          <p className="runin"><strong>Find a partner.</strong> Name, tax ID, DUNS, city or ERP number, in every region you can see.</p>
+          <p className="runin"><strong>Find a partner.</strong> Name, tax ID, DUNS, city or ERP number, in every region you can see. Or <Link href="/ask">ask the hub a question</Link>.</p>
           <form method="get" action="/customers" className="tile-body" role="search">
             <input type="hidden" name="region" value={region} />
             <div className="row" style={{ margin: 0 }}>
