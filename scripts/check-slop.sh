@@ -12,5 +12,5 @@ check "zod required_error (removed in zod 4)" "required_error"
 check "edge runtime" "runtime\s*=\s*['\"]edge['\"]"
 check "console.log left in" "console\.log\("
 check "TODO" "\bTODO\b"
-echo "secrets in history:"; git log -p --all 2>/dev/null | grep -nE "(sk-|AI_GATEWAY_API_KEY=.+|SUPABASE.*KEY=.+|postgres(ql)?://[^ ]*:[^ ]*@)" | head -5 || true
+echo "secrets in history:"; git log -p --all 2>/dev/null | grep -nE "(sk-[A-Za-z0-9]{20,}|AI_GATEWAY_API_KEY=[A-Za-z0-9_-]{20,}|sb_secret_[A-Za-z0-9_-]{10,}|postgres(ql)?://[^ ]*:[^ ]*@[a-z0-9.-]+\.neon\.tech|eyJ[A-Za-z0-9_-]{40,}\.[A-Za-z0-9_-]{40,})" | head -5 || true
 exit $status

@@ -89,7 +89,7 @@ export const ProposalSchema = z.object({
 export type Proposal = z.infer<typeof ProposalSchema>
 
 export type ProposalOutcome =
-  | { ai: 'available'; proposal: Proposal; model: string }
+  | { ai: 'available'; proposal: Proposal; model: string; usage?: { inputTokens: number; outputTokens: number } | null; cost?: number | null; generationId?: string | null }
   | { ai: 'unavailable'; reason: string }
 
 export const ADDRESS_KINDS = ['bill_to', 'ship_to', 'remit_to'] as const

@@ -8,7 +8,8 @@ import { validateProposal } from './proposal'
 // candidates the hub reader was allowed to return, and may only propose. Code validates every claim it makes.
 // Through AI Gateway: a primary model, one fallback, a hard timeout, no SDK retries (a slow proposal is worse than none).
 
-export type GenerateFn = (args: { instructions: string; prompt: string }) => Promise<{ raw: unknown; model: string }>
+// usage and cost come from the Gateway's response metadata when present; the eval records them per proposal.
+export type GenerateFn = (args: { instructions: string; prompt: string }) => Promise<{ raw: unknown; model: string; usage?: { inputTokens: number; outputTokens: number } | null; cost?: number | null; generationId?: string | null }>
 
 export type MatchInput = { legalName: string; taxId: TaxId; city: string; street: string | null }
 
@@ -26,18 +27,24 @@ export async function proposeMatch(input: MatchInput, candidates: Candidate[], g
   if (process.env.AI_ENABLED === 'false') return { ai: 'unavailable', reason: 'disabled' }
   if (candidates.length === 0) return { ai: 'unavailable', reason: 'no candidates to compare' }
   try {
-    const { raw, model } = await generate({ instructions: INSTRUCTIONS, prompt: buildPrompt(input, candidates) })
+    const { raw, model, usage, cost, generationId } = await generate({ instructions: INSTRUCTIONS, prompt: buildPrompt(input, candidates) })
     const v = validateProposal(raw, candidates)
     if (!v.ok) return { ai: 'unavailable', reason: `rejected: ${v.reason}` }
-    return { ai: 'available', proposal: v.proposal, model }
+    return { ai: 'available', proposal: v.proposal, model, usage: usage ?? null, cost: cost ?? null, generationId: generationId ?? null }
   } catch (e) {
     return { ai: 'unavailable', reason: e instanceof Error ? e.message : 'model error' }
   }
 }
 
+// AI_PRIMARY_MODEL is either a plain catalog slug or a virtual model (vmc/<slug>). With a virtual model the fallback
+// chain, zero data retention and the tag are pinned on the Gateway side and win over what the request sends; with a
+// plain slug the request carries them. Zero data retention is asked for in both cases because the prompt carries a
+// counterparty's identity: the Gateway routes only to providers with a retention agreement, and fails the call
+// (handled as "unavailable") rather than fall back to one without. Source: vercel.com/docs/ai-gateway/security-and-compliance/zdr.
 async function gatewayGenerate({ instructions, prompt }: { instructions: string; prompt: string }) {
   const primary = process.env.AI_PRIMARY_MODEL ?? 'anthropic/claude-haiku-4.5'
   const fallback = process.env.AI_FALLBACK_MODEL
+  const virtual = primary.startsWith('vmc/')
   const result = await generateText({
     model: primary,
     instructions,
@@ -45,9 +52,22 @@ async function gatewayGenerate({ instructions, prompt }: { instructions: string;
     output: Output.object({ schema: ProposalSchema }),
     maxRetries: 0,
     timeout: { totalMs: 12_000 },
-    providerOptions: { gateway: { models: fallback ? [fallback] : [], tags: ['proposal'] } },
+    providerOptions: { gateway: { ...(virtual ? {} : { models: fallback ? [fallback] : [], tags: ['proposal'] }), zeroDataRetention: process.env.AI_ZERO_DATA_RETENTION !== 'false' } },
   })
-  return { raw: result.output, model: servedModel(result.providerMetadata) ?? primary }
+  const gw = gatewayMeta(result.providerMetadata)
+  return {
+    raw: result.output,
+    model: servedModel(result.providerMetadata) ?? primary,
+    usage: result.usage ? { inputTokens: Number(result.usage.inputTokens ?? 0), outputTokens: Number(result.usage.outputTokens ?? 0) } : null,
+    cost: typeof gw?.cost === 'string' || typeof gw?.cost === 'number' ? Number(gw.cost) : null,
+    generationId: typeof gw?.generationId === 'string' ? gw.generationId : null,
+  }
+}
+
+function gatewayMeta(meta: unknown): Record<string, unknown> | null {
+  if (!meta || typeof meta !== 'object') return null
+  const gw = (meta as Record<string, unknown>).gateway
+  return gw && typeof gw === 'object' ? (gw as Record<string, unknown>) : null
 }
 
 // Which model actually answered, from the Gateway's attempt log, if present.

@@ -8,13 +8,14 @@ import { normalizeTaxId } from '@/features/intake/normalize'
 import { preflight, type Candidate } from '@/features/intake/match'
 import { proposeMatch } from '@/features/intake/agent.server'
 
-const key = process.env.AI_GATEWAY_API_KEY
+// Gateway auth: an API key, or the deployment's OIDC token pulled with `vercel env pull` (the AI SDK's gateway provider uses either).
+const key = process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN
 const file = JSON.parse(readFileSync(path.resolve(__dirname, '../../../eval/fixtures/cases.json'), 'utf8')) as { cases: { id: string; input: { country: string; taxRaw: string; legalName: string; city: string; street: string | null }; exactHit: unknown; candidates: string[]; expect: Record<string, unknown>; model?: { down?: boolean } }[]; candidates: Record<string, Candidate> }
 const compareCases = file.cases.filter((c) => c.expect.route === 'compare' && !c.model?.down)
 const REPS = 3
 const models = [process.env.AI_PRIMARY_MODEL ?? 'anthropic/claude-haiku-4.5', process.env.AI_FALLBACK_MODEL ?? 'openai/gpt-4.1-mini']
 
-type Attempt = { case: string; model: string; rep: number; ai: string; verdict?: string; golden_id?: string | null; pass: boolean; reason?: string; ms: number }
+type Attempt = { case: string; model: string; rep: number; ai: string; served?: string; verdict?: string; golden_id?: string | null; pass: boolean; reason?: string; ms: number; inputTokens?: number | null; outputTokens?: number | null; costUsd?: number | null }
 
 describe.skipIf(!key)('live eval', () => {
   it(`pass^${REPS} per case on each model`, async () => {
@@ -31,7 +32,7 @@ describe.skipIf(!key)('live eval', () => {
           const ms = Date.now() - t0
           if (out.ai === 'available') {
             const pass = out.proposal.verdict === c.expect.verdict && out.proposal.golden_id === c.expect.golden_id && out.proposal.groupRelation === c.expect.groupRelation
-            attempts.push({ case: c.id, model, rep, ai: 'available', verdict: out.proposal.verdict, golden_id: out.proposal.golden_id, pass, ms })
+            attempts.push({ case: c.id, model, rep, ai: 'available', served: out.model, verdict: out.proposal.verdict, golden_id: out.proposal.golden_id, pass, ms, inputTokens: out.usage?.inputTokens ?? null, outputTokens: out.usage?.outputTokens ?? null, costUsd: out.cost ?? null })
           } else attempts.push({ case: c.id, model, rep, ai: 'unavailable', pass: false, reason: out.reason, ms })
         }
       }
@@ -43,8 +44,10 @@ describe.skipIf(!key)('live eval', () => {
     const dir = path.resolve(__dirname, '../../../eval/results'); mkdirSync(dir, { recursive: true })
     const meta = { ranAt: new Date().toISOString(), reps: REPS, models, git: process.env.GIT_SHA ?? 'local', fixtures: 'eval/fixtures/cases.json' }
     writeFileSync(path.join(dir, `live-${stamp}.json`), JSON.stringify({ meta, byCase, attempts }, null, 2))
-    const md = [`# Live eval ${meta.ranAt}`, '', `reps ${REPS}, models ${models.join(', ')}`, '', '| model | case | passes | pass^k | mean ms |', '|---|---|---:|:--:|---:|',
-      ...Object.entries(byCase).map(([k, v]) => { const [model, cs] = k.split(' '); const ms = Math.round(attempts.filter((a) => a.model === model && a.case === cs).reduce((s, a) => s + a.ms, 0) / v.total); return `| ${model} | ${cs} | ${v.passes}/${v.total} | ${v.passK ? 'yes' : 'no'} | ${ms} |` }),
+    const costOf = (list: Attempt[]) => { const c = list.filter((a) => a.costUsd != null); return c.length ? c.reduce((s, a) => s + (a.costUsd ?? 0), 0) / c.length : null }
+    const md = [`# Live eval ${meta.ranAt}`, '', `reps ${REPS}, models ${models.join(', ')}, git ${meta.git}`, '', '| model | case | passes | pass^k | mean ms | mean in/out tokens | mean cost USD |', '|---|---|---:|:--:|---:|---:|---:|',
+      ...Object.entries(byCase).map(([k, v]) => { const [model, cs] = k.split(' '); const list = attempts.filter((a) => a.model === model && a.case === cs); const ms = Math.round(list.reduce((s, a) => s + a.ms, 0) / v.total); const tin = Math.round(list.reduce((s, a) => s + (a.inputTokens ?? 0), 0) / v.total); const tout = Math.round(list.reduce((s, a) => s + (a.outputTokens ?? 0), 0) / v.total); const cost = costOf(list); return `| ${model} | ${cs} | ${v.passes}/${v.total} | ${v.passK ? 'yes' : 'no'} | ${ms} | ${tin}/${tout} | ${cost == null ? 'n/a' : cost.toFixed(5)} |` }),
+      '', `Mean cost per proposal across all attempts: ${(() => { const c = costOf(attempts); return c == null ? 'not reported by the Gateway in providerMetadata' : `$${c.toFixed(5)} (measured)` })()}`,
       '', 'Human grading of the reasons is separate and recorded in the artifact, not here.'].join('\n')
     writeFileSync(path.join(dir, `live-${stamp}.md`), md)
     // The gate: every case must pass^k on the primary model. A failure here is information, not a build break, until the artifact says otherwise.
