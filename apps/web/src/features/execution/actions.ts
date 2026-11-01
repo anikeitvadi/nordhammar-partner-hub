@@ -11,11 +11,11 @@ function back(msg: string): never { redirect(`/operations?msg=${encodeURICompone
 
 export async function retryDeliveryAction(formData: FormData): Promise<void> {
   const principal = await requirePrincipal()
-  if (!isOperator(principal)) back('not an operator')
+  if (!isOperator(principal)) back('not_operator')
   const requestId = String(formData.get('requestId'))
   const r = await deliverPending(requestId)
   revalidatePath('/operations'); revalidatePath(`/requests/${requestId}`)
-  back(`${requestId}: delivered ${r.delivered}, failed ${r.failed}`)
+  back(`delivered:${r.delivered}:${r.failed}`)
 }
 
 export async function reconcileAction(formData: FormData): Promise<void> {
@@ -23,7 +23,7 @@ export async function reconcileAction(formData: FormData): Promise<void> {
   const requestId = String(formData.get('requestId'))
   const r = await reconcile(principal, requestId)
   revalidatePath('/operations'); revalidatePath(`/requests/${requestId}`)
-  back(r.ok ? `${requestId}: reconciled as ${r.outcome}` : `${requestId}: ${r.reason}`)
+  back(r.ok ? `reconciled:${r.outcome}` : 'noop')
 }
 
 export async function recoverAction(formData: FormData): Promise<void> {
@@ -31,7 +31,7 @@ export async function recoverAction(formData: FormData): Promise<void> {
   const requestId = String(formData.get('requestId'))
   const r = await recoverToDraft(principal, requestId)
   revalidatePath('/operations'); revalidatePath(`/requests/${requestId}`)
-  back(r.ok ? `${requestId}: returned to the requester as a draft` : `${requestId}: ${r.reason}`)
+  back(r.ok ? 'recovered' : 'noop')
 }
 
 // The simulated nightly hub load. In the engagement this is the Boomi/MDH load; here it is the only thing that makes
@@ -39,19 +39,19 @@ export async function recoverAction(formData: FormData): Promise<void> {
 // Server-Action form of invalidation: immediate expiry, the next read misses the cache and sees the new golden record.
 export async function dailyLoadAction(): Promise<void> {
   const principal = await requirePrincipal()
-  if (!isOperator(principal)) back('not an operator')
+  if (!isOperator(principal)) back('not_operator')
   const r = await runDailyLoad(principal)
   for (const region of r.regions) updateTag(`hub:${region}`)
   revalidatePath('/operations')
-  back(`hub load: ${r.loaded} customer(s) loaded${r.regions.length ? `, cache cleared for ${r.regions.join(', ')}` : ''}`)
+  back(`loaded:${r.loaded}:${r.regions.join(',')}`)
 }
 
 // Demo control: the next successful ERP create loses its response, once. What the room watches: attempt 1 commits
 // and times out from our side, attempt 2 sends the same key, the ERP replays the number, one record.
 export async function armLostResponseAction(): Promise<void> {
   const principal = await requirePrincipal()
-  if (!isOperator(principal)) back('not an operator')
-  if (process.env.DEMO_CONTROLS_ENABLED !== 'true') back('demo controls are off')
+  if (!isOperator(principal)) back('not_operator')
+  if (process.env.DEMO_CONTROLS_ENABLED !== 'true') back('demo_off')
   const r = await armLostResponseFault()
-  back(r.ok ? `ERP fault armed: the next create drops its response once (armed ${r.armedAt ? new Date(r.armedAt).toLocaleTimeString() : 'now'})` : `could not arm the fault: ${r.reason}`)
+  back(r.ok ? 'armed' : 'arm_failed')
 }

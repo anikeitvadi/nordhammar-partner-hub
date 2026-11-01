@@ -9,7 +9,10 @@ import { getPrincipal } from '@/features/auth/principal.server'
 import { visibleRegions } from '@/features/auth/scope'
 import { signOut } from '@/features/auth/actions'
 
-export const metadata: Metadata = { title: 'Nordhammar Partner Hub', description: 'Search the golden records. Request a customer or supplier. One review. The ERP owns the number.' }
+export const metadata: Metadata = {
+  title: { template: '%s · Nordhammar Partner Hub', default: 'Nordhammar Partner Hub' },
+  description: 'Find customers and suppliers across every region, request new ones, and watch the ERP assign the number.',
+}
 
 // Cache Components: the shell (header frame, main frame) is prerendered as static HTML. The two holes that depend on
 // the request, who is signed in and the page itself, stream in behind Suspense. That is the whole rendering model.
@@ -19,12 +22,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <header className="shell-header">
           <Link href="/customers" className="shell-brand">Nordhammar <span>Partner Hub</span>{process.env.APP_VERSION_LABEL ? <em className="version">{process.env.APP_VERSION_LABEL}</em> : null}</Link>
-          <Suspense fallback={<span className="shell-region">…</span>}>
+          <Suspense fallback={<span className="shell-who" style={{ minWidth: 220 }}>&nbsp;</span>}>
             <Identity />
           </Suspense>
         </header>
         <main className="shell-main">
-          <Suspense fallback={<p>Loading…</p>}>{children}</Suspense>
+          <Suspense fallback={<section aria-busy="true" aria-label="Loading"><div className="skeleton skeleton-title" /><div className="skeleton skeleton-line" /><div className="skeleton skeleton-block" /></section>}>{children}</Suspense>
         </main>
       </body>
     </html>

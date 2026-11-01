@@ -1,19 +1,23 @@
-import type { RequestState } from '@intake/contracts'
+import type { Domain, RequestState } from '@intake/contracts'
+
+export const STATE_LABEL: Record<RequestState['kind'], string> = { draft: 'Draft', submitted: 'Submitted', under_review: 'Under review', approved: 'Approved', creating: 'Creating in ERP', created: 'Created', declined: 'Declined', stopped: 'Stopped' }
 
 export function StatusBadge({ state }: { state: RequestState }) {
-  return <span className={`badge badge-${state.kind}`}>{state.kind.replace('_', ' ')}</span>
+  return <span className={`badge badge-${state.kind}`}>{STATE_LABEL[state.kind]}</span>
 }
 
-export function describeState(s: RequestState): string {
+// The one sentence that says where the request is and what happens next, for the person who raised it.
+export function describeState(s: RequestState, domain: Domain = 'customer'): string {
+  const thing = domain === 'customer' ? 'customer' : 'supplier'
   switch (s.kind) {
-    case 'draft': return s.returnedReason ? 'Returned to you. Fix and resubmit; it goes back into the queue.' : 'Draft.'
-    case 'submitted': return 'In the review queue. A reviewer on the NA or India shift will pick it up; target is the same business day.'
+    case 'draft': return s.returnedReason ? 'Returned to you with a note. Fix it and submit again; it goes back into the queue.' : 'Saved as a draft. Only you can see it until you submit.'
+    case 'submitted': return 'In the review queue. A reviewer on the North America or India shift will pick it up, usually the same business day.'
     case 'under_review': return 'A reviewer has it open.'
-    case 'approved': return 'Approved. Creating the customer in the ERP.'
-    case 'creating': return 'Writing to the ERP. This retries on its own if the ERP is slow.'
-    case 'created': return 'Done. The ERP assigned the number.'
+    case 'approved': return `Approved. Creating the ${thing} in the ERP now.`
+    case 'creating': return `Creating the ${thing} in the ERP. If the ERP is slow we try again with the same request, so it can never be created twice.`
+    case 'created': return `Done. The ERP assigned the ${thing} number.`
     case 'declined': return `Declined: ${s.reason}`
-    case 'stopped': return 'Stopped. An operator will reconcile; nothing is retried blindly.'
+    case 'stopped': return s.effect === 'unknown' ? 'Stopped: the ERP did not answer. An operator will check with the ERP whether it was created before anything is retried.' : `Stopped: ${s.reason}. An operator will return it to you to fix.`
   }
 }
 
@@ -26,25 +30,30 @@ export type TimelineEvent = { at: string; kind: string; actor: string | null; de
 
 type AttemptDetail = { attempt?: number; phase?: string; reason?: string | null; retryAfterMs?: number | null; erpNumber?: string | null; credential?: string }
 
-// One sentence per event, in the words the requester would use. The retry-and-replay story is told here.
+// Actors are emails; show them as they are. A guessed display name would be wrong more often than it is pretty.
+const who = (actor: string | null) => (actor && actor !== 'workflow' && actor !== 'system' && actor !== 'hub load' ? actor : null)
+
+// One sentence per event, in the words a business user would use. The technical facts (hash, key, credential)
+// live in the "Technical details" block on the page, not here. The retry-and-replay story is told here.
 export function describeEvent(e: TimelineEvent): string {
   const d = (e.detail ?? {}) as Record<string, unknown>
+  const by = who(e.actor)
   switch (e.kind) {
-    case 'draft_saved': return 'Saved as a draft; not visible to approvers'
-    case 'email_queued': return `Email queued: ${String(d.template ?? '').replace(/_/g, ' ')} → ${String(d.to ?? '')}`
-    case 'submitted': return `Submitted${d.dupChoice === 'not_related' ? ', marked not related to the suggested match' : d.dupChoice === 'new_in_group' ? ', as a new company in an existing group' : ''}`
-    case 'resubmitted': return `Resubmitted as revision ${String(d.revision ?? '')}`
-    case 'opened_for_review': return 'Opened for review'
-    case 'approve': return 'Approved; the approval is bound to the payload hash'
-    case 'decline': return `Declined${d.reason ? `: ${String(d.reason)}` : ''}`
-    case 'send_back': return `Sent back${d.reason ? `: ${String(d.reason)}` : ''}`
-    case 'creating': return 'Workflow claimed the write; one operation key issued'
+    case 'draft_saved': return 'Saved as a draft'
+    case 'email_queued': return `Email queued to ${d.to === 'approvers' ? 'the approver team' : 'the requester'}: ${String(d.template ?? '').replace(/_/g, ' ')}`
+    case 'submitted': return `Submitted${by ? ` by ${by}` : ''}${d.dupChoice === 'not_related' ? ', marked not related to the suggested match' : d.dupChoice === 'new_in_group' ? ', as a new company in an existing group' : ''}`
+    case 'resubmitted': return `Submitted again${by ? ` by ${by}` : ''} (version ${String(d.revision ?? '')})`
+    case 'opened_for_review': return `Opened for review${by ? ` by ${by}` : ''}`
+    case 'approve': return `Approved${by ? ` by ${by}` : ''}. This exact version is what the ERP receives`
+    case 'decline': return `Declined${by ? ` by ${by}` : ''}${d.reason ? `: ${String(d.reason)}` : ''}`
+    case 'send_back': return `Sent back${by ? ` by ${by}` : ''}${d.reason ? `: ${String(d.reason)}` : ''}`
+    case 'creating': return 'Sending to the ERP'
     case 'erp_attempt': return describeAttempt(d as AttemptDetail)
-    case 'created': return `ERP assigned number ${String(d.erpNumber ?? '')}${d.outcome === 'replayed' ? ' (one record, even though the first answer was lost)' : ''}`
-    case 'stopped': return `Stopped: ${String(d.reason ?? '')}${d.outcome === 'transient' ? '. Effect unknown; an operator reconciles by key' : ''}`
-    case 'reconciled': return d.outcome === 'created' ? 'Reconciled from the ERP ledger: it had committed' : 'Reconciled from the ERP ledger: no effect'
+    case 'created': return `The ERP assigned number ${String(d.erpNumber ?? '')}${d.outcome === 'replayed' ? '. One record, even though the first answer was lost' : ''}`
+    case 'stopped': return d.outcome === 'transient' ? 'Stopped: the ERP did not answer after several tries. An operator will check whether it was created before anything is retried' : `Stopped: ${String(d.reason ?? '')}`
+    case 'reconciled': return d.outcome === 'created' ? 'Checked with the ERP: it had been created. Marked as created' : 'Checked with the ERP: nothing was created'
     case 'returned_to_requester': return 'Returned to the requester as a draft'
-    case 'hub_loaded': return `Hub load picked it up as ${String(d.goldenId ?? '')}; search shows it from now`
+    case 'hub_loaded': return `Picked up by the hub load as ${String(d.goldenId ?? '')}. Search finds it from now`
     default: return e.kind.replace(/_/g, ' ')
   }
 }
@@ -52,11 +61,28 @@ export function describeEvent(e: TimelineEvent): string {
 function describeAttempt(d: AttemptDetail): string {
   const n = d.attempt ?? 1
   switch (d.phase) {
-    case 'sent': return `Attempt ${n}: sent to the ERP${d.credential ? ` (${d.credential === 'oidc' ? 'deployment identity' : 'shared secret'})` : ''}`
-    case 'transient': return `Attempt ${n}: ${d.reason ?? 'no answer'}${d.retryAfterMs != null ? `; retrying in ${Math.round(d.retryAfterMs / 1000)}s with the same key` : '; retries exhausted'}`
-    case 'created': return `Attempt ${n}: ERP created ${d.erpNumber ?? ''}`
+    case 'sent': return `Attempt ${n}: sent to the ERP`
+    case 'transient': return `Attempt ${n}: ${plainReason(d.reason)}${d.retryAfterMs != null ? `. Trying again in ${Math.round(d.retryAfterMs / 1000)}s with the same request, so it cannot be created twice` : '. No more retries'}`
+    case 'created': return `Attempt ${n}: the ERP created it, number ${d.erpNumber ?? ''}`
     case 'replayed': return `Attempt ${n}: the ERP had already created it; we got the same number back, ${d.erpNumber ?? ''}`
-    case 'rejected': return `Attempt ${n}: ERP refused${d.reason ? `: ${d.reason}` : ''}`
+    case 'rejected': return `Attempt ${n}: the ERP refused${d.reason ? `: ${d.reason}` : ''}`
     default: return `Attempt ${n}`
   }
+}
+
+function plainReason(reason: string | null | undefined): string {
+  if (!reason) return 'no answer from the ERP'
+  if (/timed out/i.test(reason)) return 'the ERP did not answer in time'
+  if (/responded 5\d\d/i.test(reason)) return 'the ERP answered with an error'
+  if (/unreachable/i.test(reason)) return 'the ERP could not be reached'
+  return reason
+}
+
+// Technical facts for the collapsed block: which credential, which attempt, the raw reason, the key.
+export function technicalEvent(e: TimelineEvent): string | null {
+  const d = (e.detail ?? {}) as Record<string, unknown>
+  if (e.kind === 'erp_attempt') return [d.phase ? `phase ${String(d.phase)}` : null, d.credential ? `credential ${String(d.credential)}` : null, d.reason ? `reason "${String(d.reason)}"` : null, d.operationKey ? `key ${String(d.operationKey)}` : null].filter(Boolean).join(', ')
+  if (e.kind === 'creating') return d.operationKey ? `operation key ${String(d.operationKey)}; run ${String(d.workflowRunId ?? '')}` : null
+  if (e.kind === 'approve') return d.decisionId ? `decision ${String(d.decisionId)}, revision ${String(d.revision ?? '')}` : null
+  return null
 }

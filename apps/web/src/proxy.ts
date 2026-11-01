@@ -21,7 +21,9 @@ export async function proxy(request: NextRequest) {
   const { data } = await supabase.auth.getClaims()
   const isLogin = request.nextUrl.pathname.startsWith('/login')
   if (!data?.claims && !isLogin) {
-    const url = request.nextUrl.clone(); url.pathname = '/login'; url.search = ''
+    // Keep the deep link: after sign-in the user lands where they were going (same-origin path only).
+    const url = request.nextUrl.clone(); const wanted = request.nextUrl.pathname + request.nextUrl.search
+    url.pathname = '/login'; url.search = wanted && wanted !== '/' && !wanted.startsWith('/api/') ? `?next=${encodeURIComponent(wanted)}` : ''
     return NextResponse.redirect(url)
   }
   return response

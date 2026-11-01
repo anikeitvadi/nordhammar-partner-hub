@@ -30,21 +30,21 @@ export async function HubPage({ domain, searchParams }: { domain: Domain; search
       <header className="hub-head">
         <div>
           <h1>{w.many}</h1>
-          <p>Golden records across every region, read live from the hub. Search first; request only what is not there.</p>
+          <p>Every {w.one} we already have, in every region. Search before you request a new one.</p>
         </div>
         <Link href={requestHref} className="button">Request a new {w.one}</Link>
       </header>
       <form method="get" className="hub-search" role="search">
         {regions.length > 1 ? (
           <select name="region" defaultValue={region} aria-label="Region">{regions.map((r) => <option key={r} value={r}>{r}</option>)}</select>
-        ) : <><input type="hidden" name="region" value={region} /><span className="badge badge-region" title="Your region is fixed by your entitlement">{region} 🔒</span></>}
-        <input name="q" defaultValue={q} placeholder="Name, tax ID, DUNS, city or ERP number" aria-label="Search" autoFocus />
+        ) : <><input type="hidden" name="region" value={region} /><span className="badge badge-region">Region: {region} (fixed)</span></>}
+        <input name="q" defaultValue={q} placeholder="Name, tax ID, DUNS, city or ERP number" aria-label="Search" autoFocus={!q && !id} />
         {id ? <input type="hidden" name="id" value={id} /> : null}
         <button type="submit">Search</button>
       </form>
       <div className="split">
         <div className="split-list">
-          {q ? <p className="muted count">{outcome.results.length} {outcome.results.length === 1 ? 'result' : 'results'} in {region}</p> : <p className="muted count">Type to search {region}.</p>}
+          {q ? <p className="muted count" role="status" aria-live="polite">{outcome.results.length} {outcome.results.length === 1 ? 'result' : 'results'} in {region}</p> : <p className="muted count">Type to search {region}.</p>}
           {outcome.foreignRegion ? <p className="panel hint">A {w.one} with this tax ID exists in {outcome.foreignRegion}. Contact the {outcome.foreignRegion} team. One legal entity is not created twice.</p> : null}
           {q && outcome.results.length === 0 && !outcome.foreignRegion ? (
             <p className="panel">No {w.one} matches in {region}. <Link href={requestHref}>Request a new {w.one}</Link> with this text carried over.</p>
@@ -52,7 +52,7 @@ export async function HubPage({ domain, searchParams }: { domain: Domain; search
           <ul className="result-list">
             {outcome.results.map((r) => (
               <li key={r.goldenId} className={r.goldenId === selected?.goldenId ? 'selected' : undefined}>
-                <Link href={`${w.path}?${new URLSearchParams({ q, region, id: r.goldenId }).toString()}`}>
+                <Link href={`${w.path}?${new URLSearchParams({ q, region, id: r.goldenId }).toString()}#detail`}>
                   <span className="rl-name">{r.legalName}</span>
                   <span className="rl-meta">{r.city} · {r.region} · {r.erpNumber ? `${r.region === 'EU' ? 'IFS' : 'MAPICS'} ${r.erpNumber}` : 'no ERP number'}</span>
                   <span className="rl-tags">{r.typeCode ? <span className="badge">{r.typeCode.replace('_', ' ')}</span> : null}{r.status !== 'active' ? <span className="badge badge-stopped">{r.status}</span> : null}</span>
@@ -61,13 +61,13 @@ export async function HubPage({ domain, searchParams }: { domain: Domain; search
             ))}
           </ul>
         </div>
-        <div className="split-detail">
-          {selected ? <PartyDetail party={selected} compact /> : (
+        <div className="split-detail" id="detail">
+          {selected ? <PartyDetail party={selected} compact /> : outcome.results.length > 0 ? (
             <div className="empty">
               <p><strong>Select a record</strong></p>
               <p className="muted">Identifiers, group, addresses, sources and the ERP number, as the hub holds them today.</p>
             </div>
-          )}
+          ) : null}
         </div>
       </div>
     </section>

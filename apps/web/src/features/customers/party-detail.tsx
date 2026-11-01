@@ -1,11 +1,12 @@
 import Link from 'next/link'
+import { LocalTime } from '@/features/ui/time.client'
 import type { PartyDetail as Party } from './hub.server'
 
 const KIND: Record<string, string> = { bill_to: 'Bill-to', ship_to: 'Ship-to', remit_to: 'Remit-to' }
 const fmt = (n: number, c: string) => new Intl.NumberFormat('en', { style: 'currency', currency: c, maximumFractionDigits: 0 }).format(n)
 
 // WF-03: one golden record. What the ERPs hold, where each piece came from, and how the company sits in its group.
-// The two actions the spec names (request a change, set parent) are not built; they link to the roadmap, not to a fake form.
+// The two actions the spec names (request a change, set parent) are not built; they are labelled as coming, not drawn as buttons.
 export function PartyDetail({ party: p, compact = false }: { party: Party; compact?: boolean }) {
   const path = p.domain === 'customer' ? '/customers' : '/suppliers'
   return (
@@ -14,7 +15,7 @@ export function PartyDetail({ party: p, compact = false }: { party: Party; compa
         <div>
           {compact ? <h2 className="party-name">{p.legalName}</h2> : <h1>{p.legalName}</h1>}
           {p.localName ? <p className="party-local">{p.localName}</p> : null}
-          <p className="party-sub"><code>{p.goldenId}</code> · {p.region} · {p.country} <span className={`badge ${p.status === 'active' ? 'badge-created' : 'badge-stopped'}`}>{p.status}</span>{p.typeCode ? <span className="badge">{p.typeCode.replace('_', ' ')}</span> : null}</p>
+          <p className="party-sub">Hub ID <code>{p.goldenId}</code> · {p.region} · {p.country} <span className={`badge ${p.status === 'active' ? 'badge-created' : 'badge-stopped'}`}>{p.status}</span>{p.typeCode ? <span className="badge">{p.typeCode.replace('_', ' ')}</span> : null}</p>
         </div>
         {!compact ? <Link href={`${path}?${new URLSearchParams({ q: p.legalName, id: p.goldenId }).toString()}`} className="muted">Back to search</Link> : null}
       </header>
@@ -39,7 +40,7 @@ export function PartyDetail({ party: p, compact = false }: { party: Party; compa
       <h2>Addresses</h2>
       <ul className="addr-list">
         {p.addresses.map((a, i) => (
-          <li key={i}><span className="addr-kind">{KIND[a.kind]}{a.isDefault ? ' ★' : ''}</span> {[a.street, a.number].filter(Boolean).join(' ')}{a.complement ? `, ${a.complement}` : ''}{a.district ? `, ${a.district}` : ''}, {a.city}{a.regionCode ? ` ${a.regionCode}` : ''}{a.postalCode ? ` ${a.postalCode}` : ''} · {a.country}</li>
+          <li key={i}><span className="addr-kind">{KIND[a.kind]}{a.isDefault ? <span className="muted"> (default)</span> : null}</span> {[a.street, a.number].filter(Boolean).join(' ')}{a.complement ? `, ${a.complement}` : ''}{a.district ? `, ${a.district}` : ''}, {a.city}{a.regionCode ? ` ${a.regionCode}` : ''}{a.postalCode ? ` ${a.postalCode}` : ''} · {a.country}</li>
         ))}
       </ul>
 
@@ -54,11 +55,12 @@ export function PartyDetail({ party: p, compact = false }: { party: Party; compa
       </dl>
 
       <h2>Sources</h2>
+      <p className="muted small">Which system each piece came from, and when the hub last loaded it.</p>
       <ul className="source-list">
-        {p.sources.map((s) => <li key={s.system}><code>{s.system}</code> {s.sourceId} <span className="muted">· loaded {new Date(s.loadedAt).toLocaleDateString()}</span></li>)}
+        {p.sources.map((s) => <li key={s.system}><code>{s.system}</code> {s.sourceId} <span className="muted">· loaded <LocalTime iso={s.loadedAt} mode="datetime" /></span></li>)}
       </ul>
 
-      <p className="party-actions"><Link href="/roadmap#change">Request a change</Link> · <Link href="/roadmap#parent">Set parent (steward)</Link></p>
+      <p className="coming"><strong>Coming next, not in this release:</strong> request a change to this record, and set its parent (stewards). <Link href="/roadmap#change">What they will do</Link>.</p>
     </article>
   )
 }

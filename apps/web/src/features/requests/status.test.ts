@@ -12,15 +12,15 @@ describe('timeline copy', () => {
     ].map((e) => describeEvent({ at: '2026-10-31T00:00:00Z', actor: 'workflow', ...e }))
     expect(lines).toEqual([
       'Attempt 1: sent to the ERP',
-      'Attempt 1: ERP timed out; retrying in 1s with the same key',
+      'Attempt 1: the ERP did not answer in time. Trying again in 1s with the same request, so it cannot be created twice',
       'Attempt 2: sent to the ERP',
       'Attempt 2: the ERP had already created it; we got the same number back, 26001',
-      'ERP assigned number 26001 (one record, even though the first answer was lost)',
+      'The ERP assigned number 26001. One record, even though the first answer was lost',
     ])
   })
   it('says when retries are exhausted and what happens next', () => {
-    expect(describeEvent({ at: 't', actor: 'workflow', kind: 'erp_attempt', detail: { attempt: 4, phase: 'transient', reason: 'ERP timed out', retryAfterMs: null } })).toBe('Attempt 4: ERP timed out; retries exhausted')
-    expect(describeEvent({ at: 't', actor: 'workflow', kind: 'stopped', detail: { outcome: 'transient', reason: 'ERP timed out' } })).toMatch(/Effect unknown; an operator reconciles by key/)
+    expect(describeEvent({ at: 't', actor: 'workflow', kind: 'erp_attempt', detail: { attempt: 4, phase: 'transient', reason: 'ERP timed out', retryAfterMs: null } })).toBe('Attempt 4: the ERP did not answer in time. No more retries')
+    expect(describeEvent({ at: 't', actor: 'workflow', kind: 'stopped', detail: { outcome: 'transient', reason: 'ERP timed out' } })).toMatch(/An operator will check whether it was created/)
   })
   it('polls only while the state can still move', () => {
     expect(isLive({ kind: 'creating', revision: 1, operationKey: 'k' } as never)).toBe(true)

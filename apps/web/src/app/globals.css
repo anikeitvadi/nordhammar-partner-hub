@@ -27,6 +27,8 @@ body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--se
 /* operating surfaces stay sans */
 input, select, button, label, nav, .shell-header, .badge, .results th, .count, .small, .rl-meta, .rl-tags, .shell-who, .addr-kind, .party-sub, .step legend small, .muted.small { font-family: var(--sans); }
 a { color: var(--accent); text-decoration: none; }
+/* keyboard: one visible ring for everything focusable, only on keyboard focus */
+a:focus-visible, button:focus-visible, .button:focus-visible, summary:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 a:hover { text-decoration: underline; text-underline-offset: 3px; }
 code { font-family: var(--mono); font-size: .92em; background: var(--surface-2); padding: 1px 5px; border-radius: 4px; }
 h1 { font-family: var(--serif); font-size: 2rem; font-weight: 400; letter-spacing: -0.01em; line-height: 1.15; margin: 0 0 6px; }
@@ -107,7 +109,8 @@ button.danger { background: var(--bad); }
   .shell-region { font-size: .8rem; gap: 6px; }
   .shell-main { padding: 20px 16px 48px; }
   .facts { grid-template-columns: 1fr; }
-  .results th:nth-child(n+4), .results td:nth-child(n+4) { display: none; }
+  /* narrow tables: hide the columns a table marks as secondary, never the status or the actions */
+  .results .col-secondary { display: none; }
 }
 
 /* shell nav */
@@ -169,7 +172,10 @@ h3 { font-family: var(--serif); font-size: 1.1rem; font-weight: 400; margin: 22p
 .step { display: block; }
 .step-title { font-family: var(--serif); font-size: 1.25rem; margin: 0 0 10px; color: var(--fg); }
 .step.locked { opacity: .55; }
-.step label { display: grid; gap: 6px; font-size: .85rem; font-weight: 500; color: var(--fg-2); margin: 10px 0; }
+.step label, .stack label { display: block; font-size: .85rem; font-weight: 500; color: var(--fg-2); margin: 10px 0; }
+/* the label line stays one line: text, required mark and helper inline; the control drops under it */
+.step label input, .step label select, .stack label input, .stack label select { display: block; width: 100%; margin-top: 6px; box-sizing: border-box; }
+.step label .muted, .stack label .muted { font-weight: 400; margin-left: 4px; }
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; }
 .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0 14px; }
 .addr-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 0 12px; }
@@ -181,5 +187,43 @@ h3 { font-family: var(--serif); font-size: 1.1rem; font-weight: 400; margin: 22p
   .split-detail { position: static; }
   .grid2, .grid3 { grid-template-columns: 1fr; }
   .addr-grid label, .addr-grid label.short { grid-column: span 6; }
-  .shell-nav { display: none; }
+  /* the nav becomes a scrollable second row instead of disappearing */
+  .shell-header { flex-wrap: wrap; height: auto; padding: 8px 16px; row-gap: 6px; }
+  .shell-region { display: contents; }
+  .shell-who { order: 1; margin-left: auto; }
+  .shell-region > form { order: 2; }
+  .shell-nav { order: 3; width: 100%; overflow-x: auto; gap: 14px; padding-bottom: 4px; -webkit-overflow-scrolling: touch; }
+  .shell-nav a { white-space: nowrap; }
+  .hub-head { flex-direction: column; gap: 10px; }
+  .hub-head .button { align-self: flex-start; }
+  .hub-search { flex-wrap: wrap; }
+  .hub-search input[name="q"] { min-width: 0; flex: 1 1 160px; }
+  .badge-region { white-space: nowrap; }
 }
+
+/* loading frames: the shape of the page, no motion */
+.skeleton { background: var(--surface-2); border-radius: var(--radius-sm); }
+.skeleton-title { height: 36px; width: 46%; margin-bottom: 10px; }
+.skeleton-line { height: 18px; width: 70%; margin-bottom: 18px; }
+.skeleton-row { height: 56px; margin-bottom: 8px; border-radius: var(--radius); }
+.skeleton-block { height: 200px; border-radius: var(--radius); }
+
+/* technical details stay, collapsed */
+details.tech { margin-top: 14px; color: var(--fg-3); font-size: .9rem; }
+details.tech summary { cursor: pointer; font-family: var(--sans); color: var(--fg-2); }
+details.tech dl { margin: 8px 0 0; padding: 12px 16px; background: var(--surface-2); border-radius: var(--radius-sm); display: grid; grid-template-columns: 150px 1fr; gap: 6px 14px; font-family: var(--sans); }
+details.tech dd { margin: 0; font-family: var(--mono); font-size: .85rem; word-break: break-all; }
+
+/* honest labels for what is not in this release */
+.results .num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.coming { color: var(--fg-3); font-family: var(--sans); font-size: .85rem; }
+.coming a { color: var(--fg-3); text-decoration: underline; text-underline-offset: 3px; }
+
+/* step lock explanation */
+.locked-note { font-family: var(--sans); color: var(--fg-3); font-size: .9rem; margin: 0 0 8px; }
+
+/* AI suggestion card */
+.ai-card { margin-top: 10px; padding: 12px 14px; background: var(--surface-2); border-radius: var(--radius-sm); }
+.ai-card .ai-label { font-family: var(--sans); font-size: .75rem; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--fg-3); }
+.ai-card .ai-verdict { font-size: 1.05rem; margin: 4px 0 6px; color: var(--fg); }
+.ai-card .reasons { margin: 0 0 8px; padding-left: 18px; }
