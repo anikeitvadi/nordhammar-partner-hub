@@ -3,6 +3,8 @@ import { Suspense } from 'react'
 import { signIn } from '@/features/auth/actions'
 import { SubmitButton } from '@/features/ui/submit-button.client'
 import { CopyButton } from '@/features/ui/copy-button.client'
+import { AsciiLedger } from '@/features/ui/ascii-ledger.client'
+import { recentLedger } from '@/features/requests/ledger.server'
 
 export const metadata: Metadata = { title: 'Sign in' }
 
@@ -46,9 +48,14 @@ async function SignInForm({ searchParams }: { searchParams: Params }) {
   )
 }
 
+async function Ledger() {
+  const lines = await recentLedger()
+  return <AsciiLedger lines={lines} />
+}
+
 export default function LoginPage({ searchParams }: { searchParams: Params }) {
   return (
-    <section className="door">
+    <section className="door grain">
       <div className="door-head">
         <p className="eyebrow">Nordhammar Industries · master data</p>
         <h1 className="door-title">One record for every partner, in every region.</h1>
@@ -88,9 +95,15 @@ export default function LoginPage({ searchParams }: { searchParams: Params }) {
             {TRY.map((t, i) => <li key={i}><span>{t.text}</span><CopyButton text={t.copy} /></li>)}
           </ol>
         </div>
+        <div className="tile span3 ledger-tile">
+          <p className="runin"><strong>The mark, in ledger text.</strong> Request ids, partner names and status words from the demo hub, reflowing slowly. Measured with Pretext, drawn in Geist Mono.</p>
+          <Suspense fallback={<div className="ledger" aria-hidden="true" />}>
+            <Ledger />
+          </Suspense>
+        </div>
         <div className="tile well span3">
           <p className="runin"><strong>What it runs on.</strong> Next.js Cache Components, a durable workflow for the ERP write, OIDC to the ERP boundary, one AI suggestion behind a validator.</p>
-          <p className="muted small tile-body" style={{ margin: 0 }}>Every decision and its reason is in DECISIONS.md in the repository.</p>
+          <p className="muted small tile-body" style={{ margin: 0 }}>Every decision and its reason is in DECISIONS.md in the repository. <a href="/how-it-works">How it works →</a></p>
         </div>
       </div>
     </section>

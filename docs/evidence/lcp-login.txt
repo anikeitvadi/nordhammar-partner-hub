@@ -1,0 +1,2 @@
+LCP before Part 3 (measured, Playwright PerformanceObserver, /login, 1440, warm cache, 2026-11-01 12:04 CT): LCP 164 ms (h1.door-title), FCP 164 ms, TTFB 55 ms
+LCP after Part 3 (measured, same method, 2026-11-01 12:11 CT): first request after the deploy (cold prerender) 636 ms; second request 188 ms (h1.door-title), FCP 188 ms, TTFB 108 ms. The sign-in door is a prerendered page with two Suspense holes (the form, the ledger); the grain is a 48 KB tiled PNG and the ledger is a client island that paints after hydration, neither is on the LCP path.

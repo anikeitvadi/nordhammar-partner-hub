@@ -1,14 +1,18 @@
 import { ImageResponse } from 'next/og'
+import { readFile } from 'node:fs/promises'
+import { join } from 'node:path'
 
 // The link preview for the submission email: the product name and one line, in the app's own colors.
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 export const alt = 'Nordhammar Partner Hub: one record for every partner, in every region'
 
-export default function Image() {
+export default async function Image() {
+  // the same generated grain as the sign-in page, faint, tiled over the ground
+  const grain = `data:image/png;base64,${(await readFile(join(process.cwd(), 'public', 'grain.png'))).toString('base64')}`
   return new ImageResponse(
     (
-      <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: 72, background: '#f5f5f4', color: '#1a1a1c', fontFamily: 'Georgia, serif' }}>
+      <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: 72, background: '#f5f5f4', backgroundImage: `url(${grain})`, backgroundRepeat: 'repeat', backgroundSize: '160px 160px', color: '#1a1a1c', fontFamily: 'Georgia, serif' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, fontSize: 26, color: '#6f737a', fontFamily: 'Helvetica, Arial, sans-serif', letterSpacing: 2, textTransform: 'uppercase' }}>Nordhammar Industries · master data</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
           <div style={{ fontSize: 76, lineHeight: 1.08, letterSpacing: -1 }}>One record for every partner, in every region.</div>

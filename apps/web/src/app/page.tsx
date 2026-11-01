@@ -76,7 +76,7 @@ export default async function HomePage() {
           <>
             <div className="tile well">
               <p className="runin"><strong>Three steps.</strong> Check the hub, submit, watch the ERP answer. Nothing is created until a reviewer approves.</p>
-              <p className="muted small tile-body" style={{ margin: 0 }}>Your region is {regions.join(', ')}; the request form uses its tax ID and address fields.</p>
+              <p className="muted small tile-body" style={{ margin: 0 }}>Your region is {regions.join(', ')}; the request form uses its tax ID and address fields. <Link href="/how-it-works">How it works →</Link></p>
             </div>
             <div className="tile span2">
               <p className="runin"><strong>Found a match?</strong> Open the record instead of requesting. If the record is wrong, the change path is the next release; until then, tell the hub team.</p>

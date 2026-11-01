@@ -6,6 +6,7 @@ import type { Domain, RequestState } from '@intake/contracts'
 import { StatusBadge, describeEvent, describeState, isLive, technicalEvent, type TimelineEvent } from './status'
 import { LocalTime } from '@/features/ui/time.client'
 import { RollingNumber } from '@/features/ui/rolling-number.client'
+import { Blueprint, stageFor } from '@/features/ui/blueprint'
 
 type Snapshot = { state: RequestState; revision: number; updatedAt: string; events: TimelineEvent[] }
 
@@ -59,6 +60,8 @@ export function LiveStatus({ requestId, domain, erp, initial }: { requestId: str
         <p className="panel ok payoff"><strong>{erp} {domain === 'customer' ? 'customer' : 'supplier'} number <RollingNumber value={snap.state.erpNumber} roll={!landed} /></strong>. {snap.state.goldenId ? <Link href={`${domain === 'customer' ? '/customers' : '/suppliers'}?id=${snap.state.goldenId}`}>Open the hub record {snap.state.goldenId}</Link> : 'It appears in search after the next hub load (usually overnight). Until then this page is the record.'}</p>
       ) : null}
       {emails ? <p className="muted small">Emails to the requester and the approver team are queued at each step; sending is not part of this build.</p> : null}
+      <h2>Where it is</h2>
+      <Blueprint active={stageFor(snap.state.kind)} />
       {technical.length ? (
         <details className="tech">
           <summary>Technical details</summary>
