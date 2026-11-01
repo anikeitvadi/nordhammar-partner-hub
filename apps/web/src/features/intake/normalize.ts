@@ -68,3 +68,17 @@ export function relation(a: TaxId, b: TaxId): 'exact' | 'related' | 'none' {
   if (a.companyKey && b.companyKey && a.companyKey === b.companyKey) return 'related'
   return 'none'
 }
+
+// N8: a comparable form of a legal name for review and for the one deterministic check the validator makes:
+// lowercase, accents stripped, punctuation removed, common legal suffixes dropped, whitespace collapsed.
+// Applied after punctuation is replaced by spaces, so "S.A." arrives as "s a" and "B.V." as "b v".
+const LEGAL_SUFFIXES = /\b(ltda|lda|s a|sa|inc|llc|ltd|gmbh|ag|b v|bv|nv|ab|as|oy|oyj|s r l|srl|sas|s l|sl|pvt|co|corp|company|limited)\b/g
+export function normalizeName(name: string): string {
+  return name
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(LEGAL_SUFFIXES, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}

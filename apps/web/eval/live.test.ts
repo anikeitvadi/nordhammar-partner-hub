@@ -11,9 +11,13 @@ import { proposeMatch } from '@/features/intake/agent.server'
 // Gateway auth: an API key, or the deployment's OIDC token pulled with `vercel env pull` (the AI SDK's gateway provider uses either).
 const key = process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN
 const file = JSON.parse(readFileSync(path.resolve(__dirname, '../../../eval/fixtures/cases.json'), 'utf8')) as { cases: { id: string; input: { country: string; taxRaw: string; legalName: string; city: string; street: string | null }; exactHit: unknown; candidates: string[]; expect: Record<string, unknown>; model?: { down?: boolean } }[]; candidates: Record<string, Candidate> }
-const compareCases = file.cases.filter((c) => c.expect.route === 'compare' && !c.model?.down)
+const only = process.env.EVAL_CASES?.split(',').map((x) => x.trim()).filter(Boolean)
+const compareCases = file.cases.filter((c) => c.expect.route === 'compare' && !c.model?.down && (!only || only.includes(c.id)))
 const REPS = 3
-const models = [process.env.AI_PRIMARY_MODEL ?? 'anthropic/claude-haiku-4.5', process.env.AI_FALLBACK_MODEL ?? 'openai/gpt-4.1-mini']
+const models = (process.env.EVAL_MODELS?.split(',').map((m) => m.trim()).filter(Boolean)) ?? [process.env.AI_PRIMARY_MODEL ?? 'anthropic/claude-haiku-4.5', process.env.AI_FALLBACK_MODEL ?? 'openai/gpt-4.1-mini']
+// The Gateway's free tier allows 5 requests per minute per model and region; EVAL_PACE_MS spaces the calls (0 with paid credits).
+const PACE_MS = Number(process.env.EVAL_PACE_MS ?? 0)
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
 type Attempt = { case: string; model: string; rep: number; ai: string; served?: string; verdict?: string; golden_id?: string | null; pass: boolean; reason?: string; ms: number; inputTokens?: number | null; outputTokens?: number | null; costUsd?: number | null }
 
@@ -27,6 +31,7 @@ describe.skipIf(!key)('live eval', () => {
         const route = preflight({ taxId: n.taxId }, null, c.candidates.map((id) => file.candidates[id]))
         if (route.route !== 'compare') throw new Error(`${c.id} did not route to compare`)
         for (let rep = 1; rep <= REPS; rep++) {
+          if (PACE_MS > 0) await sleep(PACE_MS)
           const t0 = Date.now()
           const out = await proposeMatch({ legalName: c.input.legalName, taxId: n.taxId, city: c.input.city, street: c.input.street }, route.candidates)
           const ms = Date.now() - t0

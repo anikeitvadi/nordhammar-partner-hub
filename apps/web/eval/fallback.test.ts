@@ -8,10 +8,13 @@ import { preflight, type Candidate } from '@/features/intake/match'
 import { proposeMatch } from '@/features/intake/agent.server'
 
 const key = process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN
+const PACE_MS = Number(process.env.EVAL_PACE_MS ?? 0)
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 const file = JSON.parse(readFileSync(path.resolve(__dirname, '../../../eval/fixtures/cases.json'), 'utf8')) as { cases: { id: string; input: { country: string; taxRaw: string; legalName: string; city: string; street: string | null }; candidates: string[]; expect: Record<string, unknown> }[]; candidates: Record<string, Candidate> }
 
 describe.skipIf(!key)('provider failover', () => {
   it('a dead primary model is served by the fallback, and the served model is the fallback slug', async () => {
+    if (PACE_MS > 0) await sleep(PACE_MS)
     const fallback = process.env.AI_FALLBACK_MODEL ?? 'openai/gpt-4.1-mini'
     process.env.AI_PRIMARY_MODEL = 'anthropic/claude-does-not-exist-0'
     process.env.AI_FALLBACK_MODEL = fallback
