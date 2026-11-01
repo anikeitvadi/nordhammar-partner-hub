@@ -13,7 +13,7 @@ type P = {
   id: string; domain: 'customer' | 'supplier'; name: string; local?: string; aliases?: string[]
   region: Region; country: string; scheme?: string; tax?: string; key?: string; ids?: { scheme: string; value: string }[]
   duns?: string; dunsRating?: string
-  erp?: 'MAPICS' | 'IFS'; erpNo?: string; seg?: string; userRef?: string
+  erp?: 'ERP-1' | 'ERP-2'; erpNo?: string; seg?: string; userRef?: string
   type?: string; industry?: string; status?: 'active' | 'hold' | 'inactive'; terms?: string; currency?: string; risk?: string
   inception?: string; lastActivity?: string; updatedBy?: string
   group?: string; parent?: string; ultimate?: string
@@ -30,8 +30,8 @@ const groups = [
 ]
 
 const seg: Record<Region, string> = { BR: 'NH-BR', US: 'NH-US', IN: 'NH-IN', CN: 'NH-CN', EU: 'NH-EU' }
-const erpOf = (r: Region) => (r === 'EU' ? 'IFS' : 'MAPICS') as 'MAPICS' | 'IFS'
-const src = (r: Region) => (r === 'CN' ? 'FABRIC_CN' : r === 'EU' ? 'IFS_EU' : `MAPICS_${r}`)
+const erpOf = (r: Region) => (r === 'EU' ? 'ERP-2' : 'ERP-1') as 'ERP-1' | 'ERP-2'
+const src = (r: Region) => (r === 'CN' ? 'LAKE_CN' : r === 'EU' ? 'ERP2_EU' : `ERP1_${r}`)
 
 // CNPJ root = first 8 digits = the company; last 6 = establishment + check digits. All check digits valid.
 const customers: P[] = [
@@ -69,8 +69,8 @@ const customers: P[] = [
   { id: 'G-US-02', domain: 'customer', name: 'Harbor Point Refining Inc', city: 'Houston', street: 'Louisiana St', number: '1000', region: 'US', country: 'US', scheme: 'EIN', tax: '760234567', key: '760234567', duns: '008741122', erpNo: '12051', userRef: 'HARBOR', type: 'end_user', industry: 'Oil & gas', terms: 'N45', currency: 'USD', risk: 'A', inception: '2007-07-07', lastActivity: '2026-10-26' },
   { id: 'G-US-03', domain: 'customer', name: 'Midwest Dairy Cooperative', city: 'Madison', street: 'E Washington Ave', number: '350', region: 'US', country: 'US', scheme: 'EIN', tax: '391456789', key: '391456789', erpNo: '12060', type: 'end_user', industry: 'Food & beverage processing', status: 'hold', terms: 'N30', currency: 'USD', risk: 'C', inception: '2017-04-18', lastActivity: '2026-01-30' },
   // India
-  { id: 'G-IN-02', domain: 'customer', name: 'Tata-like Fabricators Pvt Ltd', aliases: ['TLF Pune'], city: 'Pune', street: 'MG Road', number: '77', region: 'IN', country: 'IN', scheme: 'GSTIN', tax: '27AADCT5678G1ZK', key: 'AADCT5678G', ids: [{ scheme: 'PAN', value: 'AADCT5678G' }], erpNo: '31012', type: 'contractor', industry: 'Engineering services', terms: 'N30', currency: 'INR', risk: 'B', inception: '2019-06-21', lastActivity: '2026-09-29' },
-  // China (cleansed copy from Fabric; both names)
+  { id: 'G-IN-02', domain: 'customer', name: 'Deccan Fabricators Pvt Ltd', aliases: ['Deccan Pune'], city: 'Pune', street: 'MG Road', number: '77', region: 'IN', country: 'IN', scheme: 'GSTIN', tax: '27AADCT5678G1ZK', key: 'AADCT5678G', ids: [{ scheme: 'PAN', value: 'AADCT5678G' }], erpNo: '31012', type: 'contractor', industry: 'Engineering services', terms: 'N30', currency: 'INR', risk: 'B', inception: '2019-06-21', lastActivity: '2026-09-29' },
+  // China (cleansed copy from the lake; both names)
   { id: 'G-CN-01', domain: 'customer', name: 'Hengtai Precision Machinery Co Ltd', local: '恒泰精密机械有限公司', city: 'Shenzhen', street: 'Shennan Blvd', number: '2000', region: 'CN', country: 'CN', scheme: 'USCC', tax: '91440300MA5DC1234X', key: '91440300MA5DC1234X', erpNo: '41003', type: 'oem', industry: 'Machinery', terms: 'N30', currency: 'CNY', risk: 'B', inception: '2018-01-15', lastActivity: '2026-10-09' },
   { id: 'G-CN-02', domain: 'customer', name: 'Jiangnan Food Industries', local: '江南食品工业', city: 'Suzhou', street: 'Renmin Rd', number: '88', region: 'CN', country: 'CN', scheme: 'USCC', tax: '91320500MA1XYZ567K', key: '91320500MA1XYZ567K', erpNo: '41011', type: 'end_user', industry: 'Food & beverage processing', terms: 'N45', currency: 'CNY', risk: 'A', inception: '2020-09-01', lastActivity: '2026-10-18' },
 ]

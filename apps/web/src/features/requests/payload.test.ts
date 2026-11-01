@@ -8,7 +8,7 @@ describe('request payload from the form', () => {
   it('builds a customer payload with the bill-to, the secondary registration and the reason', () => {
     const r = buildPayload('customer', 'BR', tax, base)
     if (!r.ok) throw new Error(JSON.stringify(r.problems))
-    expect(r.payload).toMatchObject({ schemaVersion: 2, domain: 'customer', destination: { erp: 'MAPICS', region: 'BR' }, duns: '884983974', identifiers: [{ scheme: 'IE', value: '110.042.490.114' }], reason: { text: 'New quote', reference: 'Q-2291' } })
+    expect(r.payload).toMatchObject({ schemaVersion: 2, domain: 'customer', destination: { erp: 'ERP-1', region: 'BR' }, duns: '884983974', identifiers: [{ scheme: 'IE', value: '110.042.490.114' }], reason: { text: 'New quote', reference: 'Q-2291' } })
     expect(r.payload.addresses).toEqual([{ kind: 'bill_to', street: 'Rua Demo', number: '20', complement: null, district: 'Centro', city: 'Cidade Exemplo', regionCode: 'SP', postalCode: '01000-000', country: 'BR' }])
   })
   it('a supplier gets a remit-to, and an optional ship-to rides along for a customer', () => {

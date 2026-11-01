@@ -117,7 +117,7 @@ export const ErpCreateCommandSchema = z.object({
   payload: z.object({
     schemaVersion: z.literal(2),
     domain: z.enum(DOMAINS),
-    destination: z.object({ erp: z.enum(['MAPICS', 'IFS']), region: z.enum(REGIONS) }),
+    destination: z.object({ erp: z.enum(['ERP-1', 'ERP-2']), region: z.enum(REGIONS) }),
     identity: z.object({ country: z.string(), scheme: z.string(), canonical: z.string() }),
     // Secondary registrations the region requires (state tax ID, PAN alongside a GSTIN, VAT alongside a company number).
     identifiers: z.array(z.object({ scheme: z.string(), value: z.string() })),

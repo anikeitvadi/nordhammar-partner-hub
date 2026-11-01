@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { canonicalize, operationKey, parseOperationKey, payloadHash, transition, type Approval, type CanonicalPayload, type RequestState } from './index'
 
 const payload: CanonicalPayload = {
-  schemaVersion: 2, domain: 'customer', destination: { erp: 'MAPICS', region: 'BR' }, identity: { country: 'BR', scheme: 'CNPJ', canonical: '61000102000100' },
+  schemaVersion: 2, domain: 'customer', destination: { erp: 'ERP-1', region: 'BR' }, identity: { country: 'BR', scheme: 'CNPJ', canonical: '61000102000100' },
   identifiers: [{ scheme: 'IE', value: '123.456.789.012' }], duns: null, legalName: 'Foz Instrumentos', localName: null, typeCode: 'end_user', industry: 'Food processing', paymentTerms: null,
   addresses: [{ kind: 'bill_to', street: 'Rua Demo', number: '20', complement: null, district: 'Centro', city: 'Cidade Exemplo', regionCode: 'SP', postalCode: '01000-000', country: 'BR' }], contact: null,
   reason: { text: 'New quote', reference: 'Q-2291' },
@@ -20,7 +20,7 @@ describe('canonical payload and hash', () => {
     expect(await payloadHash(payload)).not.toBe(await payloadHash({ ...payload, legalName: 'Foz Instrumentos SA' }))
   })
   it('canonical form has a fixed key order', () => {
-    expect(canonicalize(payload).startsWith('{"schemaVersion":2,"domain":"customer","destination":{"erp":"MAPICS","region":"BR"},"identity"')).toBe(true)
+    expect(canonicalize(payload).startsWith('{"schemaVersion":2,"domain":"customer","destination":{"erp":"ERP-1","region":"BR"},"identity"')).toBe(true)
   })
   it('the same legal entity may be a customer and a supplier: the domain is part of the hash and the key', async () => {
     expect(await payloadHash(payload)).not.toBe(await payloadHash({ ...payload, domain: 'supplier' }))

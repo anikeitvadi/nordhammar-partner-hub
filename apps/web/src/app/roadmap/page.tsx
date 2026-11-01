@@ -11,7 +11,7 @@ export default function RoadmapPage() {
         <dt>Steward review of probable duplicates</dt><dd>Name-similarity pairs are a post-load review queue in the hub. The app prevents duplicates at the point of entry; it does not clean the past.</dd>
         <dt>Emails</dt><dd>Every event that would send an email writes a queued row to the timeline (you can see them on any request). The sender is one integration away and adds nothing to the decisions this build is about.</dd>
         <dt>Attachments (tax registration, W-9)</dt><dd>Stored with the request, never sent to the ERP. A blob store and a private link; not in this cut.</dd>
-        <dt>China creation path</dt><dd>Open in the target architecture: write a structured row into MAPICS and let the Fabric cleanse carry it, or make Fabric the system of entry. The form exists; the submit says this instead of guessing.</dd>
+        <dt>China creation path</dt><dd>Open in the target architecture: write a structured row into ERP-1 and let the nightly load carry it, or make the hub the system of entry. The form exists; the submit says this instead of guessing.</dd>
       </dl>
     </section>
   )

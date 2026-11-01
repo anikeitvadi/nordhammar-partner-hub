@@ -23,7 +23,7 @@ export async function runDailyLoad(principal: Principal): Promise<{ loaded: numb
     const t = transition(state, { type: 'golden_loaded', goldenId })
     if (!t.ok) continue
     const main = p.addresses.find((a) => a.kind === (domain === 'customer' ? 'bill_to' : 'remit_to')) ?? p.addresses[0]
-    const source = region === 'CN' ? 'FABRIC_CN' : region === 'EU' ? 'IFS_EU' : `MAPICS_${region}`
+    const source = region === 'CN' ? 'LAKE_CN' : region === 'EU' ? 'ERP2_EU' : `ERP1_${region}`
     const statements = [
       db`insert into parties (golden_id, domain, legal_name, local_name, city, street, street_number, region, country, tax_scheme, tax_canonical, tax_company_key, identifiers, duns, erp_system, erp_number, erp_segment, type_code, industry, payment_terms, updated_by)
         values (${goldenId}, ${domain}, ${p.legalName}, ${p.localName}, ${main.city}, ${main.street}, ${main.number}, ${region}, ${p.identity.country}, ${p.identity.scheme}, ${p.identity.canonical}, ${companyKey(p.identity)}, ${JSON.stringify(p.identifiers)}::jsonb, ${p.duns}, ${p.destination.erp}, ${state.erpNumber}, ${'NH-' + region}, ${p.typeCode}, ${p.industry}, ${p.paymentTerms}, ${'hub load'})

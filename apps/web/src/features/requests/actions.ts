@@ -21,9 +21,9 @@ async function verify(formData: FormData): Promise<Verified | { redirectTo: stri
   const region = String(formData.get('region') ?? '') as Region
   const back = `/intake/new?domain=${domain}&region=${region}`
   if (!visibleRegions(principal).includes(region)) return { redirectTo: `${back}&error=${encodeURIComponent('You are not entitled to request in that region.')}` }
-  // The customer's own architecture leaves the China creation path open (write into MAPICS and let the cleanse carry
-  // it, or make Fabric the system of entry). The form exists; the write does not, and the app says so rather than guessing.
-  if (region === 'CN') return { redirectTo: `${back}&error=${encodeURIComponent('China: the creation path is an open decision in the target architecture (MAPICS row vs Fabric as system of entry). Requests for CN are not accepted until it is decided.')}` }
+  // The customer's own architecture leaves the China creation path open (write into ERP-1 and let the cleanse carry
+  // it, or make the hub the system of entry). The form exists; the write does not, and the app says so rather than guessing.
+  if (region === 'CN') return { redirectTo: `${back}&error=${encodeURIComponent('China: the creation path is an open decision in the target architecture (a structured row into ERP-1 carried by the nightly load, or the hub as the system of entry). Requests for CN are not accepted until it is decided.')}` }
   const country = String(formData.get('country') ?? '').toUpperCase()
   return { domain, region, country, back }
 }

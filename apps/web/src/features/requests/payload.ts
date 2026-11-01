@@ -4,7 +4,7 @@ import type { Address, CanonicalPayload, Domain, Region, TaxId } from '@intake/c
 // (submit, save draft, resubmit) goes through here, so the shape the reviewer approves is one function with tests.
 // Nothing here trusts the form for region or identity: both arrive already verified by the caller.
 
-export const ERP_BY_REGION: Record<Region, 'MAPICS' | 'IFS'> = { BR: 'MAPICS', US: 'MAPICS', IN: 'MAPICS', CN: 'MAPICS', EU: 'IFS' }
+export const ERP_BY_REGION: Record<Region, 'ERP-1' | 'ERP-2'> = { BR: 'ERP-1', US: 'ERP-1', IN: 'ERP-1', CN: 'ERP-1', EU: 'ERP-2' }
 
 // Which secondary registrations each country asks for on the form. The primary tax ID is validated separately.
 export const SECONDARY_IDS: Record<string, { scheme: string; label: string; required: boolean }[]> = {

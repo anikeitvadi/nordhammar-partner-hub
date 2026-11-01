@@ -66,9 +66,9 @@ export default function LoginPage({ searchParams }: { searchParams: Params }) {
           <p className="runin"><strong>Every customer and supplier we already have.</strong> Five regions, two ERPs, one search box.</p>
           <div className="tile-body fragment" aria-hidden="true">
             <ul className="rows">
-              <li className="nolead"><span><span className="t">Aurora Industrial Ltda</span><span className="s">Cidade Exemplo · BR · MAPICS 25002</span></span><span className="badge badge-created">Active</span></li>
-              <li className="nolead"><span><span className="t">Aurora Nordic AB</span><span className="s">Göteborg · EU · IFS 30012</span></span><span className="badge badge-created">Active</span></li>
-              <li className="nolead"><span><span className="t">Aurora Industrial Nordeste</span><span className="s">Recife · BR · MAPICS 26006</span></span><span className="badge badge-submitted">Created today</span></li>
+              <li className="nolead"><span><span className="t">Aurora Industrial Ltda</span><span className="s">Cidade Exemplo · BR · ERP-1 25002</span></span><span className="badge badge-created">Active</span></li>
+              <li className="nolead"><span><span className="t">Aurora Nordic AB</span><span className="s">Göteborg · EU · ERP-2 30012</span></span><span className="badge badge-created">Active</span></li>
+              <li className="nolead"><span><span className="t">Aurora Industrial Nordeste</span><span className="s">Recife · BR · ERP-1 26006</span></span><span className="badge badge-submitted">Created today</span></li>
             </ul>
           </div>
         </div>

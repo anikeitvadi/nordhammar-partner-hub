@@ -4,7 +4,7 @@ A small, defensible partner-intake application for a fictional European manufact
 
 Search the golden records → request a new customer or supplier, checked against the hub the moment the tax ID is typed → one global reviewer approves → a durable Workflow writes one keyed command through an authenticated ERP boundary, exactly once → the request shows the ERP number live → the nightly hub load makes it searchable.
 
-The hub, the ERPs and the analytics layer stay where they are. This app is the front door. That boundary is the point, and `DECISIONS.md` is the customer-facing artifact that explains it.
+This app's database is the master data hub: golden records, groups, hierarchy, sources, the nightly load. The ERPs stay (the partner number is born there), the analytics lake stays and consumes the hub's clean feed, the identity provider stays. That boundary is the point, and `DECISIONS.md` is the customer-facing artifact that explains it.
 
 ## Try it in two minutes
 

@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { typeLabel } from '@/features/requests/payload'
+import { ERP_BY_REGION, typeLabel } from '@/features/requests/payload'
 import type { Domain, Region } from '@intake/contracts'
 import { requirePrincipal } from '@/features/auth/principal.server'
 import { hasAnyRegion, visibleRegions } from '@/features/auth/scope'
@@ -54,7 +54,7 @@ export async function HubPage({ domain, searchParams }: { domain: Domain; search
                 <Link href={`${w.path}?${new URLSearchParams({ q, region, id: r.goldenId }).toString()}#detail`}>
                   <span className="rl-name">{r.legalName}</span>
                   <span className="rl-meta">{r.city} · {r.region}</span>
-                  <span className="rl-erp">{r.erpNumber ? `${r.region === 'EU' ? 'IFS' : 'MAPICS'} ${r.erpNumber}` : 'no ERP number yet'}</span>
+                  <span className="rl-erp">{r.erpNumber ? `${ERP_BY_REGION[r.region]} ${r.erpNumber}` : 'no ERP number yet'}</span>
                   <span className="rl-tags">{r.typeCode ? <span className="badge">{typeLabel(r.typeCode)}</span> : null}{r.status !== 'active' ? <span className="badge badge-stopped">{r.status}</span> : null}</span>
                 </Link>
               </li>

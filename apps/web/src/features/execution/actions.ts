@@ -35,7 +35,7 @@ export async function recoverAction(formData: FormData): Promise<void> {
   back(r.ok ? 'recovered' : 'noop')
 }
 
-// The simulated nightly hub load. In the engagement this is the Boomi/MDH load; here it is the only thing that makes
+// The simulated nightly hub load. In the customer's world this is the integration platform's nightly load; here it is the only thing that makes
 // a created customer searchable, and the only thing that invalidates the per-region search cache. updateTag is the
 // Server-Action form of invalidation: immediate expiry, the next read misses the cache and sees the new golden record.
 export async function dailyLoadAction(): Promise<void> {

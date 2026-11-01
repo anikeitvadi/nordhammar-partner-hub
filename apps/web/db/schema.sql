@@ -24,7 +24,7 @@ create table if not exists parties (
   duns_rating text,
   region text not null check (region in ('BR','EU','US','IN','CN')),
   country text not null,
-  erp_system text check (erp_system in ('MAPICS','IFS')),
+  erp_system text check (erp_system in ('ERP-1','ERP-2')),
   erp_number text,
   erp_segment text,                      -- the ERP segment / company the record sits in
   user_ref text,                         -- the number people type in the ERP every day
@@ -72,7 +72,7 @@ create table if not exists party_addresses (
 -- Lineage: which source contributed to the golden record and when it was last loaded.
 create table if not exists party_sources (
   golden_id text not null references parties(golden_id),
-  source_system text not null,           -- MAPICS_BR, IFS_EU, FABRIC_CN, HIERARCHY ...
+  source_system text not null,           -- ERP1_BR, ERP2_EU, LAKE_CN, HIERARCHY ...
   source_id text not null,
   loaded_at timestamptz not null default now(),
   primary key (golden_id, source_system)
