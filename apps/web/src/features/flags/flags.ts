@@ -1,6 +1,6 @@
 import { flag } from 'flags/next'
 
-// Demo switches as flags, so they can be flipped from the Vercel Toolbar in the room instead of redeploying an env
+// Demo switches as flags, so they can be flipped from the Vercel Toolbar during a walkthrough instead of redeploying an env
 // var. Every flag is read on the server, in a request (a page or a Server Action), never inside the workflow, and
 // none of them changes who may do what: authorization is the entitlements table, always. The env vars stay as the
 // defaults, so a deployment with no toolbar behaves exactly as before.

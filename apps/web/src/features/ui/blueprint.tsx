@@ -2,7 +2,7 @@ import type { RequestState } from '@intake/contracts'
 
 // The path a request takes, as a blueprint: fine grid, thin strokes, mono labels, one accent. Every label is a name
 // in the code (review.workflow.ts, steps.ts, erp.server.ts, the stub's verify.ts and receive.ts) so the diagram and
-// the deep dive say the same words. `active` is derived from the real request state, never from a timer.
+// the code say the same words. `active` is derived from the real request state, never from a timer.
 export type Stage = 'request' | 'paused' | 'decide' | 'write' | 'erp' | 'finish'
 
 export function stageFor(kind: RequestState['kind']): Stage {

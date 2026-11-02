@@ -1,5 +1,5 @@
 /* One system. Geist: serif for reading, sans for operating, mono for identifiers.
-   Tokens follow the Stageshow look model (five inks, one accent, status as soft fill + strong text, one radius
+   Tokens follow the look model in benjitaylor/skills (Stageshow, MIT) (five inks, one accent, status as soft fill + strong text, one radius
    scale, one control height). Surfaces and whitespace instead of borders; states instead of decoration. */
 :root {
   --canvas: #f5f5f4;        /* the page */

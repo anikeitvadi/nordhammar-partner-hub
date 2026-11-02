@@ -47,7 +47,7 @@ export async function dailyLoadAction(): Promise<void> {
   back(`loaded:${r.loaded}:${r.regions.join(',')}`)
 }
 
-// Demo control: the next successful ERP create loses its response, once. What the room watches: attempt 1 commits
+// Demo control: the next successful ERP create loses its response, once. What a viewer sees: attempt 1 commits
 // and times out from our side, attempt 2 sends the same key, the ERP replays the number, one record.
 export async function armLostResponseAction(): Promise<void> {
   const principal = await requirePrincipal()

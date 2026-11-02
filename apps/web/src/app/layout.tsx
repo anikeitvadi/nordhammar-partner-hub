@@ -28,7 +28,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* Real Core Web Vitals and page views for DECISIONS §6: measured, not claimed. Both are first-party scripts; no cookies. */}
         <SpeedInsights />
         <Analytics />
-        {/* The toolbar is where the demo flags are flipped in the room. It renders only for Vercel team members. */}
+        {/* The toolbar is where the demo flags are flipped during a walkthrough. It renders only for Vercel team members. */}
         {process.env.TOOLBAR_ENABLED === 'true' ? <VercelToolbar /> : null}
       </body>
     </html>

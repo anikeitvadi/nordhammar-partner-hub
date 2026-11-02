@@ -10,7 +10,7 @@ This app's database is the master data hub: golden records, groups, hierarchy, s
 
 App: https://staging-nordhammar.vercel.app · ERP stand-in: https://customer-intake-erp-stub.vercel.app · test users and canned inputs: `DECISIONS.md` §4 (passwords arrive by email, never here).
 
-The short version: sign in as `ana.requester@example.com`, search `aurora`, open a record, then "Request a new customer" with `Vela Processos Industriais` and CNPJ `61.000.103/0001-46` to see the one case the rules cannot decide and the model's proposal. Sign in as `priya.reviewer@example.com` to approve, and watch the status page go to created. On Operations, "Demo: drop the next ERP response" sets up the lost-response replay.
+The short version: sign in as `ana.requester@example.com`, search `aurora`, open a record, then "Request a customer" with `Vela Processos Industriais` and CNPJ `61.000.103/0001-46` to see the one case the rules cannot decide and the model's proposal. Sign in as `priya.reviewer@example.com` to approve, and watch the status page go to created. On Operations, "Demo: drop the next ERP response" sets up the lost-response replay. "Ask the hub" in the sidebar answers six typed questions (a group, a request, why it was flagged, who is on hold, intake this month, exposure to a group) over what the signed-in person may see. `/how-it-works` is the diagram, public.
 
 ## Layout
 

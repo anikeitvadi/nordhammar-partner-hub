@@ -18,7 +18,7 @@ export async function decideAction(formData: FormData): Promise<void> {
   const result = await decide(principal, { requestId, revision: Number(formData.get('revision')), payloadHash: String(formData.get('payloadHash')), decision: String(formData.get('decision')) as Decision, reason: String(formData.get('reason') ?? '') })
   if (!result.ok) redirect(`/reviews/${requestId}?error=${result.reason}`)
   // Demo: with the erp-lost-response flag on (and demo controls on), the ERP stand-in drops its next response once,
-  // so the room sees attempt 1 time out and attempt 2 replay the same number. A flag, so it is flipped from the toolbar.
+  // so a viewer sees attempt 1 time out and attempt 2 replay the same number. A flag, so it is flipped from the toolbar.
   if (result.next.kind === 'approved') await armLostResponseIfFlagged()
   // The decision is committed. Waking the workflow is best-effort here and retried from the deliveries table otherwise.
   await deliverPending(requestId).catch(() => undefined)
