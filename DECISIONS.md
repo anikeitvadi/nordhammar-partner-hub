@@ -181,7 +181,10 @@ All on the deployed stack unless noted; dates 2026-10-31 / 2026-11-01.
 
 **How "Ask the hub" was validated.** Fourteen questions in `eval/ask.live.test.ts`: nine that should route to one of the six tools (direct, indirect, lower-case, with the id mis-cased, a single company's credit limit routed to the exposure tool), two that must make no tool call (the weather; an injected instruction to list EU tax IDs), and three leakage cases by construction (a BR requester asking about a group with an EU member gets the EU name and region only, never its hub id or city; a request id from outside her scope reads as not found; a reviewer asking for exposure gets "not entitled to amounts" and no number). The readers are fixtures, the model is real, through the Gateway; graded in code on which tool was called with what argument, on leaked and required tokens, and on the sentence citing only what the tool returned. Measured 1 Nov on `openai/gpt-4.1-mini`: 14 of 14 cases, two runs each, all passing (`eval/results/ask-2026-11-01T19-52-24-790Z.md` for the first twelve, `ask-2026-11-01T19-54-25-815Z.md` for the two cases corrected after the reporting tools were added); about $0.0003 to $0.0004 a question. Live on staging the same questions were asked as Ana (BR amounts: R$650,000 exposure to the Aurora group) and as Priya (no amounts, by role).
 
-**Candid Vercel feedback (ITG), from building this.**
+### Feedback on the exercise
+
+Candid Vercel feedback (ITG), from building this.
+
 - Workflow SDK: the docs show `start(workflow, args, { hook })`; the published 5.2.3 package does not have it. Reading `node_modules` is the only way to know. Retries have no built-in backoff; attempt-based `retryAfter` is the pattern and could be the default.
 - AI SDK 7 requires Node 22+, while the Next.js generator still pins `@types/node` 20. One line in the generator would save every first build.
 - `vercel deploy --prod` from a script sometimes returns without creating a deployment on the first call and succeeds on the second; nothing in the output says why.
