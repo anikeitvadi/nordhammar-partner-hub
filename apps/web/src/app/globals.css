@@ -200,7 +200,7 @@ button.link.small { height: auto; padding: 0; }
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
 .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0 16px; }
 .addr-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 0 12px; }
-.addr-grid label { grid-column: span 3; }
+.addr-grid label { grid-column: span 4; }
 .addr-grid label.short { grid-column: span 2; }
 .reason label:first-child { grid-column: span 1; }
 .check-slot { min-height: 44px; }
@@ -567,3 +567,18 @@ details.tech dd { margin: 0; font-family: var(--mono); font-size: 13px; color: v
   .draw .w { animation: none; stroke-dashoffset: 0; }
   * { animation: none !important; transition: none !important; }
 }
+
+/* The request page: the answer first, then "How this ran", one folded section for the pipeline, timings and cost */
+.answer { margin: 4px 0 8px; }
+.answer-line { font: 400 22px/1.35 var(--serif); color: var(--ink); margin: 6px 0 4px; }
+.answer .muted { margin: 0; }
+/* equal-width digits keep a rolling number still, but in the serif they open a gap after a 1; this line reads, it does not roll in place */
+.answer-line .roll { font-variant-numeric: proportional-nums !important; }
+details.how { margin-top: 44px; border-top: 1px solid var(--rule); }
+details.how > summary { list-style: none; cursor: pointer; display: flex; align-items: baseline; gap: 14px; padding: 18px 0 6px; }
+details.how > summary::-webkit-details-marker { display: none; }
+details.how > summary h2 { margin: 0; }
+details.how > summary::after { content: '+'; margin-left: auto; font: 400 22px var(--sans); color: var(--ink-3); transition: transform var(--t-travel) var(--ease-travel); }
+details.how[open] > summary::after { transform: rotate(45deg); }
+details.how[open] > summary .muted { display: none; }
+details.how[open] > :not(summary) { animation: rise 500ms var(--ease-arrive) both; }

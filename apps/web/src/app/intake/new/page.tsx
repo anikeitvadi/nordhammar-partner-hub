@@ -16,7 +16,7 @@ export default async function NewIntakePage({ searchParams }: { searchParams: Pr
   return (
     <section className="narrow-wide">
       <h1>Request a new {domain}</h1>
-      <p>One form for every region; the region decides which tax and address fields appear. Nothing is created here: a reviewer approves, the ERP assigns the number.</p>
+      <p>One form for every region; the region decides which tax and address fields appear. Finance approves it in the service desk; if every check then passes, the ERP assigns the number, and anything else goes to the central team.</p>
       <IntakeForm domain={domain} regions={regions} initialRegion={initialRegion} initial={{ legalName: name }} mode="new" error={error} />
     </section>
   )

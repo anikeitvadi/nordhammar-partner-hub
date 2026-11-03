@@ -88,6 +88,14 @@ function plainReason(reason: string | null | undefined): string {
   return reason
 }
 
+// The events the timeline shows: what happened to the request, not how the pipe carried it. The send and a clean
+// first attempt read as one fact, "the ERP assigned number …"; a retry, a replay or a refusal is the story, so it stays.
+export function businessEvent(e: TimelineEvent): boolean {
+  if (e.kind === 'email_queued' || e.kind === 'creating') return false
+  if (e.kind === 'erp_attempt') { const phase = (e.detail as AttemptDetail | null)?.phase; return phase !== 'sent' && phase !== 'created' }
+  return true
+}
+
 // Technical facts for the collapsed block: which credential, which attempt, the raw reason, the key.
 export function technicalEvent(e: TimelineEvent): string | null {
   const d = (e.detail ?? {}) as Record<string, unknown>

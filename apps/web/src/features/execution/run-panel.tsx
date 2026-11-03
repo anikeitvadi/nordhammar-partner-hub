@@ -13,7 +13,6 @@ export async function RunPanel({ requestId, workflowRunId }: { requestId: string
   const t0 = trace?.startedAt ? Date.parse(trace.startedAt) : 0
   return (
     <>
-      <h2>How this ran</h2>
       {trace ? (
         <p className="runin">
           {trace.status === 'running' ? <>Running for {duration(trace.totals.wallMs)}: </> : <>The run took {duration(trace.totals.wallMs)}: </>}
