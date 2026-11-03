@@ -6,11 +6,14 @@ import { listMyRequests, listQueue } from '@/features/requests/store.server'
 import { isOperator, listAttention } from '@/features/execution/operator.server'
 import { StatusBadge, isLive } from '@/features/requests/status'
 import { LocalTime } from '@/features/ui/time.client'
+import { Suspense } from 'react'
+import { OutcomeTiles, OutcomeTilesLoading } from '@/features/home/outcome-tiles'
 
 export const metadata: Metadata = { title: 'Home' }
 
-// The home screen is a grid of six tiles: the search (hero), the two requests, one live number, the person's own
-// requests as rows, and one tile for what their role does next. Every number is read live; nothing here is copy.
+// The home screen is a grid of tiles: the search (hero), the two requests, one live number, the person's own
+// requests as rows, the three outcomes DECISIONS §1 promises (streamed in), and one tile for what their role does
+// next. Every number is read live; nothing here is copy.
 export default async function HomePage() {
   const principal = await requirePrincipal()
   if (!hasAnyRegion(principal)) return <section className="narrow card" style={{ marginTop: 48 }}><h1>Your account has no region yet</h1><p>Ask IT to add you to a region group. Nothing else loads until then.</p></section>
@@ -40,17 +43,17 @@ export default async function HomePage() {
           </form>
         </div>
         <div className="tile">
-          <p className="runin"><strong>Request what is not there.</strong> The hub is checked first; a reviewer approves; the ERP assigns the number.</p>
+          <p className="runin"><strong>Request what is not there.</strong> The hub is checked first; finance approves in the service desk; a clean request gets its ERP number with no one in the hub touching it.</p>
           <div className="tile-body row" style={{ margin: 0 }}>
             <Link href={`/intake/new?domain=customer&region=${region}`} className="button">Request a customer</Link>
             <Link href={`/intake/new?domain=supplier&region=${region}`} className="button secondary">Supplier</Link>
           </div>
         </div>
         <div className="tile dark">
-          <p className="runin"><strong>{global ? 'Waiting for review.' : 'In flight.'}</strong></p>
+          <p className="runin"><strong>{global ? 'Waiting for the central team.' : 'In flight.'}</strong></p>
           <div className="tile-body">
             <div className="stat">{global ? queue.length : inFlight}</div>
-            <p className="stat-label">{global ? `request${queue.length === 1 ? '' : 's'} in the queue, oldest first, every region` : `of your ${mine.length} request${mine.length === 1 ? '' : 's'} in review or being created · ${created} created`}</p>
+            <p className="stat-label">{global ? `exception${queue.length === 1 ? '' : 's'} and older reviews, oldest first, every region` : `of your ${mine.length} request${mine.length === 1 ? '' : 's'} with finance, the central team or the ERP · ${created} created`}</p>
           </div>
         </div>
         <div className="tile span2">
@@ -61,6 +64,9 @@ export default async function HomePage() {
             </ul>
           )}
         </div>
+        <Suspense fallback={<OutcomeTilesLoading />}>
+          <OutcomeTiles principal={principal} />
+        </Suspense>
         {isOperator(principal) ? (
           <>
             <div className="tile">
@@ -75,7 +81,7 @@ export default async function HomePage() {
         ) : (
           <>
             <div className="tile well">
-              <p className="runin"><strong>Three steps.</strong> Check the hub, submit, watch the ERP answer. Nothing is created until a reviewer approves.</p>
+              <p className="runin"><strong>Three steps.</strong> Check the hub, submit, finance approves in the service desk. A clean request gets its number on its own; anything the checks cannot settle goes to the central team.</p>
               <p className="muted small tile-body" style={{ margin: 0 }}>Your region is {regions.join(', ')}; the request form uses its tax ID and address fields. <Link href="/how-it-works">How it works →</Link></p>
             </div>
             <div className="tile span2">
