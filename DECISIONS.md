@@ -10,7 +10,7 @@ The company's integration platform already runs a master-data pipeline: it extra
 
 **Who feels it.** The requester in sales loses `[BASELINE: days from ticket to ERP number]` per new customer. The master-data steward spends `[BASELINE: hours per month]` cleaning duplicates after the fact; the pipeline flagged `[BASELINE: duplicates at first load]`. Finance's exposure-by-group number is wrong by construction until the steward catches up.
 
-**What this is.** One product for creating a partner. Anyone with a region searches the golden records live, raises a standard request for a new customer or supplier, the central master-data team approves, the right ERP creates the record and hands back its number, and the next load makes it searchable. Duplicate prevention happens at the point of entry, across regions, before the form is finished. The ERPs stay where the number is born; the integration platform stays the only way in and keeps its matching; the lake stays for finance analytics.
+**What this is.** One product for creating a partner. Anyone with a region searches the golden records live, raises a standard request for a new customer or supplier, and finance approves it in the service desk, where it already does. The hub then checks the request again. A clean request is created without anyone in the hub touching it: the right ERP creates the record and hands back its number, the number is written back to the ticket, and the next load makes it searchable. Anything not clean goes to the central master-data team as an exception, with the reason. Duplicate prevention happens at the point of entry, across regions, before the form is finished. The ERPs stay where the number is born; the integration platform stays the only way in and keeps its matching; the lake stays for finance analytics.
 
 **Targets.** Duplicates created at the point of entry: near zero (**target**). Every check is recorded with what it found, so the count of exact matches stopped at entry is on the reports page from the first day. Request to ERP number: inside one business day (**target**; measured per request as the gap between submitted and created, on the reports page). Steward time on intake duplicates: `[BASELINE: hours per month]` → half within two quarters (**target**).
 
@@ -25,11 +25,12 @@ flowchart LR
     E3["ERP-3: China"]
     LAKE["Lakehouse / BI"]
     IDP["Corporate identity provider"]
+    DESK["Service desk: finance approves"]
   end
   subgraph vercel["Vercel (this build)"]
-    APP["Partner Hub: search, request, review, status, ask, reports"]
+    APP["Partner Hub: search, request, exceptions, status, ask, reports"]
     HUB["Hub database (Marketplace Postgres): golden records, requests, checks"]
-    WF["Workflows: wait for review, one keyed write; the nightly load"]
+    WF["Workflows: wait for finance, check, one keyed write; the nightly load"]
     CRON["Cron Job: 08:00 UTC"]
     GW["AI Gateway: name-match proposal, Ask the hub"]
   end
@@ -40,7 +41,9 @@ flowchart LR
   IP -- "golden records, paged, OIDC" --> WF
   WF -- "upsert, link, clear cache" --> HUB
   HUB -- "scoped reads" --> APP
-  APP -- "approved request" --> WF
+  APP -- "submitted request; exception decided" --> WF
+  WF -- "open ticket, write outcome, OIDC" --> DESK
+  DESK -- "signed webhook: finance decided" --> APP
   WF -- "one keyed create, OIDC" --> IP
   IDP -- "who is this" --> APP
   APP -- "undecidable name match; questions" --> GW
@@ -52,9 +55,9 @@ flowchart LR
 - **The integration platform.** It owns the ERP connectors, the mapping into each ERP's own fields, and the master-data pipeline that produces golden records. This app never talks to an ERP directly and never sees an ERP's field names; it calls one API.
 - **The lakehouse and BI.** Exposure and trends over all data, for finance.
 - **The corporate identity provider.** The app trusts it; it never stores a password.
-- **The service desk,** for everything that is not a new partner.
+- **The service desk.** Finance already approves new partners there, so it still does. A request raised in the hub opens a ticket for finance; a ticket raised in the desk first becomes a hub request when finance approves it. Everything that is not a new partner stays there too. (`docs/SERVICE-DESK-CONTRACT.md` has the full contract.)
 
-**Vercel's role: Replace the intake system, Connect to what stays.** The ticket, the retyping and the separate intake screen become one product. It holds a copy of the golden records for search at the moment of entry, owns the request and its approval, and makes the one keyed write. Everything it needs from the customer's world comes through the integration platform's API. Nothing else moves.
+**Vercel's role: Replace the intake system, Connect to what stays.** The ticket, the retyping and the separate intake screen become one product. It holds a copy of the golden records for search at the moment of entry, owns the request, its checks and its exceptions, and makes the one keyed write. Everything it needs from the customer's world comes through the integration platform's API. Nothing else moves.
 
 **Where the boundary is crossed** (`docs/STAGE-SET-CONTRACT.md` has the full contract):
 
@@ -63,10 +66,12 @@ flowchart LR
 | Golden records into the hub | `GET /integration/v1/golden-records?since=<cursor>` | Nightly by Vercel Cron, or "Run now"; a Workflow reads page by page | Same, over Static IPs |
 | Create a partner | `POST /integration/v1/partners`, `Idempotency-Key: <operation key>` | The stand-in routes by region to ERP-1, ERP-2 or ERP-3, maps fields, assigns a number | Same, over Static IPs |
 | Reconcile | `GET /integration/v1/operations/{key}` | Answers whether a create committed, in which ERP, with which number | Same |
+| Ticket for finance | `POST /desk/v1/tickets`, then `POST /desk/v1/tickets/{id}/comments` with the outcome | The stand-in's desk: a queue, a ticket screen and a new-ticket form for finance | The customer's service-desk API |
+| Finance decided | Desk to hub: `POST /api/webhooks/service-desk`, HMAC-SHA256 over timestamp and body, 5-minute window, event id stored | The desk writes the decision and an outbox row in one transaction, then sends; a failed send is resent | The desk's own webhook signing |
 
-Every call carries the deployment's own Vercel OIDC token. The receiver verifies it against Vercel's published keys and accepts this project's subjects only.
+Every call from the app carries the deployment's own Vercel OIDC token. The receiver verifies it against Vercel's published keys and accepts this project's subjects only. The one call into the app, the desk's webhook, is signed with a shared secret instead, because that is how service desks sign webhooks and the desk is not a Vercel deployment in the customer's world.
 
-The demo's integration platform is a stand-in. It is a separate Vercel project with its own Postgres, three ERP masters with their own number series and record shapes, a ledger and the golden-record feed. In production it is the customer's platform in the customer's cloud.
+The demo's integration platform is a stand-in. It is a separate Vercel project with its own Postgres, three ERP masters with their own number series and record shapes, a ledger, the golden-record feed and the service desk. In production it is the customer's platform in the customer's cloud.
 
 The production path is **Static IPs**: Pro and Enterprise; $100 per month per project plus private data transfer; a shared pool with subnet-level isolation; applies to Functions and optionally builds, not to Routing Middleware. The customer's platform sits behind an IP allowlist, not inside an AWS VPC, so a fixed egress address is the right fit. **Secure Compute** (Enterprise) is the step up when full network isolation is required, when the backend is in an AWS VPC that should be peered, or when a site-to-site VPN into an Azure network, Google Cloud or an on-premises data centre is wanted. Sources: https://vercel.com/docs/networking/static-ips ; https://vercel.com/docs/networking/secure-compute
 
@@ -81,7 +86,7 @@ And one fewer system: intake, the duplicate check, the questions and the reports
 
 | Primitive | What it does here | Why this and not the alternative | Plan |
 |---|---|---|---|
-| **Workflows** | Two durable runs. (a) One run per request revision waits on the central team's decision (hours to days), then owns the single create with an idempotency key, bounded retries with backoff, and a duplicate-run guard. (b) The nightly load: takes a lock, reads the golden-record feed page by page from the stored cursor, writes each page as its own step (a failed page is retried on its own), then clears the search cache for the regions it touched. A run is pinned to the deployment that started it and survives redeploys (§5). | Rejected: a status table plus a cron job, which is what exists today and loses the wait and the retry semantics. Trade-off: finished runs' payloads are readable for 1 day on Hobby, 7 on Pro, 30 on Enterprise; the business truth therefore lives in the database, never only in the run. | All plans. Sources: https://vercel.com/docs/workflows ; https://vercel.com/docs/workflows/retention |
+| **Workflows** | Two durable runs. (a) One run per request revision waits on finance's decision in the service desk (hours to days), then runs the checks again. Clean: an automatic approval that lists the checks that passed. Not clean: the same run waits again, on the central team. Either way it then owns the single create with an idempotency key, bounded retries with backoff, and a duplicate-run guard, and writes the outcome back to the ticket. (b) The nightly load: takes a lock, reads the golden-record feed page by page from the stored cursor, writes each page as its own step (a failed page is retried on its own), then clears the search cache for the regions it touched. A run is pinned to the deployment that started it and survives redeploys (§5). | Rejected: a status table plus a cron job, which is what exists today and loses the wait and the retry semantics. Trade-off: finished runs' payloads are readable for 1 day on Hobby, 7 on Pro, 30 on Enterprise; the business truth therefore lives in the database, never only in the run. | All plans. Sources: https://vercel.com/docs/workflows ; https://vercel.com/docs/workflows/retention |
 | **Cron Jobs** | Starts the nightly load at 08:00 UTC (02:00 Central). Vercel sends the project's `CRON_SECRET` as a bearer token; the route accepts only that and refuses everything when none is configured; it only starts the Workflow. "Run now" for the central team starts the same Workflow. | Rejected: a Workflow that sleeps 24 hours and starts itself again. It works without Cron, but the schedule then lives inside a running chain: not in the project's cron list, and one broken link stops every later night without a trace. | All plans; Hobby at most daily with hour-level precision, Pro to the minute. Sources: https://vercel.com/docs/cron-jobs/usage-and-pricing ; https://vercel.com/docs/cron-jobs/manage-cron-jobs |
 | **AI SDK 7** | Two uses. (a) One structured generation on exactly one route: a name match against a hub record that carries no tax ID. Code decides the other four routes. The model may only propose; a validator rejects any claim about a candidate or field it was not given; nothing it says reaches the ERP. (b) "Ask the hub": one `generateText` call with six typed, read-only tools (three for intake questions, three for reporting), two steps at most, each tool calling the same scoped reader the pages call with the principal closed over in code. The card is the tool result; the sentence is dropped if it cites anything the result does not contain. No tool writes. | Rejected: rules only (the ticket process already is that) and a chat box over the database, including text-to-SQL. Trade-off: the proposal is advice to the human reviewer, by design. | n/a (library) |
 | **AI Gateway** | Both uses go to a virtual model (`vmc/nordhammar-proposal`): a primary, one fallback, zero data retention and no prompt training pinned on the Gateway side, so a model change is a dashboard edit, not a deploy. Today the primary is gpt-4.1-mini with Haiku 4.5 as the fallback, because the team's free Gateway credits admit the former and not the latter. The served model, tokens and cost of each proposal are recorded with the request (§6). Zero data retention is requested because the prompt carries a counterparty's identity; a call that cannot be served under it fails, and the request proceeds to review without the proposal. | Rejected: a direct provider SDK (one vendor, no failover, no retention control). Trade-off: a provider without ZDR is refused, which is the point. | Virtual models: all plans. Per-request ZDR: **Pro and Enterprise**, no extra cost. Sources: https://vercel.com/docs/ai-gateway/models-and-providers/virtual-models ; https://vercel.com/docs/ai-gateway/security-and-compliance/zdr |
@@ -91,7 +96,7 @@ And one fewer system: intake, the duplicate check, the questions and the reports
 | **Fluid compute** | The runtime the app, the steps and the model calls run on. Active CPU is what is billed, so a function waiting on the Gateway or the integration platform does not pay for the wait. A paused Workflow run costs nothing for a different reason: it is suspended, not running. | n/a | All plans |
 | **Marketplace** | Postgres (two databases: the hub's and the stand-in's) and the identity provider, provisioned from the CLI with environment variables injected per environment. In production the hub database is Marketplace-provisioned in the customer's account. | Rejected: hand-wired connection strings. | All plans |
 
-**Supporting, not architecture.** Demo switches are Vercel Flags read on the server, flipped from the Vercel Toolbar for team members only; a flag never changes who may do what. Speed Insights and Web Analytics are in the layout and wait for the dashboard switch. The link preview is an `opengraph-image` route. All plans.
+**Supporting, not architecture.** Demo switches are Vercel Flags read on the server, flipped from the Vercel Toolbar for team members only; a flag never changes who may do what. Automatic approval has an off switch for the central team on Operations, stored in the hub with who changed it and when; off sends every finance-approved request to a person. It is a stored setting and not a flag, because the decision it governs arrives as a server-to-server webhook that carries nobody's Toolbar override. Speed Insights and Web Analytics are in the layout; Speed Insights is switched on in the dashboard, Web Analytics is not yet (§7). The link preview is an `opengraph-image` route. All plans.
 
 ### What renders when
 
@@ -139,7 +144,9 @@ The demo provider is a hosted auth service with email and password and public si
 
 Two roles:
 - **Regional users** search and request inside their regions, see amounts for those regions, and cannot approve.
-- **The central master-data team** decides requests, fixes stopped creates, runs the load and sees amounts everywhere.
+- **The central master-data team** decides exceptions, fixes stopped creates, runs the load, switches automatic approval and sees amounts everywhere.
+
+Finance is not a role in the hub. Finance decides in the service desk, which has its own sign-in.
 
 Alternatives, each with the one reason it did not win:
 - **The customer's own identity provider over OIDC.** This is the production answer; the swap touches the proxy and one helper.
@@ -162,6 +169,7 @@ Alternatives, each with the one reason it did not win:
   - `jonas.requester@example.com`, regional user, Europe
   - `priya.reviewer@example.com`, central master-data team, every region
   - `noregion@example.com`, no region yet: shows the locked-out screen
+- **Service desk** (the stand-in's `/desk`, its own sign-in, password in the submission email): Marta Lindqvist, finance
 
 **Try it in two minutes.** Sign in as Ana unless noted. Every tax ID below passes its check digits.
 
@@ -174,8 +182,11 @@ Alternatives, each with the one reason it did not win:
 | Same company, new branch | Request a new customer | `Aurora Industrial Norte`, CNPJ `61.000.101/0003-19` | "Same company, different establishment": pre-selects "new company in this group" |
 | Name match, the AI proposal | Request a new customer | `Vela Processos do Brasil`, CNPJ `61.000.103/0002-27` | A legacy record with no tax ID; the model's evidence rows; a human decides. After submit, the timeline names the model's reading, the model and the cost |
 | Invalid tax ID | Request a new customer | CNPJ `61.000.103/0001-47` | Fails its check digits; nothing is searched |
-| Clean create, end to end | Request a new customer, then Reviews as Priya | `Estrela Brasil Indústria`, CNPJ `61.000.104/0001-90`, any bill-to | Submit, approve, "Attempt 1: sent to the ERP", an ERP-1 number in the 110xxx series, live on the status page |
-| Lost response | Operations as Priya: "Demo: drop the next ERP response", then any clean create | | Attempt 1 gets no answer; the retry with the same key gets the same number back; one record |
+| Clean create, end to end | Request a new customer, then the desk as finance | `Estrela Brasil Indústria`, CNPJ `61.000.104/0001-90`, any bill-to | Submit; the status page shows the ticket. Approve the ticket in the desk. Within seconds the status page reads approved automatically, with the checks that passed, then an ERP-1 number in the 110xxx series; the ticket gets the number as a comment |
+| An exception | The same-company case above, submitted, then the desk, then Reviews as Priya | `Aurora Industrial Norte` | Finance approves; the hub stops it as an exception (same company as another establishment; the requester chose new company in this group). Priya sees the reasons and approves; the number lands and goes back to the ticket |
+| Ticket first | The desk: New partner ticket, then approve | A new name and a valid CNPJ, requester `ana.requester@example.com`, region BR | The ticket becomes a hub request when finance approves, is checked, and is created; no duplicate check ran at entry, so the hub's checks are the only ones |
+| Finance rejects | Any request's ticket in the desk: Reject, with a reason | | The request reads declined by finance, with finance's reason; a reject without a reason is refused |
+| Lost response | Operations as Priya: "Demo: drop the next ERP response", then any clean create through finance | | Attempt 1 gets no answer; the retry with the same key gets the same number back; one record |
 | China | Request a new customer as Priya, region CN | Both names and an 18-character unified code | Routed to ERP-3; a 310xxx number |
 | Make it searchable | Operations as Priya: "Run the hub load now" | | The load runs as a Workflow; the line under the button says what it loaded; search finds the new partner |
 | Reports | Reports as Priya | | Duplicates stopped at entry this month; on hold by region; intake by state with median hours; exposure by ultimate parent |
@@ -219,6 +230,8 @@ Both projects logged no runtime errors through it.
   - 2026-10-31: attempt 1 got a 503 after the commit; attempt 2, one second later, got 26004 back; one ledger row (`docs/evidence/lost-response-*`).
   - 2026-11-02, on ERP-2: attempt 1 lost its response; attempt 2 got 210201 back; one record.
 - **A request is edited after approval.** The approval is void and the platform refuses the changed payload.
+- **A forged, altered, stale or repeated desk webhook.** No signature, a wrong one, a changed body and a stale timestamp each get 401; a malformed body 400; a repeated event id 200 and nothing happens. An unknown requester, a requester outside the ticket's region and a ticket that names a different request get 400; a request that is not waiting for finance gets 409 (2026-11-03).
+- **The hub cannot be reached when finance decides.** The decision and its outbox row are already committed in the desk; the send is retried with Resend and on the next decision, and the hub's event-id store makes a second delivery a no-op. By design; not forced in the demo.
 - **A partner committed during a stop arrives in the hub before anyone reconciles it.** The first load after reconcile links it (§6).
 
 ## 6. Measured
@@ -251,6 +264,17 @@ All on the deployed stack unless noted; dates 2026-10-31 to 2026-11-02.
   - A second run with nothing new: 0 records, lock released.
   - A request reconciled after its golden record had already arrived was linked on the next load.
 - **The duplicate check is recorded (measured, 2026-11-02).** Every check writes what it found. On submit, the request carries its check: on a compare route that means the verdict, the model the Gateway says served it, tokens and cost. One example, read back from a submitted request: "unsure", openai/gpt-4.1-mini, 421 input and 129 output tokens, $0.00037. Exact matches stopped at entry are counted on the reports page.
+- **The service desk (measured, 2026-11-03, on staging).** One request down each path:
+
+  | Path | Request, ticket | What happened | Finance approval to number |
+  |---|---|---|---|
+  | Direct, clean | R-MW032OJ61OJ7, SD-10421 | Finance approved; approved automatically; ERP-1 110203; number on the ticket | 1.2 s |
+  | Direct, name match marked not related | R-MW03DIK8A40A, SD-10423 | Exception with two reasons; Priya approved; ERP-1 110204; both comments on the ticket | 1.4 s from Priya's approval |
+  | Ticket first, clean | R-MW03MNQZQ8OS, SD-10424 | The hub built the request from the ticket; all six checks passed; ERP-1 110206 | 0.9 s |
+  | Finance rejects | R-MW03NPW1V8PB, SD-10425 | Declined by finance with the reason; a reject without one was refused | n/a |
+  | Ticket first, lost response armed | R-MW03P6EMCDCF, SD-10426 | Attempt 1 got a 503 after the commit; attempt 2 replayed 110207; one record for the key | 2.9 s |
+
+  Times run from the hub recording finance's approval to the number, read from the request's events.
 - **Durability (measured).** A run started on one deployment finished on it after a plain redeploy and after a rolling release was started and aborted around it (§5).
 - **Latency (measured, single observations, not a benchmark).**
 
@@ -261,14 +285,14 @@ All on the deployed stack unless noted; dates 2026-10-31 to 2026-11-02.
   | Cold sign-in on the hosted auth service | About 10 s once, then under a second |
   | Hub search and the on-entry check, warm database | Under a second |
   | Ask the hub on production, four suggested questions as the central team | 2.0 to 3.0 s each |
-- **Tests (measured, Node 24, 2026-11-02).**
+- **Tests (measured, Node 24, 2026-11-03).**
 
   | Suite | Count | What it covers |
   |---|---|---|
-  | Contracts | 13 | Includes routing by region and the golden record a create publishes |
+  | Contracts | 29 | Routing by region and the golden record a create publishes; the finance states and transitions; one case per clean check; the webhook signature (wrong secret, changed body, stale and future timestamps, no secret) |
   | Stand-in | 19 | The ledger's replay, conflict and rejection rules once per ERP; mapping into the three shapes; the door's refusals (missing or different Idempotency-Key, stale hash, a destination the region does not route to); feed paging across ties and re-runs; the OIDC verifier |
   | Web unit | 52 | Routing, normalisation including CNPJ check digits, the two roles, the payload builder, timeline copy, the import-graph walls, Ask's leakage rule, the check record, the cron route failing closed |
-  | In-process Workflow | 1 | Wait, resume, duplicate-start guard |
+  | In-process Workflow | 5 | Wait, resume, duplicate-start guard; the request run's four paths: clean, exception then the central team, finance rejects, ticket first |
   | Integration, against the real hub | 6 | Last run 2026-11-01; they write test requests, so they are not re-run against the demo database |
   | Mock eval | 13 | E01 to E12: routing, privacy, the validator |
 
@@ -287,7 +311,9 @@ All on the deployed stack unless noted; dates 2026-10-31 to 2026-11-02.
 - **Synthetic data.** Every name, ID and address is invented; the shapes are real. The integration platform is a stand-in on Vercel. The real platform's API, its limits and which interface each ERP exposes behind it are first-week discovery questions.
 - **The hub is a copy, as fresh as the last load.** Golden records arrive nightly, or on "Run now". Between a create and the next load, search cannot see the new partner, and the request page says so. The identity reservation stops a second request for the same tax ID in that gap.
 - **The nightly run needs `CRON_SECRET` on the project.** Without it, the cron route refuses the call by design and the night's load does not run. "Run now" works regardless.
-- **One review step.** The real process has a finance approval upstream. Here the central team's approval creates the number; finance completes credit, bank details and terms in the ERP, as today. A central-team member can approve a request they raised themselves. Production adds that rule.
+- **Automatic approval trusts the checks.** A clean request is created after finance approves, with no one in the hub looking at it. The checks are deterministic and listed on the approval; the model never makes a request clean. The central team can switch automatic approval off on Operations. A central-team member can still approve an exception they raised themselves; production adds that rule.
+- **The service desk is a stand-in.** One finance user, a plain queue and a shared webhook secret. The real desk's API, its webhook signing and who in finance approves which region are first-week discovery.
+- **Requests raised before the desk existed** finish on the old path, a central-team approval, because their runs are pinned to the code that started them.
 - **China is on ERP-3.** Creates work end to end. Real China specifics (name rules, document checks) are discovery.
 - **Data residency (not shown; production path).** If the rule is "no data leaves the EU":
   - deploy the Functions to an EU region and start each run with `region`, so the run's payloads, event log and streams stay there
@@ -309,7 +335,7 @@ All on the deployed stack unless noted; dates 2026-10-31 to 2026-11-02.
 - **Skew Protection off** during the rollout test, by instruction; see §5.
 - **Flags are switches, never permissions.** Who may search, request, decide or operate is the entitlements table on every call.
 - **No one-click demo sign-in.** A sign-in that skips the password is the kind of thing that leaks into a real deployment behind a flag. The sign-in page lists the demo people with copy buttons; the passwords travel in the email.
-- **Analytics scripts need the dashboard switch.** Speed Insights and Web Analytics are in the layout and serve once the project owner enables them. Until then, §6 has no measured vitals from the field.
+- **Web Analytics needs the dashboard switch.** Speed Insights is switched on and posting vitals. Web Analytics is in the layout but not switched on, so its script path falls through to the sign-in redirect and the browser logs one console error on every page until the project owner enables it.
 
 ## 8. Development tooling and validation
 
@@ -332,7 +358,9 @@ All on the deployed stack unless noted; dates 2026-10-31 to 2026-11-02.
 4. The flow clicked through again on the deployed app.
 5. The runtime logs read.
 
-The deployed click-through caught a regression the tests and the build did not. A fix for a prerender warning broke every Server Action, so Ask stopped answering. It was replaced with a narrower fix and both failure modes were reproduced and cleared.
+The deployed click-through caught two regressions the tests and the build did not.
+- A fix for a prerender warning broke every Server Action, so Ask stopped answering. It was replaced with a narrower fix and both failure modes were reproduced and cleared.
+- The central team's approval of an exception recorded the decision but moved nothing, because the update was still conditional on the old "under review" state. The run woke, found nothing approved and ended. The condition now follows the state the decision was made on (`230d3fd`). The one request it stranded was repaired in the open: the recorded approval was applied, a "repaired" event explains why, and the create ran on the same operation key (ERP-1 110205). Its ticket did not get the outcome comment, because the repair ran on the old review-only run.
 
 **How AI behaviour was validated.**
 - **Mock eval.** Twelve fixtures (E01 to E12) cover every routing outcome, the cross-region privacy rule, an invalid checksum and an injected instruction in a name. The mock eval runs offline on every CI run with canned model outputs. It proves routing, privacy and the validator: an invented absence, an unknown candidate and an echoed instruction are all rejected.
