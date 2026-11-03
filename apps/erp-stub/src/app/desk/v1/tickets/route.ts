@@ -5,8 +5,10 @@ import { callerFromRequest } from '@/features/auth/caller'
 import { openTicket } from '@/features/desk/store'
 
 // POST /desk/v1/tickets: the hub opens a ticket for finance when a request is submitted in the hub. Same identity
-// check as the integration API (the hub's Vercel OIDC token). Repeatable: one ticket per request revision.
-const Body = z.object({ hubRequestId: z.string(), hubRevision: z.number().int(), requesterEmail: z.string(), region: z.enum(REGIONS), domain: z.enum(DOMAINS), summary: z.object({ legalName: z.string(), taxId: z.string(), country: z.string() }) })
+// check as the integration API (the hub's Vercel OIDC token). Repeatable: one ticket per request revision. The reason
+// and the contact are what finance reads before approving (docs/FORM-FIELD-INVENTORY.md, finding 1); optional, so a hub
+// that does not send them yet still opens a ticket.
+const Body = z.object({ hubRequestId: z.string(), hubRevision: z.number().int(), requesterEmail: z.string(), region: z.enum(REGIONS), domain: z.enum(DOMAINS), summary: z.object({ legalName: z.string(), taxId: z.string(), country: z.string(), reason: z.string().nullish(), contactName: z.string().nullish(), contactEmail: z.string().nullish() }) })
 export async function POST(req: Request) {
   if (!(await callerFromRequest(req))) return NextResponse.json({ reason: 'unauthorized' }, { status: 401 })
   const b = Body.safeParse(await req.json().catch(() => null))

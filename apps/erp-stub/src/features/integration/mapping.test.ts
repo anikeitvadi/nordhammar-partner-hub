@@ -16,6 +16,10 @@ describe('one payload, three native shapes', () => {
     expect(r).toMatchObject({ CUST_NO: '110201', NAME: 'FUNDIÇÃO SOROCABA INDÚSTRIA E COMÉRCIO D', TAX_NO: '62110970000105', STATE: 'SP', CITY: 'SOROCABA', CREATED_ON: '2026-11-03' })
     expect((r as { NAME: string }).NAME.length).toBe(40)
   })
+  it('ERP-1: keeps the postal code and the bairro; the complement rides on the street line', () => {
+    const p = base({ addresses: [{ kind: 'bill_to', street: 'Rua Aparecida', number: '640', complement: 'sala 3', district: 'Centro', city: 'Sorocaba', regionCode: 'SP', postalCode: '18095-000', country: 'BR' }] })
+    expect(toNative('ERP-1', p, '110201', at)).toMatchObject({ STREET: 'RUA APARECIDA 640, SALA 3', DISTRICT: 'CENTRO', POSTAL: '18095000' })
+  })
   it('ERP-1: a supplier gets a vendor number field instead', () => {
     expect(toNative('ERP-1', base({ domain: 'supplier' }), '150201', at)).toMatchObject({ VEND_NO: '150201' })
   })

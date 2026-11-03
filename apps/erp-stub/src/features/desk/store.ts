@@ -4,7 +4,7 @@ import type { DeskPartner, Domain, Region } from '@intake/contracts'
 // The desk's own data. Plain SQL over the stand-in's database; nothing here knows about the hub's tables.
 export type Ticket = {
   id: string; source: 'hub' | 'desk'; hubRequestId: string | null; hubRevision: number | null; requesterEmail: string; region: Region; domain: Domain
-  summary: { legalName: string; taxId: string; country: string }; partner: DeskPartner | null
+  summary: { legalName: string; taxId: string; country: string; reason?: string | null; contactName?: string | null; contactEmail?: string | null }; partner: DeskPartner | null
   status: 'open' | 'finance_approved' | 'finance_rejected' | 'done'; decidedBy: string | null; decisionReason: string | null; decidedAt: string | null; createdAt: string
 }
 export type Comment = { at: string; author: string; body: string }

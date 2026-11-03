@@ -23,6 +23,8 @@ export default async function DeskTicket({ params, searchParams }: { params: Pro
           <div><label>Region, type</label>{ticket.region} · {ticket.domain}</div>
           <div><label>Tax ID</label>{ticket.summary.taxId} ({ticket.summary.country})</div>
           {ticket.partner ? <div><label>Address</label>{ticket.partner.main.street} {ticket.partner.main.number ?? ''}, {ticket.partner.main.city}</div> : null}
+          <div><label>Why it is needed</label>{ticket.summary.reason ?? ticket.partner?.reason ?? <span className="muted">not given</span>}</div>
+          <div><label>Contact at the partner</label>{ticket.summary.contactName || ticket.summary.contactEmail ? [ticket.summary.contactName, ticket.summary.contactEmail].filter(Boolean).join(', ') : <span className="muted">not given</span>}</div>
           {ticket.decidedBy ? <div><label>Decided</label>{ticket.decidedBy}{ticket.decidedAt ? `, ${fmt(ticket.decidedAt)}` : ''}{ticket.decisionReason ? `: ${ticket.decisionReason}` : ''}</div> : null}
         </div>
       </div>
