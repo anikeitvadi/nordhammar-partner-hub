@@ -1,11 +1,14 @@
-import { generateText, stepCountIs, tool } from 'ai'
+import { stepCountIs, streamText, tool } from 'ai'
 import { z } from 'zod'
 import type { Principal } from '@/features/auth/scope'
 import { readExposure, readGroupPresence, readIntakeThisMonth, readOnHold, readRequestStatus, readWhyFlagged } from './tools.server'
-import { citesOnlyKnown } from './view'
-import { gatewayInfo, gatewayOptions, resolveModel, type ModelAttempt, type ModelRoute } from '@/features/ai/models'
+import { releaseChecked, sumSteps } from './stream'
+import { gatewayOptions, resolveModel, type ModelRoute } from '@/features/ai/models'
+import type { AskEvent, AskOutcome, ToolName } from './types'
 
-// "Ask the hub": one question, one generateText call, three typed read-only tools, two steps at most (one to look,
+export type { AskEvent, AskOutcome, ToolName } from './types'
+
+// "Ask the hub": one question, one streamed model call, six typed read-only tools, two steps at most (one to look,
 // one to speak). The card the page renders is the tool result, which is the truth; the sentence is the model's
 // reading of that card and is dropped if it cites anything the card does not contain. Same virtual model, failover
 // and zero data retention as the proposal agent. No tool writes; a wrong answer is a wrong card, never a wrong write.
@@ -19,19 +22,14 @@ export const ASK_INSTRUCTIONS = `You answer six kinds of question about a compan
 6. The company's credit exposure to a corporate group, or overall (exposureByGroup).
 Call exactly one tool, then answer in one plain sentence that only states what the tool returned. Never invent an id, a number, an amount or a region. If the tool found nothing, say so. If whyFlagged returns outcome no_match, say the request was not flagged and went straight to review. If a tool's note says the person is not entitled to amounts, say that instead of a number. If the question is not one of the six kinds, do not call a tool; reply exactly: I can't answer that here. Try the search box or the request page.`
 
-export type ToolName = 'groupPresence' | 'requestStatus' | 'whyFlagged' | 'partnersOnHold' | 'intakeThisMonth' | 'exposureByGroup'
 // The readers are injectable so the eval can run the real model over fixture data without a database.
 export type Readers = { presence: (p: Principal, name: string) => Promise<unknown>; status: (p: Principal, id: string) => Promise<unknown>; whyFlagged: (p: Principal, id: string) => Promise<unknown>; onHold: (p: Principal, region?: string) => Promise<unknown>; intake: (p: Principal) => Promise<unknown>; exposure: (p: Principal, group?: string) => Promise<unknown> }
 export const dbReaders: Readers = { presence: readGroupPresence, status: readRequestStatus, whyFlagged: readWhyFlagged, onHold: readOnHold, intake: readIntakeThisMonth, exposure: readExposure }
 
-export type AskOutcome =
-  | { ai: 'available'; answer: string | null; tool: ToolName | null; input: unknown; result: unknown; model: string; cost: number | null; usage: { inputTokens: number; outputTokens: number } | null; note: string | null; attempts: ModelAttempt[]; ms: number }
-  | { ai: 'unavailable'; reason: string }
 
-export async function askHub(principal: Principal, question: string, readers: Readers = dbReaders, route: ModelRoute = resolveModel('configured', process.env)): Promise<AskOutcome> {
-  const q = question.trim().slice(0, 300)
-  if (!q) return { ai: 'unavailable', reason: 'empty' }
-  const tools = {
+// The six lookups, each calling the same scoped reader the pages call, with the person closed over in code.
+function askTools(principal: Principal, readers: Readers) {
+  return {
     groupPresence: tool({
       description: 'Whether the company already has customers or suppliers matching a group or partner name, in any region. Use for "do we already work with", "do we have", "is X a customer anywhere". Returns names and regions; ids and cities only for regions the person may see.',
       inputSchema: z.object({ name: z.string().min(2).describe('the group or partner name as the person wrote it') }),
@@ -63,34 +61,65 @@ export async function askHub(principal: Principal, question: string, readers: Re
       execute: ({ group }) => readers.exposure(principal, group),
     }),
   }
+}
+
+
+const NOTE_UNCITED = 'The model\'s sentence cited something the lookup did not return, so only the lookup is shown.'
+
+export async function* askEvents(principal: Principal, question: string, readers: Readers = dbReaders, route: ModelRoute = resolveModel('configured', process.env)): AsyncGenerator<AskEvent> {
+  const q = question.trim().slice(0, 300)
+  if (!q) { yield { type: 'done', outcome: { ai: 'unavailable', reason: 'empty' } }; return }
+  const t0 = Date.now()
+  let call: { tool: ToolName; input: unknown; result: unknown } | null = null
+  let text = '', shown = '', ok = true
+  const metas: unknown[] = []
+  let usage: { inputTokens: number; outputTokens: number } | null = null
   try {
-    const t0 = Date.now()
-    const result = await generateText({
+    const result = streamText({
       model: route.primary,
       instructions: ASK_INSTRUCTIONS,
       prompt: q,
-      tools,
+      tools: askTools(principal, readers),
       stopWhen: stepCountIs(2),
       maxRetries: 0,
       timeout: { totalMs: 15_000 },
       providerOptions: gatewayOptions(route, 'ask', process.env.AI_ZERO_DATA_RETENTION !== 'false'),
     })
-    const ms = Date.now() - t0
-    const call = result.steps.flatMap((s) => s.toolResults)[0]
-    const gw = gatewayInfo(result.providerMetadata)
-    const text = result.text.trim()
-    const toolName = (call?.toolName as ToolName | undefined) ?? null
-    const toolResult = call ? call.output : null
-    const ok = call ? citesOnlyKnown(text, toolResult) : true
-    return {
-      ai: 'available', answer: text && ok ? text : null, tool: toolName, input: call?.input ?? null, result: toolResult, model: gw.served ?? route.primary,
-      cost: gw.cost, attempts: gw.attempts, ms,
-      usage: result.usage ? { inputTokens: Number(result.usage.inputTokens ?? 0), outputTokens: Number(result.usage.outputTokens ?? 0) } : null,
-      note: !ok ? 'The model\'s sentence cited something the lookup did not return, so only the lookup is shown.' : null,
+    for await (const part of result.stream) {
+      if (part.type === 'tool-result' && !call) {
+        call = { tool: part.toolName as ToolName, input: part.input, result: part.output }
+        yield { type: 'card', ...call }
+      } else if (part.type === 'text-delta' && ok) {
+        text += part.text
+        const r = releaseChecked(text, call?.result ?? null, call !== null, false)
+        if (!r.ok) ok = false
+        else if (r.shown !== shown) { shown = r.shown; yield { type: 'text', text: shown } }
+      } else if (part.type === 'finish-step') {
+        metas.push(part.providerMetadata)
+      } else if (part.type === 'finish') {
+        usage = { inputTokens: Number(part.totalUsage.inputTokens ?? 0), outputTokens: Number(part.totalUsage.outputTokens ?? 0) }
+      } else if (part.type === 'error') {
+        throw part.error
+      }
     }
   } catch (e) {
     // The page shows a plain note; the cause goes to the runtime log so a failure on a deployment can be diagnosed.
     console.error('ask: model call failed', { model: route.primary, error: e instanceof Error ? `${e.name}: ${e.message}` : String(e) })
-    return { ai: 'unavailable', reason: e instanceof Error ? e.message : 'model error' }
+    yield { type: 'done', outcome: { ai: 'unavailable', reason: e instanceof Error ? e.message : 'model error' } }
+    return
   }
+  const final = ok ? releaseChecked(text.trim(), call?.result ?? null, call !== null, true) : { shown: '', ok: false }
+  const gw = sumSteps(metas)
+  yield { type: 'done', outcome: {
+    ai: 'available', answer: final.ok && final.shown ? final.shown : null, tool: call?.tool ?? null, input: call?.input ?? null, result: call?.result ?? null,
+    model: gw.served ?? route.primary, cost: gw.cost, attempts: gw.attempts, ms: Date.now() - t0, usage,
+    note: final.ok ? null : NOTE_UNCITED,
+  } }
+}
+
+// The whole answer at once, from the same events: what the eval grades.
+export async function askHub(principal: Principal, question: string, readers: Readers = dbReaders, route: ModelRoute = resolveModel('configured', process.env)): Promise<AskOutcome> {
+  let outcome: AskOutcome = { ai: 'unavailable', reason: 'no answer' }
+  for await (const e of askEvents(principal, question, readers, route)) if (e.type === 'done') outcome = e.outcome
+  return outcome
 }

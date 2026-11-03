@@ -439,3 +439,8 @@ button.strip-tile:hover { background: var(--canvas); }
 .run-trace { margin: 0 0 16px; }
 .run-trace td:nth-child(2) { width: 46%; }
 .run-cost { margin: 0 0 8px; }
+
+/* Ask: the caret while the checked sentence streams in (step 8). Still under reduced motion. */
+.ask-sentence .caret { margin-left: 1px; color: var(--fg-3); animation: caret-blink 1s steps(2, start) infinite; }
+@keyframes caret-blink { to { visibility: hidden; } }
+@media (prefers-reduced-motion: reduce) { .ask-sentence .caret { animation: none; } }
