@@ -125,7 +125,7 @@ button.small, .button.small { height: 30px; padding: 0 12px; font-size: .85rem; 
 .submit { margin-top: 14px; }
 
 /* tables */
-.results { width: 100%; border-collapse: collapse; background: var(--surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); overflow: hidden; }
+.results { font-family: var(--sans); width: 100%; border-collapse: collapse; background: var(--surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); overflow: hidden; }
 .results th, .results td { text-align: left; padding: var(--row-pad) 16px; vertical-align: top; }
 .results td { font-variant-numeric: tabular-nums; }
 .results th { font-size: .72rem; font-weight: 600; color: var(--fg-3); text-transform: uppercase; letter-spacing: .05em; background: var(--well); }
@@ -403,3 +403,33 @@ details.tech dd { margin: 0; font-family: var(--mono); font-size: .82rem; word-b
 .ask-answer .panel { margin-top: 0; }
 .ask-sentence { margin: 12px 0 0; font-size: 1.05rem; color: var(--fg); }
 .ask-sentence .ai-label { display: block; font-family: var(--sans); font-size: .72rem; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--fg-3); margin-bottom: 4px; }
+
+/* Customers and suppliers: a strip that counts and filters, then the table it filters. */
+.strip { display: grid; grid-template-columns: minmax(0, 2fr) repeat(3, minmax(0, 1fr)); gap: 10px; margin: 14px 0 4px; }
+.strip-tile { display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between; gap: 6px; min-height: 84px; padding: 14px 16px; background: var(--surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); color: var(--fg); text-align: left; font: inherit; font-family: var(--sans); height: auto; transition: background var(--t-feedback) ease, box-shadow var(--t-travel) var(--ease-travel); }
+button.strip-tile:hover { background: var(--canvas); }
+.strip-tile[aria-pressed="true"], .strip-region[aria-pressed="true"] { box-shadow: inset 0 0 0 2px var(--accent), var(--shadow-card); }
+.strip-n { font-size: 1.75rem; font-weight: 600; letter-spacing: -.02em; line-height: 1; font-variant-numeric: tabular-nums; }
+.strip-label { font-size: .82rem; color: var(--fg-3); }
+.strip-regions-row { display: flex; gap: 6px; width: 100%; }
+.strip-region { flex: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; height: auto; padding: 8px 10px; background: var(--well); border-radius: var(--radius-md); color: var(--fg); font: inherit; font-family: var(--sans); box-shadow: none; transition: background var(--t-feedback) ease; }
+.strip-region:hover { background: var(--ink-3); }
+.strip-region .strip-n { font-size: 1.15rem; }
+.strip-code { font-size: .72rem; font-weight: 600; color: var(--fg-3); letter-spacing: .04em; }
+.chips-inline { margin: 0; flex-wrap: nowrap; }
+.chip[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent-text); box-shadow: inset 0 0 0 1px var(--accent); }
+
+.hub-table td { vertical-align: middle; font-size: .92rem; }
+.hub-table td .muted { display: block; }
+.hub-table .mono { font-family: var(--mono); font-size: .84rem; white-space: nowrap; }
+.hub-table tr.selected td { background: var(--accent-soft); }
+.row-link { color: var(--fg); font-weight: 500; }
+.split-table { grid-template-columns: minmax(0, 7fr) minmax(320px, 5fr); }
+.split-table .hub-table .col-secondary { display: none; }
+@media (max-width: 960px) { .strip { grid-template-columns: repeat(3, minmax(0, 1fr)); } .strip-regions { grid-column: 1 / -1; } }
+@media (max-width: 720px) { .strip { grid-template-columns: 1fr 1fr; } .strip-tile { min-height: 72px; } .hub-search { flex-wrap: wrap; } }
+.strip-label { white-space: normal; }
+.split-table .strip { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.split-table .strip-regions { grid-column: 1 / -1; }
+.strip:not(:has(.strip-regions)) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 720px) { .strip:not(:has(.strip-regions)) { grid-template-columns: 1fr 1fr; } }

@@ -4,6 +4,7 @@ import type { AddressKind, Domain, Region } from '@intake/contracts'
 import { sql } from '@/lib/db'
 import { canSeeIdentity, canSeeMoney, ScopeError, type Principal } from '@/features/auth/scope'
 import type { Candidate } from '@/features/intake/match'
+import type { BrowseRow } from './browse'
 
 // Boundary 1 of 3. Owns every authorized read of the partner hub (customers and suppliers).
 // Scope is checked HERE, before any SQL, with the principal's fresh entitlements. Cached functions below take only
@@ -44,6 +45,32 @@ export type PartyDetail = PartySummary & {
     | { kind: 'spend'; ytd: number; openInvoices: number; currency: string }
     | null
     | 'not_entitled'
+}
+
+// Browse: every record of one domain the caller may see, across all their regions, for the table that narrows as
+// you type. Scope is checked per region here; each region's list is cached on its own and tagged like search, so the
+// hub load invalidates it the same way. Small by design: a hub of this size is a few hundred rows per region.
+
+export async function browseParties(principal: Principal, domain: Domain, regions: Region[]): Promise<BrowseRow[]> {
+  for (const r of regions) if (!canSeeIdentity(principal, r)) throw new ScopeError(`no identity access to ${r}`)
+  const lists = await Promise.all(regions.map((r) => cachedBrowse(domain, r)))
+  return lists.flat()
+}
+
+async function cachedBrowse(domain: Domain, region: Region): Promise<BrowseRow[]> {
+  'use cache'
+  cacheTag(`hub:${region}`)
+  cacheLife('minutes')
+  const rows = await sql()`select p.golden_id, p.domain, p.legal_name, p.local_name, p.city, p.region, p.erp_system, p.erp_number, p.type_code, p.status, p.industry, p.tax_canonical, p.duns, p.aliases, g.name as group_name
+    from parties p left join groups g on g.group_id = p.group_id
+    where p.domain = ${domain} and p.region = ${region}
+    order by p.loaded_at desc, p.legal_name`
+  return rows.map((r) => ({ ...toSummary(r), erpSystem: (r.erp_system as string | null) ?? null, groupName: (r.group_name as string | null) ?? null, taxCanonical: (r.tax_canonical as string | null) ?? null, duns: (r.duns as string | null) ?? null, aliases: (r.aliases as string[] | null) ?? [], localName: (r.local_name as string | null) ?? null }))
+}
+
+// The one-line hint for a tax ID that exists only in a region the caller cannot see. Region name, nothing else.
+export async function foreignHint(principal: Principal, domain: Domain, query: string): Promise<Region | null> {
+  return foreignTaxIdRegion(principal, domain, query)
 }
 
 export type SearchOutcome = { results: PartySummary[]; foreignRegion: Region | null }
