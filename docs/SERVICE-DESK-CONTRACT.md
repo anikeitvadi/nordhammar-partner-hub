@@ -67,7 +67,7 @@ The deep-dive story survives: a durable human wait (now finance's, and the centr
 
 ## 5. The webhook, desk to hub
 
-`POST https://nordhammar-partner-hub.vercel.app/api/webhooks/service-desk` (the stand-in still posts to the earlier `staging-nordhammar.vercel.app`, the same deployment)
+`POST https://nordhammar-partner-hub.vercel.app/api/webhooks/service-desk`
 
 | Header | Why |
 |---|---|

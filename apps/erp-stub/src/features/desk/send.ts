@@ -3,7 +3,7 @@ import { markDelivered, markFailed, pendingEvents } from './store'
 
 // Delivers the desk's undelivered events to the hub, signed. At least once: an event stays in the outbox until the hub
 // answers 2xx, and the hub's event-id store turns a repeat into a no-op. Called right after a decision and from Resend.
-const HUB_WEBHOOK_URL = process.env.DESK_WEBHOOK_URL ?? 'https://staging-nordhammar.vercel.app/api/webhooks/service-desk'
+const HUB_WEBHOOK_URL = process.env.DESK_WEBHOOK_URL ?? 'https://nordhammar-partner-hub.vercel.app/api/webhooks/service-desk'
 // Where the hub lives, so a ticket can link back to its request.
 export const HUB_ORIGIN = new URL(HUB_WEBHOOK_URL).origin
 
