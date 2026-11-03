@@ -12,8 +12,8 @@ import { ExposureList } from '@/features/home/exposure-list'
 
 export const metadata: Metadata = { title: 'Home' }
 
-// Home reads like a page, not a dashboard: one claim with the globe that shows it, a search line, then what is
-// waiting for this person as ruled rows. Ink on paper; serif for statements, mono for figures. Every number is live.
+// Home reads like a page, not a dashboard: a greeting, the hub in six figures beside the globe that draws it, a
+// search line, then what is waiting for this person as ruled rows. Every number is live.
 export default async function HomePage() {
   const principal = await requirePrincipal()
   if (!hasAnyRegion(principal)) return <section className="narrow"><h1>Your account has no region yet</h1><p>Ask IT to add you to a region group. Nothing else loads until then.</p></section>
@@ -26,7 +26,7 @@ export default async function HomePage() {
   return (
     <section className="home">
       <Suspense fallback={<HomeHeroLoading />}>
-        <HomeHero principal={principal} greeting={`${greeting()}, ${first}`} />
+        <HomeHero principal={principal} name={first} />
       </Suspense>
 
       <form method="get" action="/customers" className="home-search" role="search">
@@ -56,9 +56,4 @@ export default async function HomePage() {
       {principal.moneyRegions.length ? <Suspense fallback={null}><ExposureList principal={principal} /></Suspense> : null}
     </section>
   )
-}
-
-function greeting(): string {
-  const h = new Date().getHours()
-  return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening'
 }
