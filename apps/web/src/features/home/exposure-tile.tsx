@@ -9,7 +9,7 @@ export async function ExposureTile({ principal }: { principal: Principal }) {
   const fmt = (n: number, c: string) => `${c} ${Math.round(n).toLocaleString('en-US')}`
   return (
     <div className="tile well span2">
-      <p className="runin"><strong>Exposure by group.</strong> Credit limits summed per currency by ultimate parent, across every region you may see amounts for ({principal.moneyRegions.join(', ')}). Ask the hub for any group.</p>
+      <p className="runin"><strong>Exposure by group.</strong> Credit limits summed per currency by ultimate parent, across every region you may see amounts for ({principal.moneyRegions.join(', ')}). Ask for any group.</p>
       {rows.length === 0 ? <p className="muted small tile-body">No credit limits in your regions.</p> : (
         <ul className="rows tile-body">
           {rows.map((r) => <li key={r.parent} className="nolead"><span><span className="t">{r.parent}</span><span className="s">{r.companies} {r.companies === 1 ? 'company' : 'companies'} · {r.regions.join(', ')}</span></span><span className="m">{r.limits.map((l) => fmt(l.total, l.currency)).join(' · ')}</span></li>)}

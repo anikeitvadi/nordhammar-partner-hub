@@ -4,10 +4,9 @@ import type { Principal } from '@/features/auth/scope'
 import { getRequest } from '@/features/requests/store.server'
 import { getParty } from '@/features/customers/hub.server'
 import { describeState } from '@/features/requests/status'
-import { reportExposure, reportIntake, reportOnHold } from '@/features/customers/reports.server'
 import { presenceView, type PresenceRow } from './view'
 
-// The three reads the model may ask for. Each takes the principal and calls the same scoped readers the pages call,
+// The three record lookups the model may ask for (counts and totals are queryHub, query.server.ts). Each takes the principal and calls the same scoped readers the pages call,
 // so the model can never see a row a page would not show. None of them writes. Region and identity are never
 // arguments: the code already knows them.
 
@@ -48,26 +47,4 @@ export async function readWhyFlagged(principal: Principal, requestId: string) {
     linkedTo: linked ? { goldenId: linked.goldenId, legalName: linked.legalName, city: linked.city, region: linked.region } : r.linkedGoldenId ? { goldenId: r.linkedGoldenId } : null,
     explanation,
   }
-}
-
-// Reporting questions over the hub, the same fixed readers the reports page uses. Identity rows over the regions
-// the caller may see; amounts only for the regions the caller is entitled to. Free text never reaches SQL.
-export async function readOnHold(principal: Principal, region?: string) {
-  const rows = await reportOnHold(principal)
-  const want = region?.trim().toUpperCase()
-  const filtered = want ? rows.filter((r) => r.region === want) : rows
-  return { region: want ?? 'all regions you can see', rows: filtered, totalCustomers: filtered.reduce((n, r) => n + r.customers, 0), totalSuppliers: filtered.reduce((n, r) => n + r.suppliers, 0) }
-}
-
-export async function readIntakeThisMonth(principal: Principal) {
-  const rows = await reportIntake(principal)
-  return { month: new Date().toISOString().slice(0, 7), rows, created: rows.find((r) => r.state === 'created') ?? null, note: 'Counts of requests raised this month in the regions you can see, by state; median hours from submitted to created where known.' }
-}
-
-export async function readExposure(principal: Principal, group?: string) {
-  const rows = await reportExposure(principal)
-  const want = group?.trim().toLowerCase()
-  const filtered = want ? rows.filter((r) => r.parent.toLowerCase().includes(want)) : rows
-  if (principal.moneyRegions.length === 0) return { group: want ?? 'all', rows: [], note: 'You are not entitled to amounts in any region; amounts are granted per person and region.' }
-  return { group: want ?? 'all', rows: filtered, note: `Credit limits summed per currency over the regions you are entitled to see amounts for (${principal.moneyRegions.join(', ')}).` }
 }

@@ -2,7 +2,7 @@ import type { ModelAttempt } from '@/features/ai/models'
 
 // Shared by the server (agent.server.ts) and the page (ask-form.client.tsx); types only, so the client never imports a
 // server module.
-export type ToolName = 'groupPresence' | 'requestStatus' | 'whyFlagged' | 'partnersOnHold' | 'intakeThisMonth' | 'exposureByGroup'
+export type ToolName = 'groupPresence' | 'requestStatus' | 'whyFlagged' | 'queryHub'
 export type AskOutcome =
   | { ai: 'available'; answer: string | null; tool: ToolName | null; input: unknown; result: unknown; model: string; cost: number | null; usage: { inputTokens: number; outputTokens: number } | null; note: string | null; attempts: ModelAttempt[]; ms: number }
   | { ai: 'unavailable'; reason: string }

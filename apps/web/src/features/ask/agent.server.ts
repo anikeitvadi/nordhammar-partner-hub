@@ -1,30 +1,30 @@
 import { stepCountIs, streamText, tool } from 'ai'
 import { z } from 'zod'
 import type { Principal } from '@/features/auth/scope'
-import { readExposure, readGroupPresence, readIntakeThisMonth, readOnHold, readRequestStatus, readWhyFlagged } from './tools.server'
+import { readGroupPresence, readRequestStatus, readWhyFlagged } from './tools.server'
+import { QuerySpecSchema, type QuerySpec } from './query'
+import { runQuery } from './query.server'
 import { releaseChecked, sumSteps } from './stream'
 import { gatewayOptions, resolveModel, type ModelRoute } from '@/features/ai/models'
 import type { AskEvent, AskOutcome, ToolName } from './types'
 
 export type { AskEvent, AskOutcome, ToolName } from './types'
 
-// "Ask the hub": one question, one streamed model call, six typed read-only tools, two steps at most (one to look,
+// "Ask": one question, one streamed model call, four typed read-only tools (three lookups and one typed query), two steps at most (one to look,
 // one to speak). The card the page renders is the tool result, which is the truth; the sentence is the model's
 // reading of that card and is dropped if it cites anything the card does not contain. Same virtual model, failover
 // and zero data retention as the proposal agent. No tool writes; a wrong answer is a wrong card, never a wrong write.
 
-export const ASK_INSTRUCTIONS = `You answer six kinds of question about a company's partner hub, and nothing else:
-1. Whether the company already does business with a named group or partner anywhere (groupPresence).
-2. Where a request is right now (requestStatus; request ids look like R-MVY4OEBEBJ7W).
-3. Why a request was flagged in the duplicate check (whyFlagged).
-4. How many partners are on hold, overall or in one region (partnersOnHold; regions are BR, EU, US, IN, CN).
-5. How many requests were raised or created this month and how fast (intakeThisMonth).
-6. The company's credit exposure to a corporate group, or overall (exposureByGroup).
-Call exactly one tool, then answer in one plain sentence that only states what the tool returned. Never invent an id, a number, an amount or a region. If the tool found nothing, say so. If whyFlagged returns outcome no_match, say the request was not flagged and went straight to review. If a tool's note says the person is not entitled to amounts, say that instead of a number. If the question is not one of the six kinds, do not call a tool; reply exactly: I can't answer that here. Try the search box or the request page.`
+export const ASK_INSTRUCTIONS = `You answer questions about a company's partner hub, and nothing else, with exactly one of four tools:
+1. groupPresence: whether the company already does business with a named group or partner anywhere.
+2. requestStatus: where one request is right now (request ids look like R-MVY4OEBEBJ7W).
+3. whyFlagged: why one request was flagged by the duplicate check.
+4. queryHub: any count or total over partners (customers and suppliers), requests, or duplicate checks. Fill the spec from the question: the subject, the measure, only the filters the question names, a time window if it names one, and at most one groupBy if it asks "by" or "per" something. "On hold" is status hold; "exposure" or "credit" is the credit_limit measure (customers); "spend" is spend_ytd (suppliers); "how fast" is median_hours_to_number; "duplicates stopped" is checks with stopped_at_entry. Regions are BR, EU, US, IN, CN. Never put a tax ID, a name or an id into groupBy; a group or parent name goes in filters.group.
+Call exactly one tool, then answer in one plain sentence that only states what the tool returned. Never invent an id, a number, an amount or a region. If the tool found nothing, say so. If whyFlagged returns outcome no_match, say the request was not flagged. If queryHub returns a refusal, reply with that refusal sentence exactly. If a result's note says the person is not entitled to amounts, say that instead of a number. If the question is not about the hub, do not call a tool; reply exactly: I can't answer that here. Try the search box or the request page.`
 
 // The readers are injectable so the eval can run the real model over fixture data without a database.
-export type Readers = { presence: (p: Principal, name: string) => Promise<unknown>; status: (p: Principal, id: string) => Promise<unknown>; whyFlagged: (p: Principal, id: string) => Promise<unknown>; onHold: (p: Principal, region?: string) => Promise<unknown>; intake: (p: Principal) => Promise<unknown>; exposure: (p: Principal, group?: string) => Promise<unknown> }
-export const dbReaders: Readers = { presence: readGroupPresence, status: readRequestStatus, whyFlagged: readWhyFlagged, onHold: readOnHold, intake: readIntakeThisMonth, exposure: readExposure }
+export type Readers = { presence: (p: Principal, name: string) => Promise<unknown>; status: (p: Principal, id: string) => Promise<unknown>; whyFlagged: (p: Principal, id: string) => Promise<unknown>; query: (p: Principal, spec: QuerySpec) => Promise<unknown> }
+export const dbReaders: Readers = { presence: readGroupPresence, status: readRequestStatus, whyFlagged: readWhyFlagged, query: runQuery }
 
 
 // The six lookups, each calling the same scoped reader the pages call, with the person closed over in code.
@@ -45,20 +45,10 @@ function askTools(principal: Principal, readers: Readers) {
       inputSchema: z.object({ requestId: z.string().regex(/^R-[A-Z0-9]{6,}$/i) }),
       execute: ({ requestId }) => readers.whyFlagged(principal, requestId),
     }),
-    partnersOnHold: tool({
-      description: 'How many customers and suppliers are on hold, by region, with the oldest last activity. Use for "on hold", "blocked partners", "inactive". Optional region code BR, EU, US, IN or CN.',
-      inputSchema: z.object({ region: z.enum(['BR', 'EU', 'US', 'IN', 'CN']).optional() }),
-      execute: ({ region }) => readers.onHold(principal, region),
-    }),
-    intakeThisMonth: tool({
-      description: 'Requests raised this month by state (submitted, under review, created, stopped...) with the median hours from submitted to created. Use for "how many requests", "how fast", "this month", "cycle time".',
-      inputSchema: z.object({}),
-      execute: () => readers.intake(principal),
-    }),
-    exposureByGroup: tool({
-      description: 'Credit exposure: credit limits summed per currency by ultimate parent group, over the regions the person may see amounts for. Use for "exposure", "credit limit", "how much credit", "how big is our risk with". Optional group name filter.',
-      inputSchema: z.object({ group: z.string().min(2).optional().describe('part of the group or parent name, if the question names one') }),
-      execute: ({ group }) => readers.exposure(principal, group),
+    queryHub: tool({
+      description: 'A count or a total over partners, requests or duplicate checks, as a typed query spec: subject, measure, filters, time window, at most one groupBy. Code checks the spec, limits it to what the person may see, and runs it; a combination it does not support comes back as a refusal sentence.',
+      inputSchema: QuerySpecSchema,
+      execute: (spec) => readers.query(principal, spec),
     }),
   }
 }

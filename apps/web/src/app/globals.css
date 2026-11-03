@@ -394,7 +394,7 @@ details.tech dd { margin: 0; font-family: var(--mono); font-size: .82rem; word-b
   .topbar .button { margin-left: auto; }
 }
 
-/* ask the hub */
+/* Ask */
 .ask-form { display: flex; gap: 8px; margin: 18px 0 10px; }
 .ask-form input { flex: 1; min-width: 0; height: 40px; }
 .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 18px; }
@@ -463,3 +463,17 @@ button.strip-tile:hover { background: var(--canvas); }
 /* The automatic check's quiet result line under the tax ID (step 10). */
 .check-line { margin: 6px 0 0; font-family: var(--sans); font-size: .9rem; }
 .check-line.ok::before { content: "✓ "; color: var(--accent); }
+
+/* Ask: the answer to a typed query (step 11). Plain HTML bars and an SVG line, in the app tokens. */
+.query-number { display: flex; flex-wrap: wrap; gap: 4px 20px; align-items: baseline; }
+.query-bars { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.query-bars li { display: grid; grid-template-columns: minmax(90px, 30%) 1fr auto; gap: 10px; align-items: center; font-family: var(--sans); font-size: .9rem; }
+.query-bars .q-bar { height: 10px; background: var(--ink-1); border-radius: 5px; overflow: hidden; }
+.query-bars .q-bar span { display: block; height: 100%; background: var(--accent); border-radius: 5px; }
+.query-bars .q-value { font-variant-numeric: tabular-nums; text-align: right; }
+.query-line { width: 100%; max-width: 420px; height: auto; overflow: visible; }
+.query-line polyline { fill: none; stroke: var(--accent); stroke-width: 2; }
+.query-line circle { fill: var(--accent); }
+.query-line text { font: 11px var(--sans); fill: var(--fg-2); }
+.query-line text.axis { fill: var(--fg-3); }
+.query-words { margin: 10px 0 0; }

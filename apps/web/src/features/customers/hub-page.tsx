@@ -5,7 +5,10 @@ import { browseParties, getParty } from './hub.server'
 import { HubTable } from './hub-table.client'
 import { PartyDetail } from './party-detail'
 
-export type HubSearchParams = { q?: string; id?: string }
+// `in`, `status` and `erp` start the table filtered, for links from an answer in Ask (`region` is the top bar's own).
+const STRIP_FILTERS = ['hold', 'no_erp', 'grouped'] as const
+
+export type HubSearchParams = { q?: string; id?: string; in?: string; status?: string; erp?: string }
 
 const WORDS: Record<Domain, { one: string; many: string; path: string }> = { customer: { one: 'customer', many: 'Customers', path: '/customers' }, supplier: { one: 'supplier', many: 'Suppliers', path: '/suppliers' } }
 
@@ -20,6 +23,7 @@ export async function HubPage({ domain, searchParams }: { domain: Domain; search
   const w = WORDS[domain]
   const regions = visibleRegions(principal)
   const { q = '', id } = searchParams
+  const initialFilter = { region: regions.find((r) => r === searchParams.in) ?? null, status: STRIP_FILTERS.find((x) => x === searchParams.status) ?? null, erp: searchParams.erp && /^ERP-[123]$/.test(searchParams.erp) ? searchParams.erp : null }
   const [rows, selected] = await Promise.all([browseParties(principal, domain, regions), id ? getParty(principal, id) : Promise.resolve(null)])
   return (
     <section className="hub">
@@ -30,7 +34,7 @@ export async function HubPage({ domain, searchParams }: { domain: Domain; search
         </div>
       </header>
       <div className={selected ? 'split split-table' : undefined}>
-        <HubTable rows={rows} regions={regions} domain={domain} path={w.path} selectedId={selected?.goldenId ?? null} initialQuery={q} />
+        <HubTable rows={rows} regions={regions} domain={domain} path={w.path} selectedId={selected?.goldenId ?? null} initialQuery={q} initialFilter={initialFilter} />
         {selected ? <div className="split-detail" id="detail"><div className="party-body" key={selected.goldenId}><PartyDetail party={selected} compact /></div></div> : null}
       </div>
     </section>

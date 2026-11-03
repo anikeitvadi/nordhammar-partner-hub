@@ -3,23 +3,8 @@ import type { Region } from '@intake/contracts'
 import { sql } from '@/lib/db'
 import { visibleRegions, type Principal } from '@/features/auth/scope'
 
-// Fixed questions, authorized the same way the screens are: identity rows over the regions the caller can see,
+// Fixed questions for Home, authorized the same way the screens are (Ask's counts and totals are features/ask/query.server.ts): identity rows over the regions the caller can see,
 // money rows over the regions the caller is entitled to. Nothing here accepts free text.
-
-export async function reportOnHold(principal: Principal): Promise<{ region: Region; customers: number; suppliers: number; oldestActivity: string | null }[]> {
-  const regions = visibleRegions(principal)
-  const rows = await sql()`select region, count(*) filter (where domain = 'customer') as customers, count(*) filter (where domain = 'supplier') as suppliers, min(last_activity_at) as oldest
-    from parties where status = 'hold' and region = any(${regions}) group by region order by region`
-  return rows.map((r) => ({ region: r.region as Region, customers: Number(r.customers), suppliers: Number(r.suppliers), oldestActivity: r.oldest ? new Date(r.oldest as string).toISOString().slice(0, 10) : null }))
-}
-
-export async function reportIntake(principal: Principal): Promise<{ state: string; customers: number; suppliers: number; medianHours: number | null }[]> {
-  const regions = visibleRegions(principal)
-  const rows = await sql()`select r.state_kind as state, count(*) filter (where r.domain = 'customer') as customers, count(*) filter (where r.domain = 'supplier') as suppliers,
-      percentile_cont(0.5) within group (order by extract(epoch from ((r.state->>'createdAt')::timestamptz - r.created_at)) / 3600) filter (where r.state_kind = 'created') as median_hours
-    from requests r where r.region = any(${regions}) and r.created_at > date_trunc('month', now()) group by r.state_kind order by r.state_kind`
-  return rows.map((r) => ({ state: r.state as string, customers: Number(r.customers), suppliers: Number(r.suppliers), medianHours: r.median_hours == null ? null : Math.round(Number(r.median_hours) * 10) / 10 }))
-}
 
 export async function reportExposure(principal: Principal): Promise<{ parent: string; companies: number; regions: Region[]; limits: { currency: string; total: number }[] }[]> {
   const money = principal.moneyRegions

@@ -26,9 +26,9 @@ function matches(r: BrowseRow, q: string): boolean {
 
 // The records one person may see, narrowed as they type. The strip on top counts what is there and each tile sets
 // the matching filter; the table is the same rows. Selecting a row opens it on the right without losing the filter.
-export function HubTable({ rows, regions, domain, path, selectedId, initialQuery }: { rows: BrowseRow[]; regions: Region[]; domain: Domain; path: string; selectedId: string | null; initialQuery: string }) {
+export function HubTable({ rows, regions, domain, path, selectedId, initialQuery, initialFilter }: { rows: BrowseRow[]; regions: Region[]; domain: Domain; path: string; selectedId: string | null; initialQuery: string; initialFilter?: Filter }) {
   const [q, setQ] = useState(initialQuery)
-  const [f, setF] = useState<Filter>({ region: null, status: null, erp: null })
+  const [f, setF] = useState<Filter>(initialFilter ?? { region: null, status: null, erp: null })
   const [foreign, setForeign] = useState<{ q: string; region: Region | null } | null>(null)
   const one = domain === 'customer' ? 'customer' : 'supplier'
 
