@@ -22,9 +22,12 @@ export type TaxId = {
 
 export type Approval = {
   decisionId: string
+  // A central-team member's email, or 'auto:checks' when every check passed after finance approved (see cleanCheck).
   reviewerId: string
   reviewedAt: string
   payloadHash: string
+  // For an automatic approval: the checks that passed, by name, so the timeline and the audit say what was relied on.
+  checks?: string[]
 }
 
 export type StopCategory = 'business' | 'transport' | 'auth' | 'conflict' | 'dependency'
@@ -46,7 +49,13 @@ export type RequestState =
       createdAt: string
       goldenId: string | null
     }
-  | { kind: 'declined'; revision: number; decisionId: string; reason: string }
+  | { kind: 'declined'; revision: number; decisionId: string; reason: string; by?: 'central' | 'finance' }
+  // Finance approves in the customer's service desk (docs/SERVICE-DESK-CONTRACT.md). Until it does, nothing happens.
+  | { kind: 'awaiting_finance'; revision: number; submittedAt: string; ticketId: string | null }
+  // Finance approved; the hub's checks run again before anything is created.
+  | { kind: 'checking'; revision: number; submittedAt: string; ticketId: string | null; financeBy: string }
+  // Not clean: a person in the central team decides, with the reasons in front of them.
+  | { kind: 'exception'; revision: number; submittedAt: string; ticketId: string | null; reasons: string[] }
   | {
       kind: 'stopped'
       revision: number
@@ -199,6 +208,13 @@ export type RequestEvent =
   // Operator reconciliation of a stop with unknown effect, from the ERP's own ledger: it did commit, or it provably did not.
   | { type: 'reconciled_created'; erpNumber: string; createdAt: string }
   | { type: 'reconciled_no_effect'; reason: string }
+  // The service-desk pipeline. Every submit now goes to finance first; 'submit' stays for requests raised before it.
+  | { type: 'submit_to_finance'; submittedAt: string }
+  | { type: 'ticket_opened'; ticketId: string }
+  | { type: 'finance_approved'; by: string }
+  | { type: 'finance_rejected'; by: string; decisionId: string; reason: string }
+  | { type: 'checks_clean'; approval: Approval }
+  | { type: 'checks_exception'; reasons: string[] }
 
 export type Transition = { ok: true; next: RequestState } | { ok: false; reason: string }
 
@@ -210,11 +226,11 @@ export function transition(st: RequestState, e: RequestEvent): Transition {
     case 'open_review':
       return st.kind === 'submitted' ? { ok: true, next: { kind: 'under_review', revision: st.revision, submittedAt: st.submittedAt } } : bad('only a submitted request opens for review')
     case 'approve':
-      return st.kind === 'under_review' ? { ok: true, next: { kind: 'approved', revision: st.revision, approval: e.approval } } : bad('only a request under review can be approved')
+      return st.kind === 'under_review' || st.kind === 'exception' ? { ok: true, next: { kind: 'approved', revision: st.revision, approval: e.approval } } : bad('only a request under review or an exception can be approved')
     case 'decline':
-      return st.kind === 'under_review' ? { ok: true, next: { kind: 'declined', revision: st.revision, decisionId: e.decisionId, reason: e.reason } } : bad('only a request under review can be declined')
+      return st.kind === 'under_review' || st.kind === 'exception' ? { ok: true, next: { kind: 'declined', revision: st.revision, decisionId: e.decisionId, reason: e.reason, by: 'central' } } : bad('only a request under review or an exception can be declined')
     case 'send_back':
-      return st.kind === 'under_review' ? { ok: true, next: { kind: 'draft', revision: st.revision, returnedReason: e.reason } } : bad('only a request under review can be sent back')
+      return st.kind === 'under_review' || st.kind === 'exception' ? { ok: true, next: { kind: 'draft', revision: st.revision, returnedReason: e.reason } } : bad('only a request under review or an exception can be sent back')
     case 'start_creating':
       return st.kind === 'approved' ? { ok: true, next: { kind: 'creating', revision: st.revision, approval: st.approval, operationKey: e.operationKey } } : bad('only an approved request starts creating')
     case 'created':
@@ -224,6 +240,18 @@ export function transition(st: RequestState, e: RequestEvent): Transition {
     case 'recover_to_draft':
       // Only a definitive no-effect stop may go back to a draft. An unknown effect keeps its key until reconciled.
       return st.kind === 'stopped' && st.effect === 'no_effect' ? { ok: true, next: { kind: 'draft', revision: st.revision, returnedReason: `stopped: ${st.reason}` } } : bad('only a stop with no effect returns to draft')
+    case 'submit_to_finance':
+      return st.kind === 'draft' ? { ok: true, next: { kind: 'awaiting_finance', revision: st.revision + 1, submittedAt: e.submittedAt, ticketId: null } } : bad('only a draft can be submitted')
+    case 'ticket_opened':
+      return st.kind === 'awaiting_finance' ? { ok: true, next: { ...st, ticketId: e.ticketId } } : bad('a ticket is opened while waiting for finance')
+    case 'finance_approved':
+      return st.kind === 'awaiting_finance' ? { ok: true, next: { kind: 'checking', revision: st.revision, submittedAt: st.submittedAt, ticketId: st.ticketId, financeBy: e.by } } : bad('only a request waiting for finance can be approved by finance')
+    case 'finance_rejected':
+      return st.kind === 'awaiting_finance' ? { ok: true, next: { kind: 'declined', revision: st.revision, decisionId: e.decisionId, reason: e.reason, by: 'finance' } } : bad('only a request waiting for finance can be rejected by finance')
+    case 'checks_clean':
+      return st.kind === 'checking' ? { ok: true, next: { kind: 'approved', revision: st.revision, approval: e.approval } } : bad('only a request being checked can pass its checks')
+    case 'checks_exception':
+      return st.kind === 'checking' ? { ok: true, next: { kind: 'exception', revision: st.revision, submittedAt: st.submittedAt, ticketId: st.ticketId, reasons: e.reasons } } : bad('only a request being checked can become an exception')
     case 'golden_loaded':
       return st.kind === 'created' ? { ok: true, next: { ...st, goldenId: e.goldenId } } : bad('only a created request gains a golden id')
     case 'reconciled_created':
@@ -301,4 +329,80 @@ export function goldenFromPayload(p: CanonicalPayload, erpNumber: string, at: st
     sources: [{ system: sourceSystem(p.destination.erp, p.destination.region), id: erpNumber, loadedAt: at }],
     credit: [], spend: [],
   }
+}
+
+// ---- Service desk: finance approval, the clean check, the signed webhook (docs/SERVICE-DESK-CONTRACT.md) ----
+
+// What the hub found when finance's approval arrived. Gathered by a Workflow step from the hub; judged here, purely.
+export type CleanFacts = {
+  taxValid: boolean
+  exactMatches: { goldenId: string; legalName: string; region: Region }[]
+  openRequestsSameTax: string[]
+  relatedMatches: { goldenId: string; legalName: string; region: Region }[]
+  nameMatches: { goldenId: string; legalName: string }[]
+  aiReading: 'same' | 'different' | 'unsure' | null
+  dupChoice: 'new' | 'new_in_group' | 'not_related' | null
+  missingFields: string[]
+  autoApproveOn: boolean
+}
+export type CleanResult = { clean: true; passed: string[] } | { clean: false; passed: string[]; reasons: string[] }
+
+export const CLEAN_CHECKS = ['tax ID valid', 'no record or open request with this tax ID', 'no other establishment of the same company', 'no name match on a record without a tax ID', 'no override by the requester', 'every field the ERP needs'] as const
+
+// Clean means every check holds. The model's reading is never a reason to pass: a name match is an exception whatever
+// the model says; the reading only goes into the reason so the person deciding sees it.
+export function cleanCheck(f: CleanFacts): CleanResult {
+  const reasons: string[] = []
+  const passed: string[] = []
+  const check = (name: (typeof CLEAN_CHECKS)[number], fail: string | null) => { if (fail) reasons.push(fail); else passed.push(name) }
+  check('tax ID valid', f.taxValid ? null : 'the tax ID fails its format or check digits')
+  const ex = f.exactMatches[0]
+  check('no record or open request with this tax ID', ex ? `possible duplicate: ${ex.legalName} (${ex.region}) has the same tax ID` : f.openRequestsSameTax.length ? `another open request has the same tax ID (${f.openRequestsSameTax[0]})` : null)
+  const rel = f.relatedMatches[0]
+  check('no other establishment of the same company', rel ? `same company as ${rel.legalName} (${rel.region}), a different establishment` : null)
+  const nm = f.nameMatches[0]
+  check('no name match on a record without a tax ID', nm ? `name match with ${nm.legalName}, which has no tax ID on file${f.aiReading ? `; the AI reading is "${f.aiReading}"` : ''}` : null)
+  check('no override by the requester', f.dupChoice === 'new_in_group' ? 'the requester chose "new company in this group"' : f.dupChoice === 'not_related' ? 'the requester marked a suggested match as not related' : null)
+  check('every field the ERP needs', f.missingFields.length ? `missing: ${f.missingFields.join(', ')}` : null)
+  if (reasons.length === 0 && !f.autoApproveOn) reasons.push('automatic approval is switched off; every request goes to the central team')
+  return reasons.length === 0 ? { clean: true, passed } : { clean: false, passed, reasons }
+}
+
+// The partner's fields on a ticket raised in the desk first. The same fields the hub form collects, so the hub builds
+// the same canonical payload from either way in.
+export const DeskPartnerSchema = z.object({
+  legalName: z.string().min(1), localName: z.string().nullable(), country: z.string().length(2), taxId: z.string().min(1),
+  typeCode: z.string().nullable(), industry: z.string().nullable(), reason: z.string().min(1),
+  main: z.object({ street: z.string(), number: z.string().nullable(), district: z.string().nullable(), city: z.string(), regionCode: z.string().nullable(), postalCode: z.string().nullable() }),
+})
+export type DeskPartner = z.infer<typeof DeskPartnerSchema>
+
+export const DeskWebhookSchema = z.object({
+  type: z.enum(['ticket.finance_approved', 'ticket.finance_rejected']),
+  occurredAt: z.string(),
+  ticket: z.object({ id: z.string().regex(/^SD-\d{5}$/), hubRequestId: z.string().nullable(), requesterEmail: z.string(), region: z.enum(REGIONS), domain: z.enum(DOMAINS), partner: DeskPartnerSchema.nullable() }),
+  decision: z.object({ by: z.string().min(1), reason: z.string().nullable() }),
+}).refine((e) => e.type !== 'ticket.finance_rejected' || !!e.decision.reason?.trim(), { message: 'a rejection needs a reason' })
+export type DeskWebhook = z.infer<typeof DeskWebhookSchema>
+
+// HMAC-SHA256 over "<timestamp>.<raw body>", hex, sent as `v1=<hex>`. Web Crypto, so the desk and the hub share it.
+export async function signDeskWebhook(secret: string, timestamp: string, rawBody: string): Promise<string> {
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'])
+  const mac = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(`${timestamp}.${rawBody}`))
+  return `v1=${[...new Uint8Array(mac)].map((b) => b.toString(16).padStart(2, '0')).join('')}`
+}
+
+export const DESK_WEBHOOK_WINDOW_SECONDS = 300
+
+// Refuses a missing secret (fail closed), a stale or future timestamp, and any signature that is not ours. The compare
+// runs over every character so its time does not depend on where the first difference is.
+export async function verifyDeskWebhook(secret: string | undefined, timestamp: string | null, signature: string | null, rawBody: string, nowSeconds: number): Promise<{ ok: true } | { ok: false; reason: string }> {
+  if (!secret) return { ok: false, reason: 'webhook secret not configured' }
+  if (!timestamp || !/^\d+$/.test(timestamp) || !signature) return { ok: false, reason: 'missing signature or timestamp' }
+  if (Math.abs(nowSeconds - Number(timestamp)) > DESK_WEBHOOK_WINDOW_SECONDS) return { ok: false, reason: 'timestamp outside the window' }
+  const expected = await signDeskWebhook(secret, timestamp, rawBody)
+  if (expected.length !== signature.length) return { ok: false, reason: 'bad signature' }
+  let diff = 0
+  for (let i = 0; i < expected.length; i++) diff |= expected.charCodeAt(i) ^ signature.charCodeAt(i)
+  return diff === 0 ? { ok: true } : { ok: false, reason: 'bad signature' }
 }
