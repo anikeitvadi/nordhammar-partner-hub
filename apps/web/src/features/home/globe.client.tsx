@@ -52,8 +52,13 @@ export function Globe({ data }: { data: GlobeData }) {
     const bowed = (arc: (typeof arcs)[number], upto: number, center: [number, number]): Screen[] => {
       const a = proj(arc.a.from)!, b = proj(arc.a.to)!
       const dx = b[0] - a[0], dy = b[1] - a[1], chord = Math.hypot(dx, dy) || 1
-      const side = arc.i % 2 ? 1 : -1, bow = (0.22 + (arc.i % 3) * 0.05) * chord * side
       const nx = -dy / chord, ny = dx / chord
+      // Arcs alternate sides, except that an arc whose bow would carry it off the disc bends inward instead: near the
+      // limb an outward bow leaves the canvas and is cut off at its edge.
+      const mag = (0.22 + (arc.i % 3) * 0.05) * chord, R = S / 2 - 8
+      const peak = (side: number) => Math.hypot((a[0] + b[0]) / 2 + nx * mag * side - S / 2, (a[1] + b[1]) / 2 + ny * mag * side - S / 2)
+      const preferred = arc.i % 2 ? 1 : -1
+      const bow = mag * (peak(preferred) > R ? -preferred : preferred)
       return arc.geo.slice(0, upto).map((g, k) => {
         const xy = proj(g)!, s = Math.sin(Math.PI * (k / SAMPLES)) * bow
         return { x: xy[0] + nx * s, y: xy[1] + ny * s, vis: geoDistance(g, center) < Math.PI / 2 }
