@@ -22,8 +22,8 @@ const ERRORS: Record<string, string> = {
 // what a regional user can and cannot see.
 const ROLES = [
   { who: 'Priya Nair', role: 'Central master data team · all regions', email: 'priya.reviewer@example.com', can: 'start here: every region, every amount, the final check on duplicates and group credit' },
-  { who: 'Ana Silva', role: 'Regional user · Brazil', email: 'ana.requester@example.com', can: 'searches every region, requests in Brazil, sees Brazil amounts only, cannot approve' },
-  { who: 'Jonas Weber', role: 'Regional user · Europe', email: 'jonas.requester@example.com', can: 'the same, from Europe' },
+  { who: 'Ana Silva', role: 'Sales operations · Brazil', email: 'ana.requester@example.com', can: 'sets up the customers Brazil sells to: searches every region first, requests in Brazil, sees Brazil amounts only, cannot approve' },
+  { who: 'Jonas Weber', role: 'Procurement · Europe', email: 'jonas.requester@example.com', can: 'sets up the suppliers Europe buys from, the same way' },
 ]
 const TRY: { text: React.ReactNode; copy?: string }[] = [
   { text: <>As Priya, search <code>aurora</code>: one group, three companies in two regions on two ERPs; open one to see its credit.</>, copy: 'aurora' },
