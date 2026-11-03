@@ -4,6 +4,8 @@ import { notFound } from 'next/navigation'
 import { requirePrincipal } from '@/features/auth/principal.server'
 import { getRequest } from '@/features/requests/store.server'
 import { LiveStatus } from '@/features/requests/live-status.client'
+import { Suspense } from 'react'
+import { RunPanel } from '@/features/execution/run-panel'
 
 // The service desk is the customer's system; the ticket link opens it in their tool, where finance works.
 const DESK_URL = (process.env.ERP_BASE_URL ?? 'https://customer-intake-erp-stub.vercel.app').replace(/\/$/, '')
@@ -36,6 +38,10 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
         <dt>Reason</dt><dd>{r.payload.reason.text}{r.payload.reason.reference ? ` · ${r.payload.reason.reference}` : ''}</dd>
         <dt>Duplicate check</dt><dd>{r.dupChoice === 'new' ? 'No match found in the hub' : r.dupChoice === 'new_in_group' ? `New company in the same group as ${r.linkedGoldenId}` : `Marked not related to ${r.linkedGoldenId}: "${r.dupReason}"`}</dd>
       </dl>
+      {/* Streams in after the page: it reads the platform's run record, which must never hold the status up. */}
+      <Suspense fallback={<p className="muted">Reading the run record…</p>}>
+        <RunPanel requestId={r.requestId} workflowRunId={r.workflowRunId} />
+      </Suspense>
       <details className="tech">
         <summary>Technical details</summary>
         <dl>
