@@ -12,9 +12,11 @@ type Props = {
   value?: string
   formAction?: (formData: FormData) => void | Promise<void>
   confirm?: string
+  // Off for a reason the server already knows (a load is running); the page says why next to it.
+  disabled?: boolean
 }
 
-export function SubmitButton({ children, pendingLabel, className, name, value, formAction, confirm: confirmText }: Props) {
+export function SubmitButton({ children, pendingLabel, className, name, value, formAction, confirm: confirmText, disabled }: Props) {
   const { pending } = useFormStatus()
   return (
     <button
@@ -23,8 +25,8 @@ export function SubmitButton({ children, pendingLabel, className, name, value, f
       name={name}
       value={value}
       formAction={formAction}
-      disabled={pending}
-      aria-disabled={pending}
+      disabled={pending || disabled}
+      aria-disabled={pending || disabled}
       onClick={(e) => { if (confirmText && !window.confirm(confirmText)) e.preventDefault() }}
     >
       {pending ? pendingLabel : children}

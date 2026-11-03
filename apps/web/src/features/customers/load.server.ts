@@ -1,21 +1,38 @@
 import 'server-only'
 import { transition, type GoldenRecord, type Region, type RequestState } from '@intake/contracts'
 import { sql } from '@/lib/db'
-import { isCentral, type Principal } from '@/features/auth/scope'
 
 // The nightly hub load, writing side. The records come from the customer's integration platform (read through
-// erp.server, the one network path); this module only writes them into the hub. Golden records arrive already cleansed
+// erp.server, the one network path, by the load Workflow); this module only writes them into the hub. Who may start a
+// load is checked where it is started (the central team's Run now, or the Cron route's secret), not here. Golden records arrive already cleansed
 // (log §16b): the load upserts, it does not match. A request the ERP created becomes searchable when its golden record
 // arrives: matched by ERP and number, it gains its golden id and its identity reservation is released. Until then search
 // cannot see the partner and the request page says so.
 
-export async function loadCursor(): Promise<string | null> {
-  const r = await sql()`select cursor from hub_load_state where id = 1`
-  return (r[0]?.cursor as string | null) ?? null
+// One load at a time. The nightly Cron and a central-team "Run now" start the same Workflow; whichever takes the lock
+// first runs, the other exits at once. A lock older than 15 minutes is taken over (a run that died holding it).
+export async function acquireLoad(runId: string): Promise<{ cursor: string | null } | null> {
+  const db = sql()
+  await db`insert into hub_load_state (id) values (1) on conflict (id) do nothing`
+  const r = await db`update hub_load_state set running_run_id = ${runId}, running_since = now()
+    where id = 1 and (running_since is null or running_since < now() - interval '15 minutes' or running_run_id = ${runId}) returning cursor`
+  return r[0] ? { cursor: (r[0].cursor as string | null) ?? null } : null
 }
 
-export async function applyGoldenRecords(principal: Principal, records: GoldenRecord[], next: string | null): Promise<{ loaded: number; linked: number; regions: Region[] }> {
-  if (!isCentral(principal) || records.length === 0) return { loaded: 0, linked: 0, regions: [] }
+export async function releaseLoad(runId: string, trigger: string, totals: { loaded: number; linked: number }): Promise<void> {
+  await sql()`update hub_load_state set running_run_id = null, running_since = null, last_run_at = now(), last_count = ${totals.loaded}, last_linked = ${totals.linked}, last_trigger = ${trigger}, last_run_id = ${runId}
+    where id = 1 and running_run_id = ${runId}`
+}
+
+export type LoadStatus = { lastRunAt: string | null; lastCount: number | null; lastLinked: number | null; lastTrigger: string | null; runningSince: string | null }
+export async function loadStatus(): Promise<LoadStatus> {
+  const r = (await sql()`select last_run_at, last_count, last_linked, last_trigger, running_since from hub_load_state where id = 1`)[0]
+  const iso = (v: unknown) => (v ? new Date(v as string).toISOString() : null)
+  return { lastRunAt: iso(r?.last_run_at), lastCount: (r?.last_count as number | null) ?? null, lastLinked: (r?.last_linked as number | null) ?? null, lastTrigger: (r?.last_trigger as string | null) ?? null, runningSince: iso(r?.running_since) }
+}
+
+export async function applyGoldenRecords(records: GoldenRecord[], next: string | null): Promise<{ loaded: number; linked: number; regions: Region[] }> {
+  if (records.length === 0) return { loaded: 0, linked: 0, regions: [] }
   const db = sql()
   const regions = new Set<Region>()
   // Pass 1: the records themselves, their addresses, lineage and money. Parents wait for pass 2: a parent can arrive
@@ -57,14 +74,13 @@ export async function applyGoldenRecords(principal: Principal, records: GoldenRe
       const t = transition(state, { type: 'golden_loaded', goldenId: r.golden_id as string })
       if (!t.ok) continue
       await db.transaction([
-        db`update requests set state = ${JSON.stringify(t.next)}::jsonb where request_id = ${r.request_id as string} and state_kind = 'created'`,
+        db`update requests set state = ${JSON.stringify(t.next)}::jsonb where request_id = ${r.request_id as string} and state_kind = 'created' and (state->>'goldenId') is null`,
         db`delete from identity_reservations where request_id = ${r.request_id as string}`,
         db`insert into request_events (request_id, kind, actor, detail) values (${r.request_id as string}, 'hub_loaded', 'hub load', ${JSON.stringify({ goldenId: r.golden_id })}::jsonb)`,
       ])
       linked++
     }
   }
-  await db`insert into hub_load_state (id, cursor, last_run_at, last_count) values (1, ${next}, now(), ${records.length})
-    on conflict (id) do update set cursor = coalesce(excluded.cursor, hub_load_state.cursor), last_run_at = excluded.last_run_at, last_count = excluded.last_count`
+  await db`update hub_load_state set cursor = coalesce(${next}, cursor) where id = 1`
   return { loaded: records.length, linked, regions: [...regions] }
 }

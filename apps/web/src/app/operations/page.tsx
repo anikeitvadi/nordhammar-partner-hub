@@ -2,7 +2,9 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { requirePrincipal } from '@/features/auth/principal.server'
 import { isOperator, listAttention } from '@/features/execution/operator.server'
-import { armLostResponseAction, dailyLoadAction, reconcileAction, recoverAction, retryDeliveryAction } from '@/features/execution/actions'
+import { armLostResponseAction, reconcileAction, recoverAction, retryDeliveryAction, runLoadNowAction } from '@/features/execution/actions'
+import { loadStatus } from '@/features/customers/load.server'
+import { LocalTime } from '@/features/ui/time.client'
 import { StatusBadge } from '@/features/requests/status'
 import { SubmitButton } from '@/features/ui/submit-button.client'
 import { demoControls, erpLostResponse } from '@/features/flags/flags'
@@ -15,7 +17,8 @@ function message(msg: string | undefined): string | null {
   const [code, a, b] = msg.split(':')
   const n = (v: string | undefined) => (v && /^\d+$/.test(v) ? Number(v) : 0)
   switch (code) {
-    case 'loaded': return n(a) === 0 ? 'Hub load ran: nothing new to load.' : `Hub load ran: ${n(a)} ${n(a) === 1 ? 'record' : 'records'} loaded into the hub; search cache cleared for ${b ? b.replace(/[^A-Z,]/g, '').split(',').filter(Boolean).join(', ') || 'the affected regions' : 'the affected regions'}.`
+    case 'load_started': return 'Hub load started. It reads the golden-record feed from where the last load stopped; the line above shows the result when it finishes (usually under a minute).'
+    case 'load_running': return 'A hub load is already running. It will finish on its own.'
     case 'delivered': return `Delivery retried: ${n(a)} delivered, ${n(b)} failed.`
     case 'reconciled': return a === 'created' ? 'Checked with the ERP: it had been created. The request is now Created.' : a === 'no_effect' ? 'Checked with the ERP: nothing was created. The request can be returned to the requester.' : 'Nothing to reconcile for that request.'
     case 'recovered': return 'Returned to the requester as a draft.'
@@ -35,13 +38,20 @@ export default async function OperationsPage({ searchParams }: { searchParams: P
   const principal = await requirePrincipal()
   if (!isOperator(principal)) return <section className="narrow card" style={{ marginTop: 48 }}><h1>Operations</h1><p>Your role does not include operations.</p></section>
   const { msg } = await searchParams
-  const [rows, demo, lost] = await Promise.all([listAttention(principal), demoControls(), erpLostResponse()])
+  const [rows, demo, lost, load] = await Promise.all([listAttention(principal), demoControls(), erpLostResponse(), loadStatus()])
   const text = message(msg)
   return (
     <section>
       <h1>Operations</h1>
       {text ? <p className="panel rise" role="status">{text}</p> : null}
-      <form action={dailyLoadAction} className="row"><SubmitButton pendingLabel="Loading…">Run the daily hub load</SubmitButton><span className="muted">Loads ERP-created partners into the hub and clears the search cache for their regions.</span></form>
+      <form action={runLoadNowAction} className="row">
+        <SubmitButton pendingLabel="Starting…" disabled={!!load.runningSince}>Run the hub load now</SubmitButton>
+        <span className="muted">
+          {load.runningSince ? <>Running since <LocalTime iso={load.runningSince} />. </> : null}
+          Nightly at 08:00 UTC (Vercel Cron), or now. Reads the integration platform&apos;s golden records since the last load and makes new partners searchable.
+          {load.lastRunAt ? <> Last load <LocalTime iso={load.lastRunAt} />{load.lastTrigger === 'cron' ? ' (nightly)' : load.lastTrigger === 'manual' ? ' (run now)' : ''}: {load.lastCount ?? 0} {load.lastCount === 1 ? 'record' : 'records'}, {load.lastLinked ?? 0} {load.lastLinked === 1 ? 'request' : 'requests'} linked.</> : ' No load has run yet.'}
+        </span>
+      </form>
       {demo ? <form action={armLostResponseAction} className="row"><SubmitButton pendingLabel="Arming…" className="secondary">Demo: drop the next ERP response</SubmitButton><span className="muted">The ERP commits the create and we never hear back, once. Watch the retry replay the same number.{lost ? ' The erp-lost-response flag is on: every approval arms this by itself.' : ''}</span></form> : null}
       <h2>Needs attention</h2>
       <p className="muted count" role="status">{rows.length === 0 ? 'Nothing stopped, nothing pending.' : `${rows.length} ${rows.length === 1 ? 'request needs' : 'requests need'} a look.`}</p>

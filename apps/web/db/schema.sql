@@ -121,3 +121,9 @@ create table if not exists hub_load_state (
   last_run_at timestamptz,
   last_count int
 );
+-- The load lock and what the last load did, shown on the operations page. Taken by the load Workflow's first step.
+alter table hub_load_state add column if not exists running_run_id text;
+alter table hub_load_state add column if not exists running_since timestamptz;
+alter table hub_load_state add column if not exists last_linked int;
+alter table hub_load_state add column if not exists last_trigger text;
+alter table hub_load_state add column if not exists last_run_id text;
