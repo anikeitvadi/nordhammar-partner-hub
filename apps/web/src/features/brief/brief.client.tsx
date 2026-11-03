@@ -225,7 +225,7 @@ function Choices() {
         ))}
       </ul>
       <p className="note"><strong>The network path.</strong> We assume your platform exposes an HTTPS API reachable behind an IP allowlist, as its cloud console is today: then Static IPs (Pro, $100 a project a month plus transfer) are the path and OIDC is the credential. If it is reachable only inside your network, the path is Secure Compute (Enterprise) with peering or a VPN, and that moves the plan. The hub and its database run in one region, named at kickoff. <strong>Where Vercel is not the answer:</strong> one region and one ERP, where a ticket is good enough, or a team with no web developers, better served by a low-code form.</p>
-      <p className="note"><strong>What it costs to run.</strong> Usage is priced per request and is small: about 35 Workflow events at $0.02 a thousand, a model proposal on the few requests that need one at $0.0004, an Ask answer at under a tenth of a cent. On top: Pro seats for the web team, Static IPs if the platform is allowlisted, and the hub database. The spend is people, a small web team and the integration team&rsquo;s one API, and the value is per duplicate prevented, not per request processed.</p>
+      <p className="note"><strong>What it costs to run.</strong> Usage is priced per request and is small: about 35 Workflow events at $0.02 a thousand, a model proposal on the few requests that need one at $0.0004, an Ask answer at about a tenth of a cent. On top: Pro seats for the web team, Static IPs if the platform is allowlisted, and the hub database. The spend is people, a small web team and the integration team&rsquo;s one API, and the value is per duplicate prevented, not per request processed.</p>
     </>
   )
 }
@@ -334,10 +334,10 @@ function Tooling() {
         <div className="nums">
           <div><b>12</b><span>offline cases on every change</span></div>
           <div><b>4 &times; 3</b><span>hard cases against the live model, every run passing</span></div>
-          <div><b>21 / 21</b><span>Ask questions, three runs each</span></div>
+          <div><b>20 / 21</b><span>Ask questions passing all three runs, in the last full run</span></div>
         </div>
       </div>
-      <p>The Ask set grades the query the model filled, the figure that came back, and that nothing leaks outside a person&rsquo;s regions. Its last bug was found on the canary, not by the set: one company&rsquo;s credit limit answered with its subsidiaries&rsquo; total. Now the set grades the figure. No step moved on until the tests passed, a production build was clicked through, the canary was clicked through as each role, and the logs were read.</p>
+      <p>The Ask set grades the query the model filled, the figure that came back, and that nothing leaks outside a person&rsquo;s regions. Its last bug was found on the canary, not by the set: one company&rsquo;s credit limit answered with its subsidiaries&rsquo; total. Now the set grades the figure. No step moved on until the tests passed, a production build was clicked through, the canary was clicked through as each role, and the logs were read. In the last full run one question, partners on hold by ERP, left out the on-hold filter once in three; it passed five of five on a re-run. The card shows the query in words, so a missing filter is visible to the person asking.</p>
       <p className="note">Every decision, its alternatives and its measured evidence: <a href={`${REPO}/blob/main/DECISIONS.md`}>DECISIONS.md</a>.</p>
     </>
   )

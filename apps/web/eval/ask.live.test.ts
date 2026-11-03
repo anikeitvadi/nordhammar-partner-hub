@@ -103,7 +103,7 @@ function spread(rows: { cost: number | null; ms: number; tool: string | null }[]
 
 describe.skipIf(!key)('ask, live', () => {
   it(`pass^${REPS} per case`, async () => {
-    const out: { id: string; rep: number; pass: boolean; tool: string | null; answer: string | null; model: string; cost: number | null; ms: number; why?: string }[] = []
+    const out: { id: string; rep: number; pass: boolean; tool: string | null; answer: string | null; model: string; cost: number | null; ms: number; input?: unknown; why?: string }[] = []
     for (const c of CASES.filter((x) => !only || only.includes(x.id))) {
       for (let rep = 1; rep <= REPS; rep++) {
         if (PACE_MS) await sleep(PACE_MS)
@@ -118,7 +118,7 @@ describe.skipIf(!key)('ask, live', () => {
         if (!why && c.arg && !c.refuse && !JSON.stringify(r.input).toLowerCase().includes(c.arg.toLowerCase())) why = `arg ${JSON.stringify(r.input)} wanted ${c.arg}`
         if (!why && c.mustNotContain?.some((t) => text.includes(t))) why = `leaked ${c.mustNotContain.find((t) => text.includes(t))}`
         if (!why && c.mustContain?.some((t) => !text.includes(t))) why = `missing ${c.mustContain.find((t) => !text.includes(t))}`
-        out.push({ id: c.id, rep, pass: !why, tool: r.tool, answer: r.answer, model: r.model, cost: r.cost, ms: r.ms, why })
+        out.push({ id: c.id, rep, pass: !why, tool: r.tool, answer: r.answer, model: r.model, cost: r.cost, ms: r.ms, input: r.input, why })
       }
     }
     const dir = path.resolve(__dirname, '../../../eval/results'); mkdirSync(dir, { recursive: true })
