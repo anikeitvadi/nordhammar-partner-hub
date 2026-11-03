@@ -15,11 +15,11 @@ type Part = { id: string; title: string; line: string; Body: (p: { f: BriefFigur
 
 const PARTS: Part[] = [
   { id: 'problem', title: 'The problem', line: 'Duplicates are created at 9 a.m. and found at 2 a.m.', Body: Problem },
-  { id: 'architecture', title: 'Architecture', line: 'Vercel replaces the intake. The ERPs, the platform and the desk stay.', Body: Architecture },
-  { id: 'vercel', title: 'Vercel choices', line: 'Six primitives, each doing one job, each with its trade-off.', Body: Choices },
+  { id: 'architecture', title: 'Architecture', line: 'Role: Connect. The hub uses your platform, desk and identity provider; it replaces a manual process, not a system.', Body: Architecture },
+  { id: 'vercel', title: 'Vercel choices', line: 'Five primitives, each doing one job, each with its trade-off.', Body: Choices },
   { id: 'demo', title: 'The demo', line: 'Live and public, with Nordhammar’s systems played by a stand-in.', Body: Demo },
   { id: 'rollout', title: 'Rollout', line: 'Preview, a Brazil pilot, a 10, 50, 100 canary, then region by region.', Body: Rollout },
-  { id: 'measures', title: 'Success measures', line: 'No duplicates at entry; a number in a day; questions without a report.', Body: Measures },
+  { id: 'measures', title: 'Success measures', line: 'Fewer merges at 2 a.m.; a number a day after finance says yes; each with an owner.', Body: Measures },
   { id: 'risks', title: 'Limits and risks', line: 'What you should know before kickoff, plainly.', Body: Risks },
   { id: 'tooling', title: 'How it was built', line: 'Claude Code builds, a Factory agent reviews, evals gate the AI.', Body: Tooling },
 ]
@@ -89,19 +89,19 @@ function Premise() {
     <div className="brief-premise">
       <p className="for">For Nordhammar Industries &middot; master data, finance and platform teams</p>
       <p className="lead">One record for every partner, in every region.</p>
-      <p>Your integration platform already publishes one golden record per legal entity; its first load took North American customers from about 70,000 records to 34,000. But duplicates are still created every morning, at intake, in five regions that cannot see each other. This proposal moves the check to the moment of entry: a partner hub that searches every region before a request is made, keeps finance approving in your service desk, and creates each partner once, in the right ERP.</p>
+      <p>Your integration platform already publishes one golden record (one cleansed record) per legal entity; its first load took North American customers from about 70,000 records to 34,000. But duplicates are still created every morning, at intake, in five regions that cannot see each other. This proposal moves the check to the moment of entry: a partner hub that searches every region before a request is made, keeps finance approving in your service desk, and creates each partner once, in the right ERP.</p>
       <p>Because it holds the cleansed records, the hub also lets anyone search and ask across every region, and gives your central team, the final check after regional finance, a group&rsquo;s credit exposure across regions before it approves another company into it.</p>
-      <p><strong>Why Vercel.</strong> The hard parts are a request that waits days for finance and then writes to an ERP once, even when a response is lost; an AI that may advise but never decide; and search that is fast in five regions. Vercel runs those as managed primitives, so your teams look after an intake product, not infrastructure. Your ERPs, integration platform and service desk stay where they are.</p>
+      <p><strong>Why Vercel, and why not the desk.</strong> The desk could carry the form and the platform the retries, but intake in the desk makes every change a service-desk release, and in the platform it joins the integration team&rsquo;s backlog. What is left is an application: a request that waits days for finance and then writes to an ERP once, even when a response is lost, advice that never decides, and search across five regions. Vercel runs those parts as managed pieces. Your desk, platform and ERPs stay where they are.</p>
     </div>
   )
 }
 
-// One company, four records: the four regional spellings slide into the one golden record they always were.
+// One company, four records in one region's books: the four spellings slide into the one golden record they always were.
 const SPELLINGS = [
-  { name: 'Aurora Industrial Ltda', tax: '61.000.101/0001-57', where: 'Brazil' },
-  { name: 'AURORA INDL LTDA', tax: '61000101000157', where: 'Brazil, second entry' },
-  { name: 'Aurora Industrial S.A.', tax: '61 000 101 0001 57', where: 'United States' },
-  { name: 'Aurora Ind.', tax: '61000101/0001-57', where: 'India' },
+  { name: 'Aurora Industrial Ltda', tax: '61.000.101/0001-57', where: 'Brazil, sales' },
+  { name: 'AURORA INDL LTDA', tax: '61000101000157', where: 'Brazil, accounts payable' },
+  { name: 'Aurora Industrial Ltda.', tax: '61 000 101 0001 57', where: 'Brazil, migrated 2019' },
+  { name: 'Aurora Ind.', tax: '61000101/0001-57', where: 'Brazil, keyed from a quote' },
 ]
 function Problem() {
   const [merged, setMerged] = useState(false)
@@ -112,7 +112,7 @@ function Problem() {
         <div><dt>Customer</dt><dd>Nordhammar Industries, a manufacturer in five regions (Brazil, Europe, the United States, India, China) on three ERP instances: ERP-1 for North America, Brazil and India, ERP-2 for Europe, ERP-3 for China.</dd></div>
         <div><dt>Current stack</dt><dd>Each region raises a service-desk ticket, finance signs it off, and someone retypes it into the ERP. The integration platform owns the ERP connectors and a nightly pipeline that matches on tax ID and DUNS and publishes one golden record per legal entity.</dd></div>
         <div><dt>Pain</dt><dd>Duplicates are created at 9 a.m. and found at 2 a.m., by which time they have an ERP number. Tax IDs arrive in four formats, so the same company does not look like itself. Finance cannot see its exposure to a corporate group spread over three ERPs.</dd></div>
-        <div><dt>Why it matters</dt><dd>A new customer waits days for a number, stewards spend hours a month removing duplicates, and group credit exposure is wrong until they catch up. Both baselines are measured in week one.</dd></div>
+        <div><dt>Why it matters</dt><dd>A new customer waits days for a number, so its first order waits too. A duplicate customer gets its own credit line, so the group&rsquo;s exposure is understated until the 2 a.m. merge, and a duplicate supplier can be paid twice. Your stewards, the central team that merges duplicates, spend their month on what should never have been created. Week one measures each baseline: request volume, ticket age at close, merges per region per month and the hours spent on them.</dd></div>
       </dl>
       <div className={`merge${merged ? ' done' : ''}`} aria-label="Four records of one company become one">
         {SPELLINGS.map((s, i) => (
@@ -123,7 +123,7 @@ function Problem() {
         <div className="merge-gold"><span className="n">Aurora Industrial Ltda</span><code>61000101000157</code><span className="w">one record, ERP-1 110001</span></div>
       </div>
       <button type="button" className="text-button" onClick={() => setMerged((m) => !m)}>{merged ? 'Show the four records again' : 'Merge them'}</button>
-      <p className="note">One company as four regions entered it, and the one record it is.</p>
+      <p className="note">One company as four people entered it, and the one record it is. Its accounts in other regions stay; they link to this record.</p>
     </>
   )
 }
@@ -152,7 +152,7 @@ function Architecture() {
       <dl className="brief-facts">
         <div><dt>Three ERPs</dt><dd>The partner number is born there. Nothing about creating it changes.</dd></div>
         <div><dt>Integration platform</dt><dd>It owns the ERP connectors, the field mappings and the golden-record pipeline. The hub calls one API and never talks to an ERP.</dd></div>
-        <div><dt>Service desk</dt><dd>Finance already approves there, and it keeps every request that is not a new partner.</dd></div>
+        <div><dt>Service desk</dt><dd>Finance already approves there, and it keeps every request that is not a new partner. The hub goes to finance; finance does not come to the hub.</dd></div>
         <div><dt>Identity provider</dt><dd>The hub asks only who someone is. Regions and amount rights live in the hub.</dd></div>
         <div><dt>Lakehouse and BI</dt><dd>Analytics over everything. The hub answers operational questions, not the whole lake.</dd></div>
       </dl>
@@ -203,8 +203,7 @@ function TargetFlow() {
 
 const CHOICES = [
   { name: 'Next.js with Cache Components', what: 'The hub itself: per-region search at the moment of entry, and a preview URL for every change.', why: 'Partner data changes once a night, so lists are cached and cleared by the load.', trade: 'The default cache is per instance, so the hit rate is modest. Search stays under a second at this volume either way.' },
-  { name: 'Workflows', what: 'One durable run per request: it waits days for finance, checks again, makes one keyed create with bounded retries, and writes the outcome back. A second workflow runs the nightly load page by page.', why: 'A request that waits on people for days needs durable state and safe retries. A status table plus scripts is the problem today.', trade: 'Run history is kept for a limited time, so the business record lives in the hub database.' },
-  { name: 'Cron Jobs', what: 'Starts the nightly golden-record load. The central team can also run it on demand.', why: 'The schedule is visible in the project, not hidden in a chain of runs.', trade: 'Daily precision on Hobby; Pro schedules to the minute.' },
+  { name: 'Workflows', what: 'One durable run per request: it waits days for finance, checks again, makes one keyed create with bounded retries, and writes the outcome back. A second workflow runs the nightly load page by page, started by a Cron Job at 08:00 UTC or by the central team, so the schedule is visible in the project.', why: 'A request that waits on people for days needs durable state and safe retries. A status table plus scripts is the problem today.', trade: 'Run history is kept for a limited time, so the business record lives in the hub database.' },
   { name: 'AI SDK and AI Gateway', what: 'Suggests a match for an unclear name, and answers questions through a typed query the code checks.', why: 'The model advises; code decides, keeps region limits and blocks any uncited figure. The Gateway gives failover, zero data retention and the cost of every call.', trade: 'A model without zero data retention is refused, by design.' },
   { name: 'OIDC federation', what: 'The hub proves who it is to the integration platform with a short-lived token Vercel issues per deployment.', why: 'No long-lived API key to leak or rotate.', trade: 'The platform has to verify Vercel’s published keys; a one-time setup on their side.' },
   { name: 'Rolling Releases and Instant Rollback', what: 'Every release goes to 10%, then 50%, then 100%, and comes back in one step.', why: 'Releases to people who create partners for a living should be boring.', trade: 'Needs Pro. A rollback cannot take back a number already born in an ERP, which is why the create is keyed and gated.' },
@@ -225,7 +224,8 @@ function Choices() {
           </li>
         ))}
       </ul>
-      <p className="note"><strong>The network path.</strong> Static IPs (Pro, $100 a project a month plus transfer) if the platform&rsquo;s API is allowlisted; Secure Compute (Enterprise) only for full isolation or VPC peering. <strong>Where Vercel is not the answer:</strong> one region and one ERP, where a ticket is good enough, or a team with no web developers, better served by a low-code form.</p>
+      <p className="note"><strong>The network path.</strong> We assume your platform exposes an HTTPS API reachable behind an IP allowlist, as its cloud console is today: then Static IPs (Pro, $100 a project a month plus transfer) are the path and OIDC is the credential. If it is reachable only inside your network, the path is Secure Compute (Enterprise) with peering or a VPN, and that moves the plan. The hub and its database run in one region, named at kickoff. <strong>Where Vercel is not the answer:</strong> one region and one ERP, where a ticket is good enough, or a team with no web developers, better served by a low-code form.</p>
+      <p className="note"><strong>What it costs to run.</strong> Usage is priced per request and is small: about 35 Workflow events at $0.02 a thousand, a model proposal on the few requests that need one at $0.0004, an Ask answer at under a tenth of a cent. On top: Pro seats for the web team, Static IPs if the platform is allowlisted, and the hub database. The spend is people, a small web team and the integration team&rsquo;s one API, and the value is per duplicate prevented, not per request processed.</p>
     </>
   )
 }
@@ -252,9 +252,9 @@ function Demo({ f }: { f: BriefFigures | null }) {
 }
 
 const ROLLOUT = [
-  { t: 'Preview', d: 'Every change gets its own URL against the same integration API. Stewards and finance click the next version before it ships.' },
-  { t: 'Validation', d: 'Tests, the AI evaluation sets and a scripted click-through must pass. Brazil runs on real golden records, read-only, for a week. Then Brazil goes live with automatic approval off: the central team approves every request and the hub records where it agreed with the checks. When it stops disagreeing, automatic approval goes on.' },
-  { t: 'Canary', d: 'A Rolling Release sends 10%, then 50%, then 100% of traffic, with logs read at each stage. Requests in flight finish on the version that started them.' },
+  { t: 'Preview', d: 'Every change gets its own URL against the same integration API. Stewards and finance click the next version before it ships; previews sit behind Password Protection, so finance needs no Vercel account.' },
+  { t: 'Validation', d: 'Tests, the AI evaluation sets and a scripted click-through must pass. Brazil runs on real golden records, read-only, for a week. Then Brazil goes live with automatic approval off: the central team approves every request and the hub records where it agreed with the checks. When the central team agrees with the checks on 95 of 100 consecutive clean requests, or after four weeks, whichever is later, the central master-data lead turns automatic approval on.' },
+  { t: 'Canary', d: 'A Rolling Release sends 10%, then 50%, then 100% of traffic, with logs read at each stage. Requests in flight finish on the version that started them. In a small pilot the central team checks the canary with a force-canary link; the preview and the pilot switch are the real safety, and the stages earn their keep once several regions are live.' },
   { t: 'Cutover', d: 'Region by region: Brazil, then Europe, then the rest. Each region’s ticket form for new partners is switched off once its hub requests run clean.' },
   { t: 'Rollback', d: 'Instant Rollback moves traffic back in one step. Any region can return to tickets the same day, and automatic approval has an off switch that sends every request to a person.' },
 ]
@@ -286,16 +286,17 @@ function Measures({ f }: { f: BriefFigures | null }) {
         </div>
       ) : null}
       <dl className="brief-facts">
-        <div><dt>Duplicates created at entry</dt><dd>Near zero; every stop is counted</dd></div>
-        <div><dt>Request to ERP number</dt><dd>Within one business day; today it takes days</dd></div>
+        <div><dt>Duplicates created at entry</dt><dd>Measured by your pipeline, not the hub: the merges the 2 a.m. run makes per region per month, before and after. Near zero in Brazil within a quarter of go-live; stops at entry are the leading indicator</dd></div>
+        <div><dt>Request to ERP number</dt><dd>Two clocks. The hub&rsquo;s, submit to ticket and approval to number, in seconds on every request. Finance&rsquo;s, ticket open to approved, which the hub shows but does not own. Target: a number within one business day of finance saying yes</dd></div>
         <div><dt>Steward hours on duplicates</dt><dd>Half within two quarters</dd></div>
         <div><dt>Questions answered without a report</dt><dd>Counted from week one: group exposure, partners on hold, time to a number, asked in the hub instead of requested from BI</dd></div>
         <div><dt>Group credit checked before a new company joins</dt><dd>Every time; the central team sees the group&rsquo;s exposure in every region on the request</dd></div>
         <div><dt>Duplicate ERP records from retries</dt><dd>Zero: every create is keyed, and a lost response was replayed with the same number</dd></div>
-        <div><dt>Search and the duplicate check</dt><dd>Under one second</dd></div>
+        <div><dt>Search and the duplicate check</dt><dd>Under one second (measured once, on the demo)</dd></div>
         <div><dt>AI behaviour</dt><dd>Every evaluation case passes on all three of three runs before a model or prompt change ships; every call&rsquo;s cost is recorded ($0.00038 a suggestion)</dd></div>
         <div><dt>Release safety</dt><dd>Every release staged; rollback in one step, to a deployment that is still running</dd></div>
       </dl>
+      <p className="note">Who owns each: duplicates and steward hours, the central master-data lead; time to a number, regional finance operations; automatic approval and the pilot switch, the central team; questions answered in the hub, the BI lead. Reviewed monthly against the week-one baseline.</p>
     </>
   )
 }
@@ -304,7 +305,8 @@ const RISKS = [
   { t: 'The demo uses stand-ins', d: 'The integration platform’s real API, rate limits and per-ERP behaviour are first-week discovery.' },
   { t: 'Search is as fresh as the last load', d: 'A partner created today is searchable after the next load, or after the central team runs it. Until then a reservation on the tax ID stops a second request.' },
   { t: 'Automatic approval trusts the checks', d: 'They are deterministic and listed on each approval, and the AI never makes a request clean. It can be switched off, and nobody decides an exception they raised themselves. Automatic approval is a data-quality check after finance has approved in the desk: the commercial approval and its evidence stay on the ticket.' },
-  { t: 'Data residency', d: 'EU-only processing is possible: an EU function region, an EU database, EU model inference. Some workflow metadata is stored in the US by default; the DPO reviews that before kickoff.' },
+  { t: 'Data residency', d: 'The hub holds the identity fields your lake already exports from every region, in one region named at kickoff. EU-only processing is possible: an EU function region, an EU database, EU model inference. China is the open question: if its partner identities may not leave China under PIPL, China keeps the ticket path and the hub counts its records without holding them until legal says otherwise. Under LGPD a contact\u2019s name and email are personal data; they stay on the ticket. Some workflow metadata is stored in the US by default; your DPO reviews that before kickoff.' },
+  { t: 'The front door', d: 'Production sits behind your identity provider over OIDC and, if you want it, a Vercel Firewall rule that admits only your network ranges. The demo uses email and password with sign-up off, because it is public for review.' },
   { t: 'Who sees what', d: 'Everyone reads every region\u2019s partners (names, tax IDs, groups); work and amounts stay in each person\u2019s own regions. If a region may not see another, one flag per person turns cross-region reading off, with no release.' },
   { t: 'Credit limits', d: 'Finance approves the partner; credit limits and terms are set in the ERP by regional finance, as today. Bringing the limit into the approval is a phase-two option.' },
   { t: 'Plan', d: 'The design needs Pro. Directory sync for SSO, audit-log streaming and Secure Compute need Enterprise; governance decides which.' },
@@ -327,7 +329,7 @@ function Risks() {
 function Tooling() {
   return (
     <>
-      <p>Claude Code, in the Claude desktop app, wrote the code under my direction. A separate agent on Factory, set up only to review, checked every change against the brief and the running app before I accepted it. Its findings went into a review log and I decided each one. Three of them shaped the build. Two changed it: the golden records had been seeded into the app instead of arriving through the load, and nothing showed a run&rsquo;s cost and where the time went, which became the Run panel. The third held it: every change was measured against the core story, so the durable workflow still owns the one keyed ERP write. A final review before submission found two workflow bugs (a request left waiting after the ERP never answered, and a resubmission waiting on a decided ticket); both were fixed and tested.</p>
+      <p>A note for the Vercel reviewers, as the exercise asks. Claude Code, in the Claude desktop app, wrote the code under my direction. A separate agent on Factory, set up only to review, checked every change against the brief and the running app before I accepted it. Its findings went into a review log and I decided each one. Three of them shaped the build. Two changed it: the golden records had been seeded into the app instead of arriving through the load, and nothing showed a run&rsquo;s cost and where the time went, which became the Run panel. The third held it: every change was measured against the core story, so the durable workflow still owns the one keyed ERP write. A final review before submission found two workflow bugs (a request left waiting after the ERP never answered, and a resubmission waiting on a decided ticket); both were fixed and tested.</p>
       <div className="brief-live">
         <div className="nums">
           <div><b>12</b><span>offline cases on every change</span></div>
