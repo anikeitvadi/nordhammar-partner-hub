@@ -20,6 +20,7 @@ const css = `
 .desk .box.next{border-left:4px solid #2f6aa3;background:#f7fafc}
 .desk .muted{color:#6b7280}.desk .err{color:#a3332f}
 @media (max-width:640px){.desk .grid{grid-template-columns:1fr}}
+.desk .scroll{overflow-x:auto}
 `
 export default function DeskLayout({ children }: { children: React.ReactNode }) {
   return <div className="desk"><style>{css}</style><header><strong>Nordhammar Service Desk</strong><nav><a href="/desk">Queue</a><a href="/desk/new">New partner ticket</a></nav></header><main>{children}</main></div>

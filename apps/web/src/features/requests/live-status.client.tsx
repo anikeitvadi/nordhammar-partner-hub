@@ -54,7 +54,7 @@ export function LiveStatus({ requestId, domain, erp, deskUrl, demo, initial }: {
       {done ? (
         <div className="answer">
           <p className="answer-line">{erp} number <RollingNumber value={done.erpNumber} roll={!landed} />.</p>
-          <p className="muted">{done.goldenId ? <Link href={`${domain === 'customer' ? '/customers' : '/suppliers'}?id=${done.goldenId}`}>Open its hub record, {done.goldenId}</Link> : 'It appears in search after the next hub load, usually overnight. Until then this page is the record.'}</p>
+          <p className="muted">{done.goldenId ? <Link href={`${domain === 'customer' ? '/customers' : '/suppliers'}?id=${done.goldenId}#detail`}>Open its hub record, {done.goldenId}</Link> : 'It appears in search after the next hub load, usually overnight. Until then this page is the record.'}</p>
         </div>
       ) : (
         <p aria-live="polite" role="status" className="status-sentence answer-line">{creating ? <span className="arc" aria-hidden="true" /> : null}<span key={snap.state.kind} className="arrive-fast">{describeState(snap.state, domain)}</span></p>

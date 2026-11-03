@@ -18,11 +18,11 @@ export default async function RequestsPage() {
   return (
     <section>
       <h1>Requests</h1>
-      <p className="muted count" role="status">{all ? `Every request, every region, most recently moved first (${rows.length}).` : rows.length ? `Your ${rows.length} request${rows.length === 1 ? '' : 's'}, most recently moved first.` : ''}</p>
+      <p className="muted count" role="status">{all ? `Every request, every region: the latest ${rows.length}, most recently moved first.` : rows.length ? `Your ${rows.length} request${rows.length === 1 ? '' : 's'}, most recently moved first.` : ''}</p>
       {rows.length === 0 ? (
         <p className="panel">None yet. A request is a new customer or supplier the hub does not have: you check the hub, fill one form, finance approves it in the service desk, and the ERP number comes back here. <Link href={`/intake/new?domain=customer&region=${region}`}>Request a customer</Link> or <Link href={`/intake/new?domain=supplier&region=${region}`}>a supplier</Link>.</p>
       ) : (
-        <table className="results"><thead><tr><th className="col-secondary">Request</th><th>Name</th><th className="col-secondary">Type</th><th className="col-secondary">Region</th><th className="col-secondary">Came in</th><th>Status</th><th className="col-secondary">ERP number</th>{all ? <th className="col-secondary">Requester</th> : null}<th className="col-secondary">Moved</th></tr></thead>
+        <table className="results"><thead><tr><th scope="col" className="col-secondary">Request</th><th scope="col">Name</th><th scope="col" className="col-secondary">Type</th><th scope="col" className="col-secondary">Region</th><th scope="col" className="col-secondary">Came in</th><th scope="col">Status</th><th scope="col" className="col-secondary">ERP number</th>{all ? <th scope="col" className="col-secondary">Requester</th> : null}<th scope="col" className="col-secondary">Moved</th></tr></thead>
           <tbody>{rows.map((r) => (
             <tr key={r.requestId}>
               {/* On a phone the id column is hidden (it alone overflowed 390 px), so the name carries the link. */}

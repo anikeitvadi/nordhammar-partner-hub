@@ -44,10 +44,17 @@ export function Brief({ figures }: { figures: BriefFigures | null }) {
     if (e.key === 'ArrowDown' || e.key === 'ArrowRight') { e.preventDefault(); go(at + 1, true) }
     if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') { e.preventDefault(); go(at - 1, true) }
   }
+  // On a wide screen the two columns scroll on their own. The left one usually fits, so a wheel over it would do
+  // nothing; it is passed to the stage instead, which is what a reader scrolling to continue expects.
+  const onSideWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    const side = e.currentTarget
+    if (side.scrollHeight > side.clientHeight + 1) return
+    document.getElementById('brief-stage')?.scrollBy({ top: e.deltaY })
+  }
   const P = PARTS[at]
   return (
     <div className="brief">
-      <div className="brief-side">
+      <div className="brief-side" onWheel={onSideWheel}>
         <header className="brief-mast">
           <span className="brief-mark">Nordhammar</span>
           <nav><a href={DEMO}>Open the demo</a><a href={REPO}>Repository</a></nav>
@@ -164,16 +171,16 @@ function TodayFlow() {
   const steps = ['Regional user', 'Service-desk ticket', 'Finance signs off', 'Retyped into an ERP', 'ERP-1, 2 or 3']
   const xs = steps.reduce<number[]>((acc, _, i) => (i === 0 ? [0] : [...acc, acc[i - 1] + steps[i - 1].length * 6.6 + 44]), [])
   return (
-    <svg className="draw" viewBox="0 0 720 96" role="img" aria-label="Today: user, ticket, finance, retyped into an ERP; the nightly pipeline finds the duplicate the next morning">
+    <div className="draw-wrap"><svg className="draw" viewBox="0 0 720 96" role="img" aria-label="Today: user, ticket, finance, retyped into an ERP; the nightly pipeline finds the duplicate the next morning">
       {steps.map((s, i) => <g key={s}><text x={xs[i]} y="34">{s}</text>{i < steps.length - 1 ? <><path pathLength={1} className="w" d={`M${xs[i] + s.length * 6.6 + 6} 30 H${xs[i + 1] - 10}`} style={{ ['--d' as string]: `${i * 120}ms` }} /><Head x={xs[i + 1] - 5} y={30} to="r" d={`${i * 120}ms`} /></> : null}</g>)}
       <text x={716} y="72" textAnchor="end" className="bad">The nightly pipeline finds the duplicate the next morning.</text>
-    </svg>
+    </svg></div>
   )
 }
 
 function TargetFlow() {
   return (
-    <svg className="draw" viewBox="0 0 640 250" role="img" aria-label="With the hub: users and the central team use the Partner Hub on Vercel; it opens a ticket in the service desk where finance approves, hears back by signed webhook, and makes one keyed create through the integration platform, which routes to the right ERP; golden records flow back nightly">
+    <div className="draw-wrap"><svg className="draw" viewBox="0 0 640 250" role="img" aria-label="With the hub: users and the central team use the Partner Hub on Vercel; it opens a ticket in the service desk where finance approves, hears back by signed webhook, and makes one keyed create through the integration platform, which routes to the right ERP; golden records flow back nightly">
       <rect pathLength={1} className="w box" x="210" y="20" width="220" height="150" style={{ ['--d' as string]: '0ms' }} />
       <text x="222" y="40" className="m">On Vercel</text>
       <text x="222" y="66" className="s">Partner Hub</text>
@@ -190,7 +197,7 @@ function TargetFlow() {
       <path pathLength={1} className="w" d="M286 170 V206" style={{ ['--d' as string]: '760ms' }} /><Head x={286} y={211} to="d" d="760ms" />
       <path pathLength={1} className="w" d="M352 210 V175" style={{ ['--d' as string]: '820ms' }} /><Head x={352} y={170} to="u" d="820ms" />
       <text x="292" y="194" className="m">ticket</text><text x="358" y="194" className="m">signed webhook</text>
-    </svg>
+    </svg></div>
   )
 }
 
@@ -210,7 +217,7 @@ function Choices() {
         {CHOICES.map((c, i) => (
           <li key={c.name} className={i === open ? 'open' : undefined}>
             <button type="button" aria-expanded={i === open} onClick={() => setOpen(i === open ? -1 : i)}><span className="t">{c.name}</span><span className="sign" aria-hidden="true" /></button>
-            <div className="grow"><div>
+            <div className="grow" inert={i !== open}><div>
               <p>{c.what}</p>
               <p><strong>Why.</strong> {c.why}</p>
               <p><strong>Trade-off.</strong> {c.trade}</p>
@@ -310,7 +317,7 @@ function Risks() {
       {RISKS.map((r, i) => (
         <li key={r.t} className={i === open ? 'open' : undefined}>
           <button type="button" aria-expanded={i === open} onClick={() => setOpen(i === open ? -1 : i)}><span className="t">{r.t}</span><span className="sign" aria-hidden="true" /></button>
-          <div className="grow"><div><p>{r.d}</p></div></div>
+          <div className="grow" inert={i !== open}><div><p>{r.d}</p></div></div>
         </li>
       ))}
     </ul>

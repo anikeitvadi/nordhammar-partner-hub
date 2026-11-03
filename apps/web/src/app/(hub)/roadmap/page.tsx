@@ -1,3 +1,6 @@
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = { title: 'Not built, on purpose' }
 // What the customer's own workflow catalogue names and this build does not do, each with the reason. No fake buttons
 // anywhere in the app point here instead.
 export default function RoadmapPage() {

@@ -218,7 +218,7 @@ function Matches({ result, domain, choose, chosen }: { result: CheckResult; doma
           {result.outcome.ai === 'available' ? (
             <div className="ai-card">
               <div className="ai-label">Suggested reading of the match · AI, a steward decides</div>
-              <p className="ai-verdict">{{ same: 'Likely the same legal entity', different: 'Likely a different legal entity', unsure: 'Cannot be confirmed from the hub record' }[result.outcome.proposal.verdict]}{result.outcome.proposal.golden_id ? <span className="muted"> · {result.outcome.proposal.golden_id}</span> : null}</p>
+              <p className="ai-verdict">{{ same: 'Likely the same legal entity', different: 'Likely a different legal entity', unsure: 'Cannot be confirmed from the hub record' }[result.outcome.proposal.verdict]}</p>
               <ul className="reasons">{result.outcome.proposal.reasons.map((r, i) => <li key={i}>{FIELD[r.field] ?? r.field}: {r.observation}. {r.explanation}</li>)}</ul>
               <p className="muted small">Nothing is merged automatically. Your choice below is what the central team sees.</p>
             </div>

@@ -95,7 +95,7 @@ export function HubTable({ rows, regions, domain, path, selectedId, initialQuery
         </div>
       ) : (
         <table className="results hub-table">
-          <thead><tr><th>Name</th><th>Region</th><th>ERP</th><th className="col-secondary">Type</th><th className="col-secondary">Group</th><th>Status</th></tr></thead>
+          <thead><tr><th scope="col">Name</th><th scope="col">Region</th><th scope="col">ERP</th><th scope="col" className="col-secondary">Type</th><th scope="col" className="col-secondary">Group</th><th scope="col">Status</th></tr></thead>
           <tbody>
             {shown.map((r) => (
               <tr key={r.goldenId} className={r.goldenId === selectedId ? 'selected' : undefined}>

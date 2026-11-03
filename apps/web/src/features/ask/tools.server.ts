@@ -3,7 +3,7 @@ import { sql } from '@/lib/db'
 import type { Principal } from '@/features/auth/scope'
 import { getRequest } from '@/features/requests/store.server'
 import { getParty } from '@/features/customers/hub.server'
-import { describeState } from '@/features/requests/status'
+import { STATE_LABEL, describeState } from '@/features/requests/status'
 import { presenceView, type PresenceRow } from './view'
 
 // The three record lookups the model may ask for (counts and totals are queryHub, query.server.ts). Each takes the principal and calls the same scoped readers the pages call,
@@ -25,7 +25,7 @@ export async function readRequestStatus(principal: Principal, requestId: string)
   const r = await getRequest(principal, requestId.trim().toUpperCase())
   if (!r) return { found: false as const, requestId, note: 'No request with that id is visible to you. Ids look like R-MVY4OEBEBJ7W; requesters see their own, reviewers see every region.' }
   return {
-    found: true as const, requestId: r.requestId, legalName: r.legalName, domain: r.domain, region: r.region, state: r.state.kind,
+    found: true as const, requestId: r.requestId, legalName: r.legalName, domain: r.domain, region: r.region, state: STATE_LABEL[r.state.kind], // the word the request page shows, so the sentence says it the same way
     where: describeState(r.state, r.domain), updatedAt: r.updatedAt, revision: r.revision,
     erpNumber: r.state.kind === 'created' ? r.state.erpNumber : null,
     stop: r.state.kind === 'stopped' ? { reason: r.state.reason, effect: r.state.effect } : null,

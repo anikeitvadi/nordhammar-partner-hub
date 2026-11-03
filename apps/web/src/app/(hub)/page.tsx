@@ -35,7 +35,7 @@ export default async function HomePage() {
         <button type="submit" className="text-button">Customers</button>
         <button type="submit" formAction="/suppliers" className="text-button">Suppliers</button>
       </form>
-      <p className="home-actions">Not there? Request a new <Link href={`/intake/new?domain=customer&region=${region}`}>customer</Link> or <Link href={`/intake/new?domain=supplier&region=${region}`}>supplier</Link>. The hub is checked as you type; finance approves in the service desk.</p>
+      <p className="home-actions">Not there? Request a new <Link href={`/intake/new?domain=customer&region=${region}`}>customer</Link> or <Link href={`/intake/new?domain=supplier&region=${region}`}>supplier</Link>. The request form checks the hub as you type; finance approves in the service desk.</p>
 
       <section className="home-section">
         <header>

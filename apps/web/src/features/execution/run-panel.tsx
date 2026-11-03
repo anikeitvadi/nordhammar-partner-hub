@@ -23,7 +23,7 @@ export async function RunPanel({ requestId, workflowRunId }: { requestId: string
       )}
       {trace ? (
         <table className="results run-trace">
-          <thead><tr><th className="num">At</th><th>What happened</th><th className="num">Took</th><th className="col-secondary">Notes</th></tr></thead>
+          <thead><tr><th scope="col" className="num">At</th><th scope="col">What happened</th><th scope="col" className="num">Took</th><th scope="col" className="col-secondary">Notes</th></tr></thead>
           <tbody>
             {trace.rows.map((r) => (
               <tr key={r.key}>

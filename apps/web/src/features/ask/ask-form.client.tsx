@@ -58,7 +58,8 @@ export function AskForm({ suggested }: { suggested: string[] }) {
       <div className="chips" role="group" aria-label="Suggested questions">
         {suggested.map((q) => <button key={q} type="button" className="chip" disabled={pending} onClick={() => void ask(q)}>{q}</button>)}
       </div>
-      {answer ? <AnswerView a={answer} pending={pending} /> : null}
+      {/* The live region is always there, so a screen reader hears the answer arrive. */}
+      <div aria-live="polite">{answer ? <AnswerView a={answer} pending={pending} /> : null}</div>
     </div>
   )
 }
@@ -68,7 +69,7 @@ function AnswerView({ a, pending }: { a: Answer; pending: boolean }) {
   if (a.failed || o?.ai === 'unavailable') return <p className="panel">{o?.ai === 'unavailable' && o.reason === 'disabled' ? 'Asking is switched off here.' : 'The hub could not be asked right now.'} The <Link href="/customers">search</Link> and the request pages answer the same questions by hand.</p>
   const sentence = o?.ai === 'available' ? o.answer : a.text
   return (
-    <div className="ask-answer arrive" aria-live="polite" aria-busy={pending}>
+    <div className="ask-answer arrive" aria-busy={pending}>
       <p className="muted small" style={{ margin: '0 0 6px' }}>You asked: “{a.question}”</p>
       {a.card ? <Card tool={a.card.tool} result={a.card.result} /> : o?.ai === 'available' && o.tool === null ? <p className="panel">{o.answer ?? "I can't answer that here. Try the search box or the request page."}</p> : <p className="muted small">Looking it up…</p>}
       {a.card && sentence ? <p className="ask-sentence"><span className="ai-label">AI · a reading of the card</span>{sentence}{pending ? <span className="caret" aria-hidden>▍</span> : null}</p> : null}

@@ -37,7 +37,7 @@ export default async function CentralTeamPage({ searchParams }: { searchParams: 
           <span className="muted small">
             {load.runningSince ? <>Running since <LocalTime iso={load.runningSince} />. </> : null}
             Nightly at 08:00 UTC (Vercel Cron).
-            {load.lastRunAt ? <> Last load <LocalTime iso={load.lastRunAt} />{load.lastTrigger === 'cron' ? ' (nightly)' : load.lastTrigger === 'manual' ? ' (run now)' : ''}: {load.lastCount ?? 0} {load.lastCount === 1 ? 'record' : 'records'}, {load.lastLinked ?? 0} linked.</> : ' No load has run yet.'}
+            {load.lastRunAt ? <> Last load <LocalTime iso={load.lastRunAt} />{load.lastTrigger === 'cron' ? ' (nightly)' : load.lastTrigger === 'manual' ? ' (run by hand)' : ''}: {load.lastCount ?? 0} {load.lastCount === 1 ? 'record' : 'records'}, {load.lastLinked ?? 0} linked.</> : ' No load has run yet.'}
           </span>
         </form>
         <form action={setAutoApproveAction} className="row">
@@ -54,7 +54,7 @@ export default async function CentralTeamPage({ searchParams }: { searchParams: 
         <>
           <p className="muted count" role="status">{queue.length === 0 ? 'Nothing waiting. Finance-approved requests that pass every check are created without you.' : `${queue.length} waiting, oldest first, every region. Each says why it was not approved automatically.`}</p>
           {queue.length === 0 ? null : (
-            <table className="results"><thead><tr><th className="col-secondary">Request</th><th>Name</th><th className="col-secondary">Type</th><th className="col-secondary">Region</th><th>Why it is here</th><th className="col-secondary">Waiting since</th></tr></thead>
+            <table className="results"><thead><tr><th scope="col" className="col-secondary">Request</th><th scope="col">Name</th><th scope="col" className="col-secondary">Type</th><th scope="col" className="col-secondary">Region</th><th scope="col">Why it is here</th><th scope="col" className="col-secondary">Waiting since</th></tr></thead>
               <tbody>{queue.map((r) => <tr key={r.requestId}><td className="col-secondary"><Link href={`/reviews/${r.requestId}`}><code>{r.requestId}</code></Link></td><td><Link href={`/reviews/${r.requestId}`}>{r.legalName}</Link></td><td className="col-secondary">{r.domain === 'customer' ? 'Customer' : 'Supplier'}</td><td className="col-secondary">{r.region}</td><td>{r.state.kind === 'exception' ? <span className="small">{reasonText(r.state.reasons)}</span> : <><StatusBadge state={r.state} /><div className="muted small">raised before the service desk; reviewed as before</div></>}</td><td className="col-secondary"><LocalTime iso={r.createdAt} relative /></td></tr>)}</tbody></table>
           )}
         </>
@@ -62,7 +62,7 @@ export default async function CentralTeamPage({ searchParams }: { searchParams: 
         <>
           <p className="muted count" role="status">{attention.length === 0 ? 'Nothing stopped, nothing pending.' : `${attention.length} ${attention.length === 1 ? 'request needs' : 'requests need'} a look. No action here creates a partner: each is a read or a replay with the same key.`}</p>
           {attention.length === 0 ? null : (
-            <table className="results"><thead><tr><th className="col-secondary">Request</th><th>Name</th><th className="col-secondary">Type</th><th className="col-secondary">Region</th><th>State</th><th className="col-secondary">Pending deliveries</th><th>Next step</th></tr></thead>
+            <table className="results"><thead><tr><th scope="col" className="col-secondary">Request</th><th scope="col">Name</th><th scope="col" className="col-secondary">Type</th><th scope="col" className="col-secondary">Region</th><th scope="col">State</th><th scope="col" className="col-secondary">Pending deliveries</th><th scope="col">Next step</th></tr></thead>
               <tbody>{attention.map((r) => (
                 <tr key={r.requestId}>
                   <td className="col-secondary"><Link href={`/requests/${r.requestId}`}><code>{r.requestId}</code></Link></td><td><Link href={`/requests/${r.requestId}`}>{r.legalName}</Link></td><td className="col-secondary">{r.domain === 'customer' ? 'Customer' : 'Supplier'}</td><td className="col-secondary">{r.region}</td>
@@ -70,7 +70,7 @@ export default async function CentralTeamPage({ searchParams }: { searchParams: 
                   <td className="col-secondary">{r.pendingDeliveries.length ? r.pendingDeliveries.map((d, i) => <div key={i}>{d.kind} · {d.attempts} attempt(s){d.lastError ? ` · ${d.lastError}` : ''}</div>) : 'none'}</td>
                   <td className="actions">
                     {r.pendingDeliveries.length ? <form action={retryDeliveryAction} className="inline"><input type="hidden" name="requestId" value={r.requestId} /><SubmitButton pendingLabel="Retrying…">Retry Delivery</SubmitButton></form> : null}
-                    {r.state.kind === 'stopped' && r.state.effect === 'unknown' ? <form action={reconcileAction} className="inline"><input type="hidden" name="requestId" value={r.requestId} /><SubmitButton pendingLabel="Checking…">Check With the ERP</SubmitButton></form> : null}
+                    {r.state.kind === 'stopped' && r.state.effect === 'unknown' ? <form action={reconcileAction} className="inline"><input type="hidden" name="requestId" value={r.requestId} /><SubmitButton pendingLabel="Checking…">Check with the ERP</SubmitButton></form> : null}
                     {r.state.kind === 'stopped' && r.state.effect === 'no_effect' ? <form action={recoverAction} className="inline"><input type="hidden" name="requestId" value={r.requestId} /><SubmitButton pendingLabel="Returning…" confirm={`Return ${r.legalName} to the requester as a draft?`}>Return to Requester</SubmitButton></form> : null}
                   </td>
                 </tr>

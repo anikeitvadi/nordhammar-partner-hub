@@ -67,7 +67,7 @@ export default async function ReviewPage({ params, searchParams }: { params: Pro
           <h2>Group exposure</h2>
           <p>Approving adds a company to <strong>{exposure.group}</strong>. Before this one, Nordhammar has extended{exposure.totals.length ? <> <strong>{exposure.totals.map((t) => money(t.total, t.currency)).join(' and ')}</strong></> : ' no credit'} to it across {new Set(exposure.members.map((m) => m.region)).size} {new Set(exposure.members.map((m) => m.region)).size === 1 ? 'region' : 'regions'}{exposure.hidden.length ? `, not counting ${exposure.hidden.join(', ')}, where you do not see amounts` : ''}. Finance in {r.region} sets this company&rsquo;s own limit.</p>
           <table className="results">
-            <thead><tr><th>Company</th><th>Region</th><th className="num">Credit limit</th></tr></thead>
+            <thead><tr><th scope="col">Company</th><th scope="col">Region</th><th scope="col" className="num">Credit limit</th></tr></thead>
             <tbody>{exposure.members.map((m) => <tr key={m.goldenId}><td>{m.legalName}</td><td>{m.region}</td><td className="num">{m.credit === 'not_entitled' ? <span className="muted">not shown</span> : m.credit ? money(m.credit.limit, m.credit.currency) : <span className="muted">none</span>}</td></tr>)}</tbody>
           </table>
         </>
