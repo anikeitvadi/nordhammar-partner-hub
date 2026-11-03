@@ -13,8 +13,8 @@
 // Every seeded request id starts with R-SEED, so --reset can never touch a request someone raised in the app.
 import { neon } from '@neondatabase/serverless'
 import { operationKey, payloadHash, type Approval, type CanonicalPayload, type Domain, type Region, type RequestState } from '@intake/contracts'
-import { normalizeTaxId } from '../src/features/intake/normalize.ts'
-import { buildPayload } from '../src/features/requests/payload.ts'
+import { normalizeTaxId } from '../src/features/intake/normalize'
+import { buildPayload } from '../src/features/requests/payload'
 
 type Phase = 'history' | 'recent'
 type Outcome =
