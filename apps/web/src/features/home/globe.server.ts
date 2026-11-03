@@ -10,7 +10,8 @@ import { landDots } from './land.server'
 // at the new partner's city) and a duplicate stopped at entry (a ring at the record it collided with).
 export type GlobePoint = { id: string; name: string; city: string; region: Region; erp: string | null; erpNumber: string | null; group: string | null; at: [number, number] }
 export type GlobeEvent = { kind: 'created' | 'stopped'; name: string; city: string; at: [number, number] }
-export type GlobeData = { land: [number, number][]; points: GlobePoint[]; arcs: [[number, number], [number, number]][]; events: GlobeEvent[] }
+export type GlobeArc = { group: string; from: [number, number]; to: [number, number]; fromCity: string; toCity: string }
+export type GlobeData = { land: [number, number][]; points: GlobePoint[]; arcs: GlobeArc[]; events: GlobeEvent[] }
 export type HomeFigures = { partners: number; regions: number; erps: number; crossBorderGroups: number; requestsIn: number; numbersOut: number; stopped: number }
 
 export async function readGlobe(principal: Principal): Promise<{ globe: GlobeData; figures: HomeFigures }> {
@@ -33,8 +34,17 @@ export async function readGlobe(principal: Principal): Promise<{ globe: GlobeDat
   // A group's establishments, joined in a chain; only groups that span more than one city make an arc worth drawing.
   const byGroup = new Map<string, GlobePoint[]>()
   for (const p of points) if (p.group) byGroup.set(p.group, [...(byGroup.get(p.group) ?? []), p])
-  const arcs: GlobeData['arcs'] = []
-  for (const g of byGroup.values()) for (let i = 0; i < g.length - 1; i++) if (g[i].at[0] !== g[i + 1].at[0] || g[i].at[1] !== g[i + 1].at[1]) arcs.push([g[i].at, g[i + 1].at])
+  // One arc per pair of different cities in a group, drawn once even when several establishments share the pair.
+  const arcs: GlobeArc[] = []
+  const seen = new Set<string>()
+  for (const [group, g] of byGroup) for (let i = 0; i < g.length - 1; i++) {
+    const a = g[i], b = g[i + 1]
+    if (a.at[0] === b.at[0] && a.at[1] === b.at[1]) continue
+    const key = [a.at.join(','), b.at.join(',')].sort().join('|')
+    if (seen.has(key)) continue
+    seen.add(key)
+    arcs.push({ group, from: a.at, to: b.at, fromCity: a.city, toCity: b.city })
+  }
   const crossBorderGroups = [...byGroup.values()].filter((g) => new Set(g.map((p) => p.region)).size > 1).length
   const events: GlobeEvent[] = [
     ...created.map((r) => ({ kind: 'created' as const, name: r.name as string, city: (r.city as string) ?? '', at: where(r.country as string, r.city as string).lonLat })),
