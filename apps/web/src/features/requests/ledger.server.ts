@@ -8,10 +8,11 @@ export async function recentLedger(): Promise<string[]> {
   'use cache'
   cacheTag('ledger')
   cacheLife('minutes')
-  const db = sql()
   let requests: Record<string, unknown>[] = []
   let parties: Record<string, unknown>[] = []
   try {
+    // inside the try: CI builds with no database at all, and sql() refuses without DATABASE_URL
+    const db = sql()
     // the legal name lives in the revision payload; the build prerenders this page, so a database that is not reachable
     // at build time must not fail the build: the mark is then drawn from the product name alone
     requests = await db`select r.request_id, v.payload->>'legalName' as legal_name, r.state_kind from requests r join request_revisions v on v.request_id = r.request_id and v.revision = r.current_revision order by r.updated_at desc limit 24`
