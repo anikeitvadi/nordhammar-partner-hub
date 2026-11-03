@@ -1,6 +1,6 @@
 import type { Domain } from '@intake/contracts'
 import { requirePrincipal } from '@/features/auth/principal.server'
-import { hasAnyRegion, visibleRegions } from '@/features/auth/scope'
+import { hasAnyRegion, identityRegions } from '@/features/auth/scope'
 import { browseParties, getParty } from './hub.server'
 import { HubTable } from './hub-table.client'
 import { PartyDetail } from './party-detail'
@@ -21,7 +21,7 @@ export async function HubPage({ domain, searchParams }: { domain: Domain; search
     return <section><h1>Your account has no region yet</h1><p>Ask IT to add you to a region group. Nothing else loads until then.</p></section>
   }
   const w = WORDS[domain]
-  const regions = visibleRegions(principal)
+  const regions = identityRegions(principal)
   const { q = '', id } = searchParams
   const initialFilter = { region: regions.find((r) => r === searchParams.in) ?? null, status: STRIP_FILTERS.find((x) => x === searchParams.status) ?? null, erp: searchParams.erp && /^ERP-[123]$/.test(searchParams.erp) ? searchParams.erp : null }
   const [rows, selected] = await Promise.all([browseParties(principal, domain, regions), id ? getParty(principal, id) : Promise.resolve(null)])

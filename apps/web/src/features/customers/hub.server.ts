@@ -2,7 +2,7 @@ import 'server-only'
 import { cacheLife, cacheTag } from 'next/cache'
 import type { AddressKind, Domain, Region } from '@intake/contracts'
 import { sql } from '@/lib/db'
-import { canSeeIdentity, canSeeMoney, ScopeError, type Principal } from '@/features/auth/scope'
+import { canSeeIdentity, canSeeMoney, canWorkIn, ScopeError, type Principal } from '@/features/auth/scope'
 import type { Candidate } from '@/features/intake/match'
 import type { BrowseRow } from './browse'
 
@@ -26,6 +26,8 @@ export type PartyDetail = PartySummary & {
   erpSystem: string | null
   erpSegment: string | null
   userRef: string | null
+  // false when the record sits in a region the person does not work in: its terms belong to that region's team
+  commercial: boolean
   paymentTerms: string | null
   currency: string | null
   riskRating: string | null
@@ -155,6 +157,8 @@ export async function getParty(principal: Principal, goldenId: string): Promise<
     }
   }
   const d = (v: unknown) => (v ? new Date(v as string).toISOString().slice(0, 10) : null)
+  // Identity is shared; commercial terms stay with the region that owns the relationship.
+  const commercial = canWorkIn(principal, region)
   return {
     ...toSummary(r),
     localName: (r.local_name as string | null) ?? null, country: r.country as string,
@@ -162,7 +166,7 @@ export async function getParty(principal: Principal, goldenId: string): Promise<
     identifiers: (r.identifiers as { scheme: string; value: string }[]) ?? [],
     duns: (r.duns as string | null) ?? null, dunsRating: (r.duns_rating as string | null) ?? null,
     erpSystem: (r.erp_system as string | null) ?? null, erpSegment: (r.erp_segment as string | null) ?? null, userRef: (r.user_ref as string | null) ?? null,
-    paymentTerms: (r.payment_terms as string | null) ?? null, currency: (r.currency as string | null) ?? null, riskRating: (r.risk_rating as string | null) ?? null,
+    commercial, paymentTerms: commercial ? (r.payment_terms as string | null) ?? null : null, currency: (r.currency as string | null) ?? null, riskRating: commercial ? (r.risk_rating as string | null) ?? null : null,
     inceptionAt: d(r.inception_at), lastActivityAt: d(r.last_activity_at), updatedBy: (r.updated_by as string | null) ?? null,
     aliases: (r.aliases as string[]) ?? [], loadedAt: new Date(r.loaded_at as string).toISOString(),
     group: r.group_id ? { name: r.group_name as string, members: members.map((m) => ({ goldenId: m.golden_id as string, legalName: m.legal_name as string, region: m.region as Region, domain: m.domain as Domain })) } : null,

@@ -1,17 +1,18 @@
 import 'server-only'
 import { sql } from '@/lib/db'
-import { visibleRegions, type Principal } from '@/features/auth/scope'
+import { identityRegions, workRegions, type Principal } from '@/features/auth/scope'
 import { listMyRequests } from '@/features/requests/store.server'
 
 // The chips under Ask's box, built from what this person can see (docs/QUERY-SPEC-CONTRACT.md §4): a question is
 // offered only when the data has an answer for them. Read at page load; cheap counts only.
 export async function suggestQuestions(principal: Principal): Promise<string[]> {
-  const regions = visibleRegions(principal)
+  const regions = identityRegions(principal)
+  const work = workRegions(principal)
   const db = sql()
   const [group, hold, stops, mine] = await Promise.all([
     db`select g.name, count(*)::int n from parties p join groups g on g.group_id = p.group_id where p.region = any(${regions}) group by g.name order by n desc limit 1`,
     db`select region, count(*)::int n from parties where status = 'hold' and region = any(${regions}) group by region order by n desc limit 1`,
-    db`select count(*)::int n from hub_checks where region = any(${regions}) and route in ('exact_visible','exact_foreign') and at > date_trunc('month', now())`,
+    db`select count(*)::int n from hub_checks where region = any(${work}) and route in ('exact_visible','exact_foreign') and at > date_trunc('month', now())`,
     listMyRequests(principal),
   ])
   const out: string[] = []

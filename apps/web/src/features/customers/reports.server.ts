@@ -1,7 +1,7 @@
 import 'server-only'
 import type { Region } from '@intake/contracts'
 import { sql } from '@/lib/db'
-import { visibleRegions, type Principal } from '@/features/auth/scope'
+import { workRegions, type Principal } from '@/features/auth/scope'
 
 // Fixed questions for Home, authorized the same way the screens are (Ask's counts and totals are features/ask/query.server.ts): identity rows over the regions the caller can see,
 // money rows over the regions the caller is entitled to. Nothing here accepts free text.
@@ -29,7 +29,7 @@ export async function reportExposure(principal: Principal): Promise<{ parent: st
 // check button twice is one stop. Exact matches elsewhere (shown as a region only) count too: that is the cross-region
 // duplicate the old process let through.
 export async function reportStoppedAtEntry(principal: Principal): Promise<{ stopped: number; sameRegion: number; otherRegion: number; checks: number }> {
-  const regions = visibleRegions(principal)
+  const regions = workRegions(principal)
   const rows = await sql()`select
       count(distinct (requester_email, domain, tax_canonical)) filter (where route in ('exact_visible','exact_foreign')) as stopped,
       count(distinct (requester_email, domain, tax_canonical)) filter (where route = 'exact_visible') as same_region,

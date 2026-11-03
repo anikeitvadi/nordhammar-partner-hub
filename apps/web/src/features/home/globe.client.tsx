@@ -17,7 +17,8 @@ export function Globe({ data }: { data: GlobeData }) {
   const box = useRef<HTMLDivElement>(null)
   const canvas = useRef<HTMLCanvasElement>(null)
   // face the middle of this person's partners (a plain mean of longitudes is fine for the regions the hub has)
-  const [lon0, lat0] = data.points.length ? [data.points.reduce((n, p) => n + p.at[0], 0) / data.points.length, data.points.reduce((n, p) => n + p.at[1], 0) / data.points.length] : [-8, 26]
+  const focus = data.points.some((p) => p.mine) ? data.points.filter((p) => p.mine) : data.points
+  const [lon0, lat0] = focus.length ? [focus.reduce((n, p) => n + p.at[0], 0) / focus.length, focus.reduce((n, p) => n + p.at[1], 0) / focus.length] : [-8, 26]
   const state = useRef({ lambda: -lon0, phi: Math.max(-40, Math.min(40, -lat0 + 12)), drag: null as null | { x: number; y: number; l: number; p: number }, resumeAt: 0 })
   const hit = useRef<{ points: { p: GlobePoint; x: number; y: number }[]; arcs: { a: GlobeArc; pts: Screen[] }[] }>({ points: [], arcs: [] })
   const [tip, setTip] = useState<{ x: number; y: number; text: string } | null>(null)
@@ -97,14 +98,15 @@ export function Globe({ data }: { data: GlobeData }) {
         const upto = Math.max(2, Math.round(SAMPLES * ease) + 1)
         const pts = bowed(arc, upto, center)
         arcHits.push({ a: arc.a, pts })
-        for (const [width, colour] of [[4, '#fff'], [1.3, `rgba(${INK},.88)`]] as const) {
+        // an arc that touches the person's own region in full ink; the rest of the company's arcs behind it
+        for (const [width, colour] of [[4, '#fff'], [1.3, `rgba(${INK},${arc.a.mine ? '.88' : '.28'})`]] as const) {
           ctx.strokeStyle = colour; ctx.lineWidth = width; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.beginPath()
           let pen = false
           for (const p of pts) { if (!p.vis) { pen = false; continue } if (pen) ctx.lineTo(p.x, p.y); else { ctx.moveTo(p.x, p.y); pen = true } }
           ctx.stroke()
         }
         // one dot travels the arc at a constant speed, fading in and out at its ends, then rests before the next pass
-        if (grow === 1 && !still) {
+        if (grow === 1 && !still && arc.a.mine) {
           const dur = 2.2 + arc.len * 2.4, cycle = dur + 1.6
           const k = ((t + i * 0.9) % cycle) / dur
           if (k < 1) {
@@ -119,14 +121,14 @@ export function Globe({ data }: { data: GlobeData }) {
         }
       })
 
-      // partners: a white keyline and an ink disc
+      // partners: a white keyline and an ink disc; outside the person's own regions, a smaller grey one
       const pointHits: { p: GlobePoint; x: number; y: number }[] = []
       for (const p of data.points) {
         if (geoDistance(p.at, center) > Math.PI / 2 - 0.02) continue
         const xy = proj(p.at)!
         pointHits.push({ p, x: xy[0], y: xy[1] })
-        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(xy[0], xy[1], 4, 0, Math.PI * 2); ctx.fill()
-        ctx.fillStyle = `rgb(${INK})`; ctx.beginPath(); ctx.arc(xy[0], xy[1], 2.6, 0, Math.PI * 2); ctx.fill()
+        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(xy[0], xy[1], p.mine ? 4 : 3, 0, Math.PI * 2); ctx.fill()
+        ctx.fillStyle = p.mine ? `rgb(${INK})` : `rgba(${INK},.32)`; ctx.beginPath(); ctx.arc(xy[0], xy[1], p.mine ? 2.6 : 2, 0, Math.PI * 2); ctx.fill()
       }
       hit.current = { points: pointHits, arcs: arcHits }
 

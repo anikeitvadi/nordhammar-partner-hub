@@ -1,7 +1,7 @@
 import 'server-only'
 import { sql } from '@/lib/db'
 import type { Region } from '@intake/contracts'
-import { visibleRegions, type Principal } from '@/features/auth/scope'
+import { identityRegions, workRegions, type Principal } from '@/features/auth/scope'
 import { cycle } from '@/features/home/outcomes'
 import { chartKind, describeSpec, isMoney, outsideNote, recordsLink, timeStart, validateSpec, type QueryResult, type QueryRow, type QuerySpec } from './query'
 
@@ -23,7 +23,8 @@ const GROUP_COL: Record<string, Partial<Record<string, string>>> = {
 export async function runQuery(principal: Principal, spec: QuerySpec, now = new Date()): Promise<QueryResult> {
   const v = validateSpec(spec)
   if (!v.ok) return v
-  const visible = visibleRegions(principal)
+  // Partners are identity, readable wherever the person may see records; requests and checks are work, in their own regions.
+  const visible = spec.subject === 'partners' ? identityRegions(principal) : workRegions(principal)
   const regions = spec.filters.region?.length ? spec.filters.region.filter((r) => visible.includes(r)) : visible
   const moneyRegions = isMoney(spec.measure) ? principal.moneyRegions.filter((r) => regions.includes(r)) : []
   const base = { spec, link: recordsLink(spec) }

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { requirePrincipal } from '@/features/auth/principal.server'
-import { isCentral, visibleRegions } from '@/features/auth/scope'
+import { isCentral, workRegions } from '@/features/auth/scope'
 import { listRequests } from '@/features/requests/store.server'
 import { StatusBadge } from '@/features/requests/status'
 import { LocalTime } from '@/features/ui/time.client'
@@ -14,7 +14,7 @@ export default async function RequestsPage() {
   const principal = await requirePrincipal()
   const all = isCentral(principal)
   const rows = await listRequests(principal)
-  const region = visibleRegions(principal)[0] ?? 'BR'
+  const region = workRegions(principal)[0] ?? 'BR'
   return (
     <section>
       <h1>Requests</h1>

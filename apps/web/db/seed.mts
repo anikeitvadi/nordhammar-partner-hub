@@ -9,9 +9,11 @@ const sql = neon(url)
 
 // Test users. Created in the identity provider with the same emails; passwords are handed over privately.
 // Two roles: regional users (requester) and the central master data team (steward), who sees amounts everywhere.
+// Everyone reads identity in every region (global): that is what the golden record is for. Work and amounts stay in
+// the person's own regions. Set global to false for a region that may not see the others.
 const entitlements = [
-  { email: 'ana.requester@example.com', name: 'Ana Silva', role: 'requester', regions: ['BR'], global: false, money: ['BR'] },
-  { email: 'jonas.requester@example.com', name: 'Jonas Weber', role: 'requester', regions: ['EU'], global: false, money: ['EU'] },
+  { email: 'ana.requester@example.com', name: 'Ana Silva', role: 'requester', regions: ['BR'], global: true, money: ['BR'] },
+  { email: 'jonas.requester@example.com', name: 'Jonas Weber', role: 'requester', regions: ['EU'], global: true, money: ['EU'] },
   { email: 'priya.reviewer@example.com', name: 'Priya Nair', role: 'steward', regions: ['BR', 'EU', 'US', 'IN', 'CN'], global: true, money: ['BR', 'EU', 'US', 'IN', 'CN'] },
   { email: 'noregion@example.com', name: 'No Region Yet', role: 'requester', regions: [], global: false, money: [] },
 ]

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { canSeeIdentity, canSeeMoney, hasAnyRegion, isCentral, visibleRegions, type Principal } from './scope'
+import { canSeeIdentity, canSeeMoney, canWorkIn, hasAnyRegion, identityRegions, isCentral, workRegions, type Principal } from './scope'
 
 const requesterBR: Principal = { email: 'ana@example.com', displayName: 'Ana', role: 'requester', regions: ['BR'], globalIdentity: false, moneyRegions: ['BR'] }
 const reviewer: Principal = { email: 'priya@example.com', displayName: 'Priya', role: 'reviewer', regions: ['BR', 'EU', 'US', 'IN', 'CN'], globalIdentity: true, moneyRegions: [] }
@@ -21,7 +21,7 @@ describe('scope', () => {
   })
   it('no region means nothing is visible', () => {
     expect(hasAnyRegion(noRegion)).toBe(false)
-    expect(visibleRegions(noRegion)).toEqual([])
+    expect(workRegions(noRegion)).toEqual([])
     expect(canSeeIdentity(noRegion, 'BR')).toBe(false)
   })
 })
@@ -36,5 +36,20 @@ describe('the two roles', () => {
   it('a regional user is never central, and a central role without global identity is not either', () => {
     expect(isCentral(requesterBR)).toBe(false)
     expect(isCentral({ ...central('steward'), globalIdentity: false })).toBe(false)
+  })
+  it('with global identity a regional user reads every region but works only in their own', () => {
+    const ana: Principal = { ...requesterBR, globalIdentity: true }
+    expect(identityRegions(ana)).toEqual(['BR', 'EU', 'US', 'IN', 'CN'])
+    expect(workRegions(ana)).toEqual(['BR'])
+    expect(canWorkIn(ana, 'EU')).toBe(false)
+    expect(isCentral(ana)).toBe(false)
+    expect(canSeeMoney(ana, 'EU')).toBe(false)
+  })
+  it('turning global identity off narrows reading to the user\'s regions, and nothing else changes', () => {
+    expect(identityRegions(requesterBR)).toEqual(['BR'])
+    expect(workRegions(requesterBR)).toEqual(['BR'])
+  })
+  it('the central team works in every region', () => {
+    expect(workRegions(reviewer)).toEqual(['BR', 'EU', 'US', 'IN', 'CN'])
   })
 })

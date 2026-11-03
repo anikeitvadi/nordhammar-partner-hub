@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { headers } from 'next/headers'
 import { getPrincipal } from '@/features/auth/principal.server'
-import { visibleRegions } from '@/features/auth/scope'
+import { isCentral, workRegions } from '@/features/auth/scope'
 import { signOut } from '@/features/auth/actions'
 import { ShellNav, type NavItem } from './shell-nav.client'
 import { TopBar } from './topbar.client'
@@ -21,12 +21,12 @@ export async function Shell({ children }: { children: React.ReactNode }) {
       </>
     )
   }
-  const regions = visibleRegions(principal)
+  const regions = workRegions(principal)
   const region = regions[0] ?? 'BR'
   const items: NavItem[] = [
     { href: '/', label: 'Home', icon: 'home' }, { href: '/customers', label: 'Customers', icon: 'customers' }, { href: '/suppliers', label: 'Suppliers', icon: 'suppliers' }, { href: '/requests', label: 'Requests', icon: 'requests' }, { href: '/ask', label: 'Ask', icon: 'ask' },
     // The central team's one page: exceptions and stopped creates (Operations and Reports are gone, review log §11, §12).
-    ...(principal.globalIdentity ? [{ href: '/reviews', label: 'Exceptions', icon: 'reviews' } as NavItem] : []),
+    ...(isCentral(principal) ? [{ href: '/reviews', label: 'Exceptions', icon: 'reviews' } as NavItem] : []),
   ]
   return (
     <div className="app">
@@ -37,7 +37,7 @@ export async function Shell({ children }: { children: React.ReactNode }) {
           <ShellNav items={[{ href: '/how-it-works', label: 'How it works', icon: 'how' }]} />
           <div className="rail-who">
             <span className="rail-name">{principal.displayName}</span>
-            <span className="rail-role">{principal.globalIdentity ? 'Central team' : 'Regional user'} · {principal.globalIdentity ? 'all regions' : regions.join(', ') || 'no region yet'}</span>
+            <span className="rail-role">{isCentral(principal) ? 'Central team' : 'Regional user'} · {isCentral(principal) ? 'all regions' : regions.join(', ') || 'no region yet'}</span>
             <form action={signOut} className="inline"><button type="submit" className="link small">Sign Out</button></form>
           </div>
         </div>

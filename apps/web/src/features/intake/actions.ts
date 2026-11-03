@@ -1,7 +1,7 @@
 'use server'
 import type { Domain, Region } from '@intake/contracts'
 import { requirePrincipal } from '@/features/auth/principal.server'
-import { visibleRegions, type Principal } from '@/features/auth/scope'
+import { workRegions, type Principal } from '@/features/auth/scope'
 import { exactTaxIdLookup, findNameCandidates } from '@/features/customers/hub.server'
 import { normalizeTaxId } from './normalize'
 import { preflight } from './match'
@@ -27,7 +27,7 @@ export async function checkMatches(_prev: CheckResult | null, formData: FormData
 async function runCheck(principal: Principal, formData: FormData): Promise<CheckResult> {
   const domain: Domain = formData.get('domain') === 'supplier' ? 'supplier' : 'customer'
   const region = String(formData.get('region') ?? '') as Region
-  if (!visibleRegions(principal).includes(region)) return { kind: 'error', message: 'You are not entitled to request in that region.' }
+  if (!workRegions(principal).includes(region)) return { kind: 'error', message: 'You are not entitled to request in that region.' }
   const country = String(formData.get('country') ?? '').toUpperCase()
   if (!COUNTRY_BY_REGION[region].includes(country)) return { kind: 'error', message: `${country || 'That country'} is not in region ${region}.` }
   const legalName = String(formData.get('legalName') ?? '').trim()

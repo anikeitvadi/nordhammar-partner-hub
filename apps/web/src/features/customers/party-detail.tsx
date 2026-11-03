@@ -46,14 +46,16 @@ export function PartyDetail({ party: p, compact = false }: { party: Party; compa
       </ul>
 
       <h2>Commercial</h2>
-      <dl className="facts">
+      {p.commercial ? (
+        <dl className="facts">
         {p.industry ? <><dt>Industry</dt><dd>{p.industry}</dd></> : null}
         <dt>Payment terms</dt><dd>{p.paymentTerms ?? <span className="muted">not set</span>}{p.currency ? <span className="muted"> · {p.currency}</span> : null}</dd>
         <dt>Risk rating</dt><dd>{p.riskRating ?? <span className="muted">not rated</span>}</dd>
         <dt>Since</dt><dd>{p.inceptionAt ?? <span className="muted">unknown</span>}{p.lastActivityAt ? <span className="muted"> · last activity {p.lastActivityAt}</span> : null}</dd>
         <dt>{p.domain === 'customer' ? `Credit (${p.region})` : `Spend (${p.region})`}</dt>
         <dd>{p.money === 'not_entitled' ? <span className="muted">not shown for your role</span> : p.money === null ? <span className="muted">none on file</span> : p.money.kind === 'credit' ? `${fmt(p.money.limit, p.money.currency)} limit · terms ${p.money.terms}` : `${fmt(p.money.ytd, p.money.currency)} year to date · ${fmt(p.money.openInvoices, p.money.currency)} open`}</dd>
-      </dl>
+        </dl>
+      ) : <p className="muted">Terms, risk and amounts are held by the {p.region} team.</p>}
 
       <h2>Sources</h2>
       <p className="muted small">Which system each piece came from, and when the hub last loaded it.</p>

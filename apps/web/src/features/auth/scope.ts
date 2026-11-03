@@ -26,12 +26,27 @@ export function canSeeMoney(p: Principal, region: Region): boolean {
   return p.moneyRegions.includes(region)
 }
 
-export function visibleRegions(p: Principal): Region[] {
-  return p.globalIdentity ? (['BR', 'EU', 'US', 'IN', 'CN'] as Region[]) : p.regions
+const ALL: Region[] = ['BR', 'EU', 'US', 'IN', 'CN']
+
+// Two scopes, kept apart on purpose. Identity (a company's name, tax ID, city, group, which ERPs hold it) is what a
+// golden record is for, so with global identity everyone reads it in every region; that one flag in the entitlements
+// table is what turns it off for a region that may not see another. Work (where you request, whose requests and
+// duplicate checks you see) stays in your own regions; the central team works in all of them. Amounts are a third,
+// separate grant (canSeeMoney).
+export function identityRegions(p: Principal): Region[] {
+  return ALL.filter((r) => canSeeIdentity(p, r))
+}
+
+export function workRegions(p: Principal): Region[] {
+  return isCentral(p) ? ALL : p.regions
+}
+
+export function canWorkIn(p: Principal, region: Region): boolean {
+  return workRegions(p).includes(region)
 }
 
 export function hasAnyRegion(p: Principal): boolean {
-  return visibleRegions(p).length > 0
+  return workRegions(p).length > 0
 }
 
 export class ScopeError extends Error {

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import type { Domain, Region } from '@intake/contracts'
 import { requirePrincipal } from '@/features/auth/principal.server'
-import { hasAnyRegion, visibleRegions } from '@/features/auth/scope'
+import { hasAnyRegion, workRegions } from '@/features/auth/scope'
 import { IntakeForm } from '@/features/intake/intake-form.client'
 
 export const metadata: Metadata = { title: 'New request' }
@@ -9,7 +9,7 @@ export const metadata: Metadata = { title: 'New request' }
 export default async function NewIntakePage({ searchParams }: { searchParams: Promise<{ domain?: string; region?: string; name?: string; error?: string }> }) {
   const principal = await requirePrincipal()
   if (!hasAnyRegion(principal)) return <section><h1>Your account has no region yet</h1><p>Ask IT to add you to a region group. Nothing else loads until then.</p></section>
-  const regions = visibleRegions(principal)
+  const regions = workRegions(principal)
   const { domain: d, region: requested, name = '', error } = await searchParams
   const domain: Domain = d === 'supplier' ? 'supplier' : 'customer'
   const initialRegion: Region = regions.includes(requested as Region) ? (requested as Region) : regions[0]

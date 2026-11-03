@@ -2,7 +2,7 @@
 import { redirect } from 'next/navigation'
 import type { Domain, Region } from '@intake/contracts'
 import { requirePrincipal } from '@/features/auth/principal.server'
-import { visibleRegions } from '@/features/auth/scope'
+import { workRegions } from '@/features/auth/scope'
 import { normalizeTaxId } from '@/features/intake/normalize'
 import { ConflictError, resubmitRequest, saveDraft, submitRequest, type DupChoice } from './store.server'
 import { buildPayload, formValues } from './payload'
@@ -20,7 +20,7 @@ async function verify(formData: FormData): Promise<Verified | { redirectTo: stri
   const domain = asDomain(formData.get('domain'))
   const region = String(formData.get('region') ?? '') as Region
   const back = `/intake/new?domain=${domain}&region=${region}`
-  if (!visibleRegions(principal).includes(region)) return { redirectTo: `${back}&error=${encodeURIComponent('You are not entitled to request in that region.')}` }
+  if (!workRegions(principal).includes(region)) return { redirectTo: `${back}&error=${encodeURIComponent('You are not entitled to request in that region.')}` }
   const country = String(formData.get('country') ?? '').toUpperCase()
   return { domain, region, country, back }
 }

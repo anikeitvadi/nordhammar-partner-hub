@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { Suspense } from 'react'
 import { requirePrincipal } from '@/features/auth/principal.server'
-import { hasAnyRegion, visibleRegions } from '@/features/auth/scope'
+import { hasAnyRegion, isCentral, workRegions } from '@/features/auth/scope'
 import { listMyRequests, listQueue } from '@/features/requests/store.server'
 import { isOperator, listAttention } from '@/features/execution/operator.server'
 import { STATE_LABEL } from '@/features/requests/status'
@@ -17,9 +17,9 @@ export const metadata: Metadata = { title: 'Home' }
 export default async function HomePage() {
   const principal = await requirePrincipal()
   if (!hasAnyRegion(principal)) return <section className="narrow"><h1>Your account has no region yet</h1><p>Ask IT to add you to a region group. Nothing else loads until then.</p></section>
-  const regions = visibleRegions(principal)
+  const regions = workRegions(principal)
   const region = regions[0]
-  const central = principal.globalIdentity
+  const central = isCentral(principal)
   const [mine, queue, attention] = await Promise.all([listMyRequests(principal), central ? listQueue(principal) : Promise.resolve([]), isOperator(principal) ? listAttention(principal) : Promise.resolve([])])
   const rows = (central ? queue : mine).slice(0, 6)
   const first = principal.displayName.split(' ')[0]

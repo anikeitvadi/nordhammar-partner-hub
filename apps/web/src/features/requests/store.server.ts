@@ -1,7 +1,7 @@
 import 'server-only'
 import { payloadHash, transition, type CanonicalPayload, type Domain, type Region, type RequestState } from '@intake/contracts'
 import { sql } from '@/lib/db'
-import { canSeeIdentity, isCentral, type Principal } from '@/features/auth/scope'
+import { canWorkIn, isCentral, type Principal } from '@/features/auth/scope'
 import { linkLatestCheck } from '@/features/intake/checks.server'
 
 // Owns every write to the request tables except the review decision (decide.server.ts) and the execution steps.
@@ -22,7 +22,7 @@ export class ConflictError extends Error { constructor(m: string) { super(m); th
 // The reservation's primary key is the wall against two parallel requests for the same tax ID. Every submit now goes to
 // finance first (awaiting_finance); the start delivery says so, and the request Workflow opens the desk ticket.
 export async function submitRequest(principal: Principal, input: { domain: Domain; region: Region; payload: CanonicalPayload; dupChoice: DupChoice; dupReason: string | null; linkedGoldenId: string | null }): Promise<{ requestId: string }> {
-  if (!canSeeIdentity(principal, input.region)) throw new ConflictError('not entitled to this region')
+  if (!canWorkIn(principal, input.region)) throw new ConflictError('not entitled to this region')
   const requestId = newId('R')
   const submittedAt = new Date().toISOString()
   const t = transition({ kind: 'draft', revision: 0 }, { type: 'submit_to_finance', submittedAt })
@@ -50,7 +50,7 @@ export async function submitRequest(principal: Principal, input: { domain: Domai
 // A draft the requester parks: the request exists at revision 0 with its payload, holds no reservation and starts no run.
 // Only the requester sees it (visible() below); submitting it later is resubmitRequest, which reserves the identity then.
 export async function saveDraft(principal: Principal, input: { domain: Domain; region: Region; payload: CanonicalPayload }): Promise<{ requestId: string }> {
-  if (!canSeeIdentity(principal, input.region)) throw new ConflictError('not entitled to this region')
+  if (!canWorkIn(principal, input.region)) throw new ConflictError('not entitled to this region')
   const requestId = newId('R')
   const state: RequestState = { kind: 'draft', revision: 0 }
   const hash = await payloadHash(input.payload)
@@ -95,8 +95,8 @@ async function loadState(requestId: string): Promise<{ state: RequestState; requ
 }
 
 function visible(principal: Principal, requesterEmail: string, region: Region): boolean {
-  if (principal.globalIdentity) return true
-  return requesterEmail === principal.email && canSeeIdentity(principal, region)
+  if (isCentral(principal)) return true
+  return requesterEmail === principal.email && canWorkIn(principal, region)
 }
 
 export async function getRequest(principal: Principal, requestId: string): Promise<RequestDetail | null> {
