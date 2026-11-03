@@ -509,3 +509,23 @@ button.strip-tile:hover { background: var(--canvas); }
 /* On a phone the two charts keep a readable size and scroll sideways inside their card, never the page. */
 .viz-scroll { overflow-x: auto; }
 @media (max-width: 640px) { .viz-scroll .flow { min-width: 600px; } .viz-scroll .strip { min-width: 560px; } }
+
+/* Home hero: the hub, to scale (hub-scene). A night canvas in the dark-tile family; serif title, mono numbers, tracked labels. */
+.tile.scene-tile { padding: 0; min-height: 0; background: #070a12; box-shadow: none; color: #fff; }
+.scene { position: relative; height: 540px; background: radial-gradient(120% 90% at 70% 40%, #0f1730 0%, #070a12 60%); }
+.scene canvas { position: absolute; inset: 0; display: block; }
+.scene-panel { position: absolute; left: 0; top: 0; bottom: 0; width: 34%; padding: 30px 28px 22px; pointer-events: none; display: flex; flex-direction: column; gap: 9px; }
+.scene-eyebrow { margin: 6px 0 0; font: 500 10.5px var(--sans); letter-spacing: .22em; text-transform: uppercase; color: rgba(222,230,255,.45); }
+.scene-title { margin: 0; font: 400 32px/1.12 var(--serif); letter-spacing: -.01em; text-transform: none; color: #fff; }
+.scene-lede { margin: 0 0 6px; font: 14px/1.5 var(--sans); color: rgba(222,230,255,.72); }
+.scene-legend { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; font: 13px var(--sans); color: rgba(235,240,255,.86); }
+.scene-legend li { display: grid; grid-template-columns: 14px 1fr auto; align-items: center; column-gap: 8px; }
+.scene-legend li .where { display: none; }
+.scene-legend b { font: 500 13px var(--mono); color: #fff; font-variant-numeric: tabular-nums; }
+.scene-legend .dot { width: 7px; height: 7px; border-radius: 50%; justify-self: center; box-shadow: 0 0 8px currentColor; }
+.scene-legend .dot.erp1 { background: #6b9bff; color: #6b9bff; } .scene-legend .dot.erp2 { background: #43e0a0; color: #43e0a0; } .scene-legend .dot.erp3 { background: #ffb85c; color: #ffb85c; }
+.scene-legend .dot.req { background: #fff; color: #fff; } .scene-legend .dot.wait { background: #aab3c9; color: #aab3c9; } .scene-legend .dot.stop { background: #ff6e6e; color: #ff6e6e; }
+.scene-legend .thread { width: 14px; height: 1px; background: rgba(220,230,255,.5); }
+.scene-foot { margin-top: auto; font: 10px var(--mono); color: rgba(222,230,255,.35); letter-spacing: .04em; }
+.scene-tip { position: absolute; transform: translate(12px, -50%); pointer-events: none; background: rgba(12,16,28,.92); border: 1px solid rgba(255,255,255,.12); color: #fff; font: 12px var(--sans); padding: 6px 9px; border-radius: 6px; white-space: nowrap; z-index: 3; }
+@media (max-width: 720px) { .scene { height: auto; display: flex; flex-direction: column; } .scene canvas { position: relative; inset: auto; height: 340px !important; width: 100% !important; order: 2; } .scene-panel { position: relative; width: auto; padding: 22px 20px 6px; } .scene-foot { display: none; } }
