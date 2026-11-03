@@ -91,6 +91,8 @@ export async function askHub(principal: Principal, question: string, readers: Re
       note: !ok ? 'The model\'s sentence cited something the lookup did not return, so only the lookup is shown.' : null,
     }
   } catch (e) {
+    // The page shows a plain note; the cause goes to the runtime log so a failure on a deployment can be diagnosed.
+    console.error('ask: model call failed', { model: primary, error: e instanceof Error ? `${e.name}: ${e.message}` : String(e) })
     return { ai: 'unavailable', reason: e instanceof Error ? e.message : 'model error' }
   }
 }
