@@ -16,7 +16,7 @@ export const metadata: Metadata = { title: 'Home' }
 // waiting for this person as ruled rows. Ink on paper; serif for statements, mono for figures. Every number is live.
 export default async function HomePage() {
   const principal = await requirePrincipal()
-  if (!hasAnyRegion(principal)) return <section className="narrow card" style={{ marginTop: 48 }}><h1>Your account has no region yet</h1><p>Ask IT to add you to a region group. Nothing else loads until then.</p></section>
+  if (!hasAnyRegion(principal)) return <section className="narrow"><h1>Your account has no region yet</h1><p>Ask IT to add you to a region group. Nothing else loads until then.</p></section>
   const regions = visibleRegions(principal)
   const region = regions[0]
   const central = principal.globalIdentity
@@ -47,7 +47,7 @@ export default async function HomePage() {
             <li key={r.requestId}>
               <Link className="r-main" href={central ? `/reviews/${r.requestId}` : `/requests/${r.requestId}`}>{r.legalName}</Link>
               <span className="r-meta">{r.domain === 'customer' ? 'Customer' : 'Supplier'} · {r.region} · <LocalTime iso={r.updatedAt} relative /></span>
-              <span className="r-figure">{STATE_LABEL[r.state.kind]}</span>
+              <span className={`r-figure badge badge-${r.state.kind}`}>{STATE_LABEL[r.state.kind]}</span>
             </li>
           ))}</ol>
         )}

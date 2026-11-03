@@ -13,7 +13,7 @@ export async function Shell({ children }: { children: React.ReactNode }) {
   if (!principal) {
     return (
       <>
-        <header className="shell-header"><Link href="/" className="shell-brand">Nordhammar <span>Partner Hub</span>{version}</Link></header>
+        <header className="shell-header"><Link href="/" className="shell-brand"><b>Nordhammar</b><span>Partner Hub</span>{version}</Link></header>
         <main className="shell-main">{children}</main>
       </>
     )
@@ -28,14 +28,14 @@ export async function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="app">
       <aside className="rail">
-        <Link href="/" className="shell-brand rail-brand">Nordhammar <span>Partner Hub</span>{version}</Link>
+        <Link href="/" className="shell-brand"><b>Nordhammar</b><span>Partner Hub</span>{version}</Link>
         <ShellNav items={items} />
         <div className="rail-foot">
           <ShellNav items={[{ href: '/how-it-works', label: 'How it works', icon: 'how' }]} />
           <div className="rail-who">
-            <span className="badge badge-region">{principal.globalIdentity ? 'All regions' : regions.join(', ') || 'No region'}</span>
-            <span className="rail-name">{principal.displayName}<span className="muted"> · {principal.role}</span></span>
-            <form action={signOut} className="inline"><button type="submit" className="link small">Sign out</button></form>
+            <span className="rail-name">{principal.displayName}</span>
+            <span className="rail-role">{principal.globalIdentity ? 'Central team' : 'Regional user'} · {principal.globalIdentity ? 'all regions' : regions.join(', ') || 'no region yet'}</span>
+            <form action={signOut} className="inline"><button type="submit" className="link small">Sign Out</button></form>
           </div>
         </div>
       </aside>

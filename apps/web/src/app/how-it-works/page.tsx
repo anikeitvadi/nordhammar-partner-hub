@@ -8,7 +8,6 @@ export const metadata: Metadata = { title: 'How it works' }
 export default function HowItWorksPage() {
   return (
     <section>
-      <p className="eyebrow">Under the hood</p>
       <h1>How a request becomes a number.</h1>
       <p className="runin"><strong>Six boxes, one write.</strong> The names are the names in the code; the request page highlights the box a live request is in.</p>
       <Blueprint />

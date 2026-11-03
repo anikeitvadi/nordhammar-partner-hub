@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import { geoDistance, geoInterpolate, geoOrthographic, geoPath } from 'd3-geo'
-import type { GlobeArc, GlobeData, GlobePoint } from './globe.server'
+import type { GlobeArc, GlobeData, GlobePoint } from './types'
 
 // Home's globe, in ink on paper. Land is a dot matrix that fades toward the limb (the only shading). Partners sit at
 // their cities, and the globe starts facing them. A corporate group's establishments are joined by arcs bowed off their

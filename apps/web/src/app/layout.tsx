@@ -20,7 +20,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable} ${GeistSerif.variable}`}>
       <body>
-        <Suspense fallback={<><header className="shell-header"><span className="shell-brand">Nordhammar <span>Partner Hub</span></span></header><main className="shell-main"><section aria-busy="true" aria-label="Loading"><div className="skeleton skeleton-title" /><div className="skeleton skeleton-line" /><div className="skeleton skeleton-block" /></section></main></>}>
+        <Suspense fallback={<><header className="shell-header"><span className="shell-brand"><b>Nordhammar</b><span>Partner Hub</span></span></header><main className="shell-main"><section aria-busy="true" aria-label="Loading"><div className="skeleton skeleton-title" /><div className="skeleton skeleton-line" /><div className="skeleton skeleton-block" /></section></main></>}>
           <Shell>
             <Suspense fallback={<section aria-busy="true" aria-label="Loading"><div className="skeleton skeleton-title" /><div className="skeleton skeleton-line" /><div className="skeleton skeleton-block" /></section>}>{children}</Suspense>
           </Shell>

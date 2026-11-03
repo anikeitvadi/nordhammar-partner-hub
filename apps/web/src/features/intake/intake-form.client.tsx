@@ -91,7 +91,7 @@ export function IntakeForm({ domain, regions, initialRegion, initial, mode, requ
       {error ? <p role="alert" className="panel error">{error === 'taxid' ? 'That tax ID is not valid for the country.' : error === 'reason' ? 'Say why this is not a duplicate.' : error}</p> : null}
 
       <fieldset className="card step">
-        <div className="step-title">1 · Who</div>
+        <div className="step-title">Who it is</div>
         <div className="grid2">
           {regions.length > 1 ? <label>Region
             <select value={region} onChange={(e) => onRegion(e.target.value as Region)}>{regions.map((r) => <option key={r} value={r}>{r}</option>)}</select>
@@ -108,14 +108,14 @@ export function IntakeForm({ domain, regions, initialRegion, initial, mode, requ
         <p className="muted small">The hub is checked for this {w} in every region as soon as both are typed.</p>
         <div aria-live="polite" className="check-slot">
           {checking ? <p className="muted small" role="status">Checking the hub…</p> : null}
-          {relocked ? <p className="locked-note" role="status">Step 2 is locked again: the name or tax ID changed and the hub check came back different. Choose again below.</p> : null}
+          {relocked ? <p className="locked-note" role="status">The details are locked again: the name or tax ID changed and the hub check came back different. Choose again below.</p> : null}
           {result && !checking ? <div className="arrive" key={result.kind}><Matches result={result} domain={domain} choose={choose} chosen={choice} /></div> : null}
         </div>
       </fieldset>
 
       {!stepTwoOpen ? <p className="locked-note">{result === null ? 'Fill in the legal name and the tax ID above first. The hub is checked for duplicates before the rest of the form opens.' : result.kind === 'exact_visible' || result.kind === 'exact_foreign' ? 'This request cannot continue: the entity already exists.' : result.kind === 'invalid' || result.kind === 'error' ? 'Fix the tax ID above; the hub is checked again on its own.' : 'Pick one of the options above to open the rest of the form.'}</p> : null}
       <fieldset className={`card step ${stepTwoOpen ? '' : 'locked'}`} disabled={!stepTwoOpen}>
-        <div className="step-title" ref={stepTwo} tabIndex={-1}>2 · Details</div>
+        <div className="step-title" ref={stepTwo} tabIndex={-1}>Details</div>
         <div className={`step-body${stepTwoOpen ? ' open' : ''}`}><div>
         <div className="grid3">
           <label>{domain === 'customer' ? 'Customer type' : 'Supplier category'} <span className="req">*</span><select name="typeCode" defaultValue={initial.typeCode ?? ''} required={stepTwoOpen}><option value="">Choose…</option>{(domain === 'customer' ? CUSTOMER_TYPES : SUPPLIER_TYPES).map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
@@ -131,8 +131,8 @@ export function IntakeForm({ domain, regions, initialRegion, initial, mode, requ
         </div>
         {choice?.dupChoice === 'not_related' ? <label>Why is this not a duplicate? <span className="req">*</span> <span className="muted">the central team sees this next to the match</span><input name="dupReason" required /></label> : null}
         <div className="row">
-          <SubmitButton pendingLabel="Submitting…">{mode === 'resubmit' ? 'Submit again' : 'Submit request'}</SubmitButton>
-          {mode === 'new' ? <SubmitButton pendingLabel="Saving…" formAction={saveDraftAction} className="secondary">Save draft</SubmitButton> : null}
+          <SubmitButton pendingLabel="Submitting…">{mode === 'resubmit' ? 'Submit Again' : 'Submit Request'}</SubmitButton>
+          {mode === 'new' ? <SubmitButton pendingLabel="Saving…" formAction={saveDraftAction} className="secondary">Save Draft</SubmitButton> : null}
           <span className="muted">Goes to finance in the service desk; a ticket opens. If every check passes, the ERP number is assigned without anyone here touching it.</span>
         </div>
         </div></div>

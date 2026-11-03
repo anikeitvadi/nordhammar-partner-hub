@@ -16,7 +16,7 @@ export function PartyDetail({ party: p, compact = false }: { party: Party; compa
         <div>
           {compact ? <h2 className="party-name">{p.legalName}</h2> : <h1>{p.legalName}</h1>}
           {p.localName ? <p className="party-local">{p.localName}</p> : null}
-          <p className="party-sub">Hub ID <code>{p.goldenId}</code> · {p.region} · {p.country} <span className={`badge ${p.status === 'active' ? 'badge-created' : 'badge-stopped'}`}>{p.status}</span>{p.typeCode ? <span className="badge">{typeLabel(p.typeCode)}</span> : null}</p>
+          <p className="party-sub"><span><code>{p.goldenId}</code> · {p.region} · {p.country}{p.typeCode ? ` · ${typeLabel(p.typeCode)}` : ''}</span><span className={`badge ${p.status === 'active' ? 'badge-active' : 'badge-hold'}`}>{p.status === 'hold' ? 'On hold' : p.status}</span></p>
         </div>
         {!compact ? <Link href={`${path}?${new URLSearchParams({ q: p.legalName, id: p.goldenId }).toString()}`} className="muted">Back to search</Link> : null}
       </header>

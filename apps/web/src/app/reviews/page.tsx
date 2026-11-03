@@ -21,7 +21,7 @@ export const metadata: Metadata = { title: 'Exceptions' }
 // because they are the team's controls, not pages of their own; the demo fault is a drawer, shown only with the flag.
 export default async function CentralTeamPage({ searchParams }: { searchParams: Promise<{ tab?: string; msg?: string }> }) {
   const principal = await requirePrincipal()
-  if (!isCentral(principal)) return <section className="narrow card" style={{ marginTop: 48 }}><h1>Exceptions</h1><p>This page belongs to the central master-data team.</p></section>
+  if (!isCentral(principal)) return <section className="narrow"><h1>Exceptions</h1><p>This page belongs to the central master-data team.</p></section>
   const { tab, msg } = await searchParams
   const stoppedTab = tab === 'stopped'
   const [queue, attention, load, auto, demo, lost] = await Promise.all([listQueue(principal), listAttention(principal), loadStatus(), autoApproveSetting(), demoControls(), erpLostResponse()])
@@ -32,7 +32,7 @@ export default async function CentralTeamPage({ searchParams }: { searchParams: 
       {text ? <p className="panel rise" role="status">{text}</p> : null}
       <div className="central-controls">
         <form action={runLoadNowAction} className="row">
-          <SubmitButton pendingLabel="Starting…" disabled={!!load.runningSince} className="secondary small">Run the hub load now</SubmitButton>
+          <SubmitButton pendingLabel="Starting…" disabled={!!load.runningSince} className="secondary small">Run the Hub Load Now</SubmitButton>
           <span className="muted small">
             {load.runningSince ? <>Running since <LocalTime iso={load.runningSince} />. </> : null}
             Nightly at 08:00 UTC (Vercel Cron).
@@ -41,7 +41,7 @@ export default async function CentralTeamPage({ searchParams }: { searchParams: 
         </form>
         <form action={setAutoApproveAction} className="row">
           <input type="hidden" name="on" value={auto.on ? 'false' : 'true'} />
-          <SubmitButton pendingLabel="Saving…" className="secondary small">{auto.on ? 'Turn automatic approval off' : 'Turn automatic approval on'}</SubmitButton>
+          <SubmitButton pendingLabel="Saving…" className="secondary small">{auto.on ? 'Turn Automatic Approval Off' : 'Turn Automatic Approval On'}</SubmitButton>
           <span className="muted small">Automatic approval is <strong>{auto.on ? 'on' : 'off'}</strong>{auto.updatedBy ? <> (changed by {auto.updatedBy}{auto.updatedAt ? <>, <LocalTime iso={auto.updatedAt} /></> : null})</> : null}. Off: every request finance approves comes here.</span>
         </form>
       </div>
@@ -68,9 +68,9 @@ export default async function CentralTeamPage({ searchParams }: { searchParams: 
                   <td><StatusBadge state={r.state} />{r.state.kind === 'stopped' ? <div className="muted small">{STOP[r.state.category] ?? r.state.category}; {r.state.effect === 'unknown' ? 'not yet known whether it was created' : 'nothing was created'}</div> : null}</td>
                   <td className="col-secondary">{r.pendingDeliveries.length ? r.pendingDeliveries.map((d, i) => <div key={i}>{d.kind} · {d.attempts} attempt(s){d.lastError ? ` · ${d.lastError}` : ''}</div>) : 'none'}</td>
                   <td className="actions">
-                    {r.pendingDeliveries.length ? <form action={retryDeliveryAction} className="inline"><input type="hidden" name="requestId" value={r.requestId} /><SubmitButton pendingLabel="Retrying…">Retry delivery</SubmitButton></form> : null}
-                    {r.state.kind === 'stopped' && r.state.effect === 'unknown' ? <form action={reconcileAction} className="inline"><input type="hidden" name="requestId" value={r.requestId} /><SubmitButton pendingLabel="Checking…">Check with the ERP</SubmitButton></form> : null}
-                    {r.state.kind === 'stopped' && r.state.effect === 'no_effect' ? <form action={recoverAction} className="inline"><input type="hidden" name="requestId" value={r.requestId} /><SubmitButton pendingLabel="Returning…" confirm={`Return ${r.legalName} to the requester as a draft?`}>Return to requester</SubmitButton></form> : null}
+                    {r.pendingDeliveries.length ? <form action={retryDeliveryAction} className="inline"><input type="hidden" name="requestId" value={r.requestId} /><SubmitButton pendingLabel="Retrying…">Retry Delivery</SubmitButton></form> : null}
+                    {r.state.kind === 'stopped' && r.state.effect === 'unknown' ? <form action={reconcileAction} className="inline"><input type="hidden" name="requestId" value={r.requestId} /><SubmitButton pendingLabel="Checking…">Check With the ERP</SubmitButton></form> : null}
+                    {r.state.kind === 'stopped' && r.state.effect === 'no_effect' ? <form action={recoverAction} className="inline"><input type="hidden" name="requestId" value={r.requestId} /><SubmitButton pendingLabel="Returning…" confirm={`Return ${r.legalName} to the requester as a draft?`}>Return to Requester</SubmitButton></form> : null}
                   </td>
                 </tr>
               ))}</tbody></table>
@@ -80,7 +80,7 @@ export default async function CentralTeamPage({ searchParams }: { searchParams: 
       {demo ? (
         <details className="tech demo-drawer">
           <summary>Demo controls</summary>
-          <form action={armLostResponseAction} className="row"><SubmitButton pendingLabel="Arming…" className="secondary small">Drop the next ERP response</SubmitButton><span className="muted small">The ERP commits the create and we never hear back, once. The retry replays the same number.{lost ? ' The erp-lost-response flag is on: every approval arms this by itself.' : ''}</span></form>
+          <form action={armLostResponseAction} className="row"><SubmitButton pendingLabel="Arming…" className="secondary small">Drop the Next ERP Response</SubmitButton><span className="muted small">The ERP commits the create and we never hear back, once. The retry replays the same number.{lost ? ' The erp-lost-response flag is on: every approval arms this by itself.' : ''}</span></form>
         </details>
       ) : null}
     </section>

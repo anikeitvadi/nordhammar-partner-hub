@@ -3,7 +3,7 @@ import { useSyncExternalStore } from 'react'
 
 // Times render in the viewer's zone with the zone named, because the approver team is follow-the-sun and a bare
 // "9:32 PM" is wrong for half of them. The server snapshot is a stable ISO form (no hydration mismatch); the client
-// snapshot is the local form. Lists add a relative phrase.
+// snapshot is the local form. Lists show a relative phrase, with the exact time on hover.
 // Component options, not dateStyle/timeStyle: those cannot be combined with timeZoneName and throw at runtime.
 const absolute = (d: Date, withDate: boolean) => new Intl.DateTimeFormat(undefined, { ...(withDate ? { year: 'numeric' as const, month: 'short' as const, day: 'numeric' as const } : {}), hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }).format(d)
 function relative(d: Date, now: Date): string {
@@ -23,7 +23,8 @@ export function LocalTime({ iso, mode = 'auto', relative: rel = false }: { iso: 
   const text = useSyncExternalStore(noop, () => {
     const d = new Date(iso); const now = new Date()
     const withDate = mode === 'datetime' || (mode === 'auto' && d.toDateString() !== now.toDateString())
-    return rel ? `${relative(d, now)} · ${absolute(d, withDate)}` : absolute(d, withDate)
+    return rel ? `${relative(d, now)}\n${absolute(d, true)}` : absolute(d, withDate)
   }, () => iso.slice(0, 16).replace('T', ' ') + ' UTC')
-  return <time dateTime={iso} title={iso}>{text}</time>
+  const [shown, exact] = text.split('\n')
+  return <time dateTime={iso} title={exact ?? iso}>{shown}</time>
 }

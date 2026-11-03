@@ -32,6 +32,7 @@ function resolveLocal(from: string, spec: string): string | null {
   else return null
   for (const ext of ['', '.ts', '.tsx', '/index.ts', '/index.tsx']) {
     const candidate = base + ext
+    if (!/\.tsx?$/.test(candidate)) continue // JSON and other data files are not modules with imports of their own
     try { if (statSync(candidate).isFile()) return candidate } catch { /* keep looking */ }
   }
   return null

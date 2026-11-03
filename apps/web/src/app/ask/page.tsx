@@ -11,11 +11,10 @@ export const metadata: Metadata = { title: 'Ask' }
 // the answer is a number or a chart with the query written out under it. Not a chat over the database.
 export default async function AskPage() {
   const principal = await requirePrincipal()
-  if (!hasAnyRegion(principal)) return <section className="narrow card" style={{ marginTop: 48 }}><h1>Your account has no region yet</h1><p>Ask IT to add you to a region group.</p></section>
+  if (!hasAnyRegion(principal)) return <section className="narrow"><h1>Your account has no region yet</h1><p>Ask IT to add you to a region group.</p></section>
   const suggested = await suggestQuestions(principal)
   return (
     <section className="narrow-wide">
-      <p className="eyebrow">Ask</p>
       <h1>Ask about partners, requests and checks.</h1>
       <p className="runin"><strong>Do we already work with them? Where is my request? How many are on hold, by region? How fast do numbers come back?</strong> Counts and totals come back as a number or a chart, with the query written out under it; amounts only for the regions you may see them in.</p>
       <AskForm suggested={suggested} />

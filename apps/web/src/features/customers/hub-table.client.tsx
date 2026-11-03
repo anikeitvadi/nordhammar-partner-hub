@@ -24,8 +24,8 @@ function matches(r: BrowseRow, q: string): boolean {
   )
 }
 
-// The records one person may see, narrowed as they type. The strip on top counts what is there and each tile sets
-// the matching filter; the table is the same rows. Selecting a row opens it on the right without losing the filter.
+// The records one person may see, narrowed as they type. One row of filter words counts what is there, and each word
+// sets the matching filter; the table is the same rows. Selecting a row opens it on the right without losing the filter.
 export function HubTable({ rows, regions, domain, path, selectedId, initialQuery, initialFilter }: { rows: BrowseRow[]; regions: Region[]; domain: Domain; path: string; selectedId: string | null; initialQuery: string; initialFilter?: Filter }) {
   const [q, setQ] = useState(initialQuery)
   const [f, setF] = useState<Filter>(initialFilter ?? { region: null, status: null, erp: null })
@@ -56,8 +56,8 @@ export function HubTable({ rows, regions, domain, path, selectedId, initialQuery
   const byRegion = regions.map((r) => ({ r, n: rows.filter((x) => x.region === r).length }))
   const tiles: { key: Filter['status']; label: string; n: number }[] = [
     { key: 'hold', label: 'On hold', n: rows.filter((r) => r.status === 'hold').length },
-    { key: 'no_erp', label: 'No ERP number yet', n: rows.filter((r) => !r.erpNumber).length },
-    { key: 'grouped', label: 'In a corporate group', n: rows.filter((r) => !!r.groupName).length },
+    { key: 'no_erp', label: 'No ERP number', n: rows.filter((r) => !r.erpNumber).length },
+    { key: 'grouped', label: 'In a group', n: rows.filter((r) => !!r.groupName).length },
   ]
   const erps = [...new Set(rows.map((r) => r.erpSystem).filter((e): e is string => !!e))].sort()
   const filtered = !!(f.region || f.status || f.erp)
@@ -66,37 +66,26 @@ export function HubTable({ rows, regions, domain, path, selectedId, initialQuery
 
   return (
     <div className="hub-browse">
-      <div className="strip" role="group" aria-label="Filter by">
-        {regions.length > 1 ? <div className="strip-tile strip-regions">
-          <span className="strip-label">By region</span>
-          <div className="strip-regions-row">
-            {byRegion.map(({ r, n }) => (
-              <button key={r} type="button" className="strip-region" aria-pressed={f.region === r} onClick={() => setF((x) => ({ ...x, region: x.region === r ? null : r }))}>
-                <span className="strip-n">{n}</span><span className="strip-code">{r}</span>
-              </button>
-            ))}
-          </div>
-        </div> : null}
-        {tiles.map((t) => (
-          <button key={t.key} type="button" className="strip-tile" aria-pressed={f.status === t.key} onClick={() => setF((x) => ({ ...x, status: x.status === t.key ? null : t.key }))}>
-            <span className="strip-n">{t.n}</span><span className="strip-label">{t.label}</span>
-          </button>
-        ))}
-      </div>
-
       <div className="hub-search" role="search">
         <input name="q" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Name, tax ID, DUNS, city, group or ERP number" aria-label="Search" autoFocus={!selectedId} />
-        {erps.length > 1 ? (
-          <div className="chips chips-inline" role="group" aria-label="ERP">
-            {erps.map((e) => <button key={e} type="button" className="chip" aria-pressed={f.erp === e} onClick={() => setF((x) => ({ ...x, erp: x.erp === e ? null : e }))}>{e}</button>)}
-          </div>
-        ) : null}
-        {filtered ? <button type="button" className="chip" onClick={() => setF({ region: null, status: null, erp: null })}>Clear filters</button> : null}
       </div>
 
-      <p className="muted count" role="status" aria-live="polite">
-        {shown.length} of {rows.length} {rows.length === 1 ? one : `${one}s`}{regions.length > 1 ? ` across ${regions.join(', ')}` : ` in ${regions[0]}`}
-      </p>
+      <div className="filters" role="group" aria-label="Filter by">
+        <button type="button" className="chip" aria-pressed={!filtered} onClick={() => setF({ region: null, status: null, erp: null })}>All<span className="n">{rows.length}</span></button>
+        {regions.length > 1 ? <>
+          <span className="sep" aria-hidden="true" />
+          {byRegion.map(({ r, n }) => <button key={r} type="button" className="chip" aria-pressed={f.region === r} onClick={() => setF((x) => ({ ...x, region: x.region === r ? null : r }))}>{r}<span className="n">{n}</span></button>)}
+        </> : null}
+        <span className="sep" aria-hidden="true" />
+        {tiles.map((t) => <button key={t.key} type="button" className="chip" aria-pressed={f.status === t.key} onClick={() => setF((x) => ({ ...x, status: x.status === t.key ? null : t.key }))}>{t.label}<span className="n">{t.n}</span></button>)}
+        {erps.length > 1 ? <>
+          <span className="sep" aria-hidden="true" />
+          {erps.map((e) => <button key={e} type="button" className="chip" aria-pressed={f.erp === e} onClick={() => setF((x) => ({ ...x, erp: x.erp === e ? null : e }))}>{e}</button>)}
+        </> : null}
+      </div>
+
+      {/* the count says itself once: in "All" when nothing narrows it, here when something does */}
+      <p className="count" role="status" aria-live="polite">{filtered || query ? `${shown.length} of ${rows.length} shown` : ''}</p>
 
       {shown.length === 0 ? (
         <div className="panel">
@@ -112,10 +101,10 @@ export function HubTable({ rows, regions, domain, path, selectedId, initialQuery
               <tr key={r.goldenId} className={r.goldenId === selectedId ? 'selected' : undefined}>
                 <td><Link href={href(r.goldenId)} className="row-link">{r.legalName}</Link><div className="muted">{r.city}</div></td>
                 <td>{r.region}</td>
-                <td className="mono">{r.erpNumber ? `${r.erpSystem ?? ''} ${r.erpNumber}` : <span className="muted">not yet</span>}</td>
+                <td>{r.erpNumber ? <span className="mono">{`${r.erpSystem ?? ''} ${r.erpNumber}`}</span> : <span className="muted">not yet</span>}</td>
                 <td className="col-secondary">{r.typeCode ? typeLabel(r.typeCode) : <span className="muted">none</span>}</td>
                 <td className="col-secondary">{r.groupName ?? <span className="muted">none</span>}</td>
-                <td>{r.status === 'active' ? <span className="badge">active</span> : <span className="badge badge-stopped">{r.status}</span>}</td>
+                <td>{r.status === 'active' ? <span className="muted">Active</span> : <span className="badge badge-hold">{r.status === 'hold' ? 'On hold' : r.status}</span>}</td>
               </tr>
             ))}
           </tbody>

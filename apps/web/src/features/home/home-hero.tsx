@@ -2,7 +2,7 @@ import type { Principal } from '@/features/auth/scope'
 import { Globe } from './globe.client'
 import { readGlobe } from './globe.server'
 
-// Home's opening statement: one claim in the serif, the figures behind it in mono under hairlines, and the globe that
+// Home's opening statement: one claim in the serif, the figures behind it under hairlines, and the globe that
 // shows it. Every number is read live for the person's regions (globe.server.ts).
 export async function HomeHero({ principal, greeting }: { principal: Principal; greeting: string }) {
   const { globe, figures: f } = await readGlobe(principal)

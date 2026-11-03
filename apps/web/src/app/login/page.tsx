@@ -15,12 +15,12 @@ const ERRORS: Record<string, string> = {
   expired: 'Your session ended. Sign in again.',
 }
 
-// The front door is a grid of five tiles: one hero (the product line and a real result row), the sign-in card,
-// one big number, the three demo roles, and three things to try. Passwords travel in the submission email, never here.
+// The front door: the statement and the ledger mark on the left, the sign-in form on the right, then the three demo
+// people and three things to try, as plain ruled lists. Passwords travel in the submission email, never here.
 const ROLES = [
-  { who: 'Ana Silva', role: 'Regional user · Brazil', email: 'ana.requester@example.com', tone: 'a', can: 'searches and requests in Brazil, sees Brazil amounts, cannot approve' },
-  { who: 'Jonas Weber', role: 'Regional user · Europe', email: 'jonas.requester@example.com', tone: 'b', can: 'the same, in Europe' },
-  { who: 'Priya Nair', role: 'Central master data team · all regions', email: 'priya.reviewer@example.com', tone: 'c', can: 'decides requests, fixes stopped ERP calls, runs the hub load, sees every amount' },
+  { who: 'Ana Silva', role: 'Regional user · Brazil', email: 'ana.requester@example.com', can: 'searches and requests in Brazil, sees Brazil amounts, cannot approve' },
+  { who: 'Jonas Weber', role: 'Regional user · Europe', email: 'jonas.requester@example.com', can: 'the same, in Europe' },
+  { who: 'Priya Nair', role: 'Central master data team · all regions', email: 'priya.reviewer@example.com', can: 'decides requests, fixes stopped ERP calls, runs the hub load, sees every amount' },
 ]
 const TRY = [
   { text: <>Search <code>aurora</code> as Ana: one group, three establishments, two ERPs.</>, copy: 'aurora' },
@@ -37,12 +37,12 @@ async function SignInForm({ searchParams }: { searchParams: Params }) {
   const message = error ? (ERRORS[error] ?? ERRORS.failed) : null
   const safeNext = next && next.startsWith('/') && !next.startsWith('//') ? next : ''
   return (
-    <form action={signIn} className="door-form tile-body">
+    <form action={signIn} className="door-form">
       {safeNext ? <input type="hidden" name="next" value={safeNext} /> : null}
       <label htmlFor="email">Email<input id="email" name="email" type="email" autoComplete="username" required autoFocus /></label>
       <label htmlFor="password">Password<input id="password" name="password" type="password" autoComplete="current-password" required /></label>
       {message ? <p role="alert" className="error small">{message}</p> : null}
-      <SubmitButton pendingLabel="Signing in…">Sign in</SubmitButton>
+      <SubmitButton pendingLabel="Signing in…">Sign In</SubmitButton>
     </form>
   )
 }
@@ -54,57 +54,37 @@ async function Ledger() {
 
 export default function LoginPage({ searchParams }: { searchParams: Params }) {
   return (
-    <section className="door grain">
-      <div className="door-head">
-        <p className="eyebrow">Nordhammar Industries · master data</p>
+    <section className="door">
+      <div>
         <h1 className="door-title">One record for every partner, in every region.</h1>
-        <p className="runin"><strong>Search before you request.</strong> A reviewer approves, the ERP assigns the number, and the hub shows it the next morning.</p>
+        <p className="door-lede">Search before you request. Every customer and supplier we already have, in five regions and three ERPs, behind one search box. Finance approves, the ERP assigns the number, and the hub shows it.</p>
+        <Suspense fallback={<div className="ledger" aria-hidden="true" />}>
+          <Ledger />
+        </Suspense>
       </div>
-      <div className="bento">
-        <div className="tile span2">
-          <p className="runin"><strong>Every customer and supplier we already have.</strong> Five regions, three ERPs, one search box.</p>
-          <div className="tile-body fragment" aria-hidden="true">
-            <ul className="rows">
-              <li className="nolead"><span><span className="t">Aurora Industrial Ltda</span><span className="s">Cidade Exemplo · BR · ERP-1 110001</span></span><span className="badge badge-created">Active</span></li>
-              <li className="nolead"><span><span className="t">Aurora Nordic AB</span><span className="s">Göteborg · EU · ERP-2 210006</span></span><span className="badge badge-created">Active</span></li>
-              <li className="nolead"><span><span className="t">Vela Processos</span><span className="s">Cidade Exemplo · BR · ERP-1 110002</span></span><span className="badge badge-stopped">On hold</span></li>
-            </ul>
-          </div>
-        </div>
-        <div className="tile signin">
-          <p className="runin"><strong>Sign in.</strong> Access is by region.</p>
-          <Suspense fallback={<form className="door-form tile-body" aria-busy="true"><label>Email<input type="email" disabled /></label><label>Password<input type="password" disabled /></label><button type="button" disabled>Sign in</button></form>}>
-            <SignInForm searchParams={searchParams} />
-          </Suspense>
-          <p className="muted small door-foot" style={{ margin: 0 }}>No account? Ask IT to add you to a region group. Demo passwords are in the email that sent you here.</p>
-        </div>
-        <div className="tile dark">
-          <p className="runin"><strong>One search</strong> across the whole company.</p>
-          <div className="tile-body"><div className="stat">5<small>regions</small></div><p className="stat-label">Brazil, the US, India, China and Europe; three ERPs; one record per legal entity, checked on the tax ID before a request can continue.</p></div>
-        </div>
-        <div className="tile">
-          <p className="runin"><strong>Three people, two roles.</strong> Sign in as any of them.</p>
-          <ul className="rows tile-body">
-            {ROLES.map((r) => <li key={r.email}><span className={`avatar ${r.tone}`}>{r.who.split(' ').map((w) => w[0]).join('')}</span><span><span className="t">{r.who}</span><span className="s">{r.role}</span><span className="s">{r.email}</span></span><CopyButton text={r.email} /></li>)}
+      <div className="door-side">
+        <h2>Sign in</h2>
+        <p className="muted small">Access is by region.</p>
+        <Suspense fallback={<form className="door-form" aria-busy="true"><label>Email<input type="email" disabled /></label><label>Password<input type="password" disabled /></label><button type="button" disabled>Sign In</button></form>}>
+          <SignInForm searchParams={searchParams} />
+        </Suspense>
+        <p className="muted small">No account? Ask IT to add you to a region group. Demo passwords are in the email that sent you here.</p>
+      </div>
+      <div className="door-more">
+        <div>
+          <h2>Three people, two roles</h2>
+          <ul className="people">
+            {ROLES.map((r) => <li key={r.email}><span><span className="who">{r.who}</span> <span className="muted">· {r.role}</span><span className="what">{r.email}: {r.can}</span></span><CopyButton text={r.email} /></li>)}
           </ul>
         </div>
-        <div className="tile">
-          <p className="runin"><strong>Three things to try.</strong> Each takes under a minute.</p>
-          <ol className="try tile-body">
+        <div>
+          <h2>Three things to try</h2>
+          <ol className="try">
             {TRY.map((t, i) => <li key={i}><span>{t.text}</span><CopyButton text={t.copy} /></li>)}
           </ol>
         </div>
-        <div className="tile span3 ledger-tile">
-          <p className="runin"><strong>The mark, in ledger text.</strong> Request ids, partner names and status words from the demo hub, reflowing slowly. Measured with Pretext, drawn in Geist Mono.</p>
-          <Suspense fallback={<div className="ledger" aria-hidden="true" />}>
-            <Ledger />
-          </Suspense>
-        </div>
-        <div className="tile well span3">
-          <p className="runin"><strong>What it runs on.</strong> Next.js Cache Components, a durable workflow for the ERP write, OIDC to the ERP boundary, one AI suggestion behind a validator.</p>
-          <p className="muted small tile-body" style={{ margin: 0 }}>Every decision and its reason is in DECISIONS.md in the repository. <a href="/how-it-works">How it works →</a></p>
-        </div>
       </div>
+      <p className="door-foot">Built on Next.js Cache Components, a durable workflow for the ERP write, OIDC to the ERP boundary, and one AI suggestion behind a validator. Every decision and its reason is in DECISIONS.md. <a href="/how-it-works">How it works</a></p>
     </section>
   )
 }

@@ -4,7 +4,7 @@ import Link from 'next/link'
 // must not be distinguishable from one that does not exist), so the copy says both.
 export default function NotFound() {
   return (
-    <section className="narrow card" style={{ marginTop: 48 }}>
+    <section className="narrow">
       <h1>Not found</h1>
       <p>There is nothing at this address, or it is in a region your account cannot see.</p>
       <p><Link href="/customers" className="button">Back To Search</Link></p>
