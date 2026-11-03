@@ -70,3 +70,17 @@ describe('transitions', () => {
     expect(transition({ ...unknown, effect: 'no_effect' }, { type: 'reconciled_created', erpNumber: '1', createdAt: 't' }).ok).toBe(false)
   })
 })
+
+describe('three ERPs and the golden record a create publishes', () => {
+  it('routes each region to its ERP and labels the source', async () => {
+    const { ERP_BY_REGION, sourceSystem } = await import('./index')
+    expect(ERP_BY_REGION).toEqual({ US: 'ERP-1', BR: 'ERP-1', IN: 'ERP-1', EU: 'ERP-2', CN: 'ERP-3' })
+    expect(sourceSystem('ERP-3', 'CN')).toBe('ERP3_CN')
+  })
+  it('a created payload becomes a valid golden record keyed on its number', async () => {
+    const { goldenFromPayload, GoldenRecordSchema } = await import('./index')
+    const g = goldenFromPayload(payload, '110042', '2026-11-03T01:00:00.000Z')
+    expect(GoldenRecordSchema.safeParse(g).success).toBe(true)
+    expect(g).toMatchObject({ goldenId: 'G-110042', erp: 'ERP-1', erpNumber: '110042', taxCompanyKey: payload.identity.canonical.slice(0, 8), currency: 'BRL', sources: [{ system: 'ERP1_BR', id: '110042' }] })
+  })
+})

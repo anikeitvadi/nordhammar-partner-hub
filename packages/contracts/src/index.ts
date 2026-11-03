@@ -92,6 +92,16 @@ export type ProposalOutcome =
   | { ai: 'available'; proposal: Proposal; model: string; usage?: { inputTokens: number; outputTokens: number } | null; cost?: number | null; generationId?: string | null }
   | { ai: 'unavailable'; reason: string }
 
+// Three ERP instances behind the customer's integration platform. The region decides which one a partner is born in.
+export const ERPS = ['ERP-1', 'ERP-2', 'ERP-3'] as const
+export type Erp = (typeof ERPS)[number]
+export const ERP_BY_REGION: Record<Region, Erp> = { US: 'ERP-1', BR: 'ERP-1', IN: 'ERP-1', EU: 'ERP-2', CN: 'ERP-3' }
+
+// The lineage label a golden record carries for the ERP record it came from (ERP1_BR, ERP2_EU, ERP3_CN).
+export function sourceSystem(erp: Erp, region: Region): string {
+  return `${erp.replace('-', '')}_${region}`
+}
+
 export const ADDRESS_KINDS = ['bill_to', 'ship_to', 'remit_to'] as const
 export type AddressKind = (typeof ADDRESS_KINDS)[number]
 
@@ -117,7 +127,7 @@ export const ErpCreateCommandSchema = z.object({
   payload: z.object({
     schemaVersion: z.literal(2),
     domain: z.enum(DOMAINS),
-    destination: z.object({ erp: z.enum(['ERP-1', 'ERP-2']), region: z.enum(REGIONS) }),
+    destination: z.object({ erp: z.enum(ERPS), region: z.enum(REGIONS) }),
     identity: z.object({ country: z.string(), scheme: z.string(), canonical: z.string() }),
     // Secondary registrations the region requires (state tax ID, PAN alongside a GSTIN, VAT alongside a company number).
     identifiers: z.array(z.object({ scheme: z.string(), value: z.string() })),
@@ -220,5 +230,75 @@ export function transition(st: RequestState, e: RequestEvent): Transition {
       return st.kind === 'stopped' && st.effect === 'unknown' ? { ok: true, next: { kind: 'created', revision: st.revision, approval: st.approval, operationKey: st.operationKey, erpNumber: e.erpNumber, createdAt: e.createdAt, goldenId: null } } : bad('only a stop with unknown effect can be reconciled as created')
     case 'reconciled_no_effect':
       return st.kind === 'stopped' && st.effect === 'unknown' ? { ok: true, next: { ...st, effect: 'no_effect', reason: e.reason } } : bad('only a stop with unknown effect can be reconciled as no effect')
+  }
+}
+
+// A golden record as the customer's integration platform publishes it: already cleansed on their side, one per legal
+// entity and domain. The hub's nightly load reads these and nothing else; every column of the hub's partner table
+// comes from here. Money is per region and stays per region.
+const GoldenAddressSchema = z.object({
+  sourceAddressId: z.string(), kind: z.enum(ADDRESS_KINDS), street: z.string(), number: z.string().nullable(), complement: z.string().nullable(),
+  district: z.string().nullable(), city: z.string(), regionCode: z.string().nullable(), postalCode: z.string().nullable(), country: z.string(), isDefault: z.boolean(),
+})
+export const GoldenRecordSchema = z.object({
+  goldenId: z.string(),
+  domain: z.enum(DOMAINS),
+  legalName: z.string(),
+  localName: z.string().nullable(),
+  aliases: z.array(z.string()),
+  taxScheme: z.string().nullable(),
+  taxCanonical: z.string().nullable(),
+  taxCompanyKey: z.string().nullable(),
+  identifiers: z.array(z.object({ scheme: z.string(), value: z.string() })),
+  duns: z.string().nullable(),
+  dunsRating: z.string().nullable(),
+  region: z.enum(REGIONS),
+  country: z.string(),
+  erp: z.enum(ERPS),
+  erpNumber: z.string(),
+  erpSegment: z.string().nullable(),
+  userRef: z.string().nullable(),
+  typeCode: z.string().nullable(),
+  industry: z.string().nullable(),
+  status: z.enum(['active', 'hold', 'inactive']),
+  paymentTerms: z.string().nullable(),
+  currency: z.string().nullable(),
+  riskRating: z.string().nullable(),
+  inceptionAt: z.string().nullable(),
+  lastActivityAt: z.string().nullable(),
+  group: z.object({ id: z.string(), name: z.string() }).nullable(),
+  parentGoldenId: z.string().nullable(),
+  ultimateParentGoldenId: z.string().nullable(),
+  city: z.string(),
+  street: z.string().nullable(),
+  streetNumber: z.string().nullable(),
+  addresses: z.array(GoldenAddressSchema),
+  sources: z.array(z.object({ system: z.string(), id: z.string(), loadedAt: z.string() })),
+  credit: z.array(z.object({ region: z.enum(REGIONS), limit: z.number(), currency: z.string(), terms: z.string() })),
+  spend: z.array(z.object({ region: z.enum(REGIONS), ytd: z.number(), currency: z.string(), openInvoices: z.number() })),
+})
+export type GoldenRecord = z.infer<typeof GoldenRecordSchema>
+export const GoldenFeedSchema = z.object({ records: z.array(GoldenRecordSchema), next: z.string().nullable() })
+export type GoldenFeed = z.infer<typeof GoldenFeedSchema>
+
+const CURRENCY_BY_COUNTRY: Record<string, string> = { BR: 'BRL', US: 'USD', IN: 'INR', CN: 'CNY', SE: 'SEK', NO: 'NOK', DK: 'DKK', PL: 'PLN' }
+
+// What the customer's pipeline publishes for a partner it just created from an approved payload. Pure: the stand-in
+// calls it when the ERP assigns a number, and the demo seed calls it for the history it writes. The golden id is the
+// integration platform's, derived from the number; finance completes credit, terms and risk later, in the ERP.
+export function goldenFromPayload(p: CanonicalPayload, erpNumber: string, at: string): GoldenRecord {
+  const main = p.addresses.find((a) => a.kind === (p.domain === 'customer' ? 'bill_to' : 'remit_to')) ?? p.addresses[0]
+  const key = p.identity.scheme === 'CNPJ' ? p.identity.canonical.slice(0, 8) : p.identity.scheme === 'GSTIN' ? p.identity.canonical.slice(2, 12) : p.identity.canonical
+  return {
+    goldenId: `${p.domain === 'customer' ? 'G' : 'S'}-${erpNumber}`,
+    domain: p.domain, legalName: p.legalName, localName: p.localName, aliases: [],
+    taxScheme: p.identity.scheme, taxCanonical: p.identity.canonical, taxCompanyKey: key, identifiers: p.identifiers, duns: p.duns, dunsRating: null,
+    region: p.destination.region, country: p.identity.country, erp: p.destination.erp, erpNumber, erpSegment: `NH-${p.destination.region}`, userRef: null,
+    typeCode: p.typeCode, industry: p.industry, status: 'active', paymentTerms: p.paymentTerms, currency: CURRENCY_BY_COUNTRY[p.identity.country] ?? 'EUR', riskRating: null,
+    inceptionAt: at.slice(0, 10), lastActivityAt: null, group: null, parentGoldenId: null, ultimateParentGoldenId: null,
+    city: main.city, street: main.street, streetNumber: main.number,
+    addresses: p.addresses.map((a, i) => ({ sourceAddressId: `${erpNumber}-${i + 1}`, kind: a.kind, street: a.street, number: a.number, complement: a.complement, district: a.district, city: a.city, regionCode: a.regionCode, postalCode: a.postalCode, country: a.country, isDefault: i === 0 })),
+    sources: [{ system: sourceSystem(p.destination.erp, p.destination.region), id: erpNumber, loadedAt: at }],
+    credit: [], spend: [],
   }
 }
