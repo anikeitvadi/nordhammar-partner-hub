@@ -17,7 +17,7 @@ function message(msg: string | undefined): string | null {
   const [code, a, b] = msg.split(':')
   const n = (v: string | undefined) => (v && /^\d+$/.test(v) ? Number(v) : 0)
   switch (code) {
-    case 'load_started': return 'Hub load started. It reads the golden-record feed from where the last load stopped; the line above shows the result when it finishes (usually under a minute).'
+    case 'load_started': return 'Hub load started. It reads the golden-record feed from where the last load stopped; the line below shows the result when it finishes, usually within a minute.'
     case 'load_running': return 'A hub load is already running. It will finish on its own.'
     case 'delivered': return `Delivery retried: ${n(a)} delivered, ${n(b)} failed.`
     case 'reconciled': return a === 'created' ? 'Checked with the ERP: it had been created. The request is now Created.' : a === 'no_effect' ? 'Checked with the ERP: nothing was created. The request can be returned to the requester.' : 'Nothing to reconcile for that request.'
