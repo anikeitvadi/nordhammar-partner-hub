@@ -49,8 +49,8 @@ export async function runQuery(principal: Principal, spec: QuerySpec, now = new 
     if (f.risk) where.push(`p.risk_rating = ${p(f.risk)}`)
     if (f.group) {
       const like = p(`%${f.group.trim()}%`)
-      where.push(`(g.name ilike ${like} or up.legal_name ilike ${like})`)
-      const matched = await sql().query(`select distinct coalesce(g.name, up.legal_name) as name from parties p left join parties up on up.golden_id = p.ultimate_parent_golden_id left join groups g on g.group_id = p.group_id where p.region = any($1) and (g.name ilike $2 or up.legal_name ilike $2) order by 1 limit 5`, [regions, `%${f.group.trim()}%`])
+      where.push(`(g.name ilike ${like} or up.legal_name ilike ${like} or p.legal_name ilike ${like})`)
+      const matched = await sql().query(`select distinct case when g.name ilike $2 or up.legal_name ilike $2 then coalesce(g.name, up.legal_name) else p.legal_name end as name from parties p left join parties up on up.golden_id = p.ultimate_parent_golden_id left join groups g on g.group_id = p.group_id where p.region = any($1) and (g.name ilike $2 or up.legal_name ilike $2 or p.legal_name ilike $2) order by 1 limit 5`, [regions, `%${f.group.trim()}%`])
       groups = matched.map((r) => r.name as string).filter(Boolean)
     }
     if (from) where.push(`p.inception_at >= ${p(from.toISOString().slice(0, 10))}`)

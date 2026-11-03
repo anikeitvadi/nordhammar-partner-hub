@@ -36,7 +36,7 @@ export const dbReaders: Readers = { presence: readGroupPresence, status: readReq
 function askTools(principal: Principal, readers: Readers) {
   return {
     groupPresence: tool({
-      description: 'Whether the company already has customers or suppliers matching a group or partner name, in any region. Use for "do we already work with", "do we have", "is X a customer anywhere". Returns names and regions; ids and cities only for regions the person may see.',
+      description: 'Whether the company already has customers or suppliers matching a group or partner name, in any region. Use for "do we already work with", "do we have", "is X a customer anywhere". Never for a credit limit, exposure, spend or any other amount, even of one named company: that is queryHub with the name in filters.group. Returns names and regions; ids and cities only for regions the person may see.',
       inputSchema: z.object({ name: z.string().min(2).describe('the group or partner name as the person wrote it') }),
       execute: ({ name }) => readers.presence(principal, name),
     }),
@@ -51,7 +51,7 @@ function askTools(principal: Principal, readers: Readers) {
       execute: ({ requestId }) => readers.whyFlagged(principal, requestId),
     }),
     queryHub: tool({
-      description: 'A count or a total over partners, requests or duplicate checks, as a typed query spec: subject, measure, filters, time window, at most one groupBy. Code checks the spec, limits it to what the person may see, and runs it; a combination it does not support comes back as a refusal sentence.',
+      description: 'A count or a total over partners, requests or duplicate checks, as a typed query spec: subject, measure, filters, time window, at most one groupBy. Code checks the spec, limits it to what the person may see, and runs it; a combination it does not support comes back as a refusal sentence. Use for every amount (credit limit, exposure, spend), including the amount of one named company or group.',
       inputSchema: QuerySpecSchema,
       execute: (spec) => readers.query(principal, spec),
     }),

@@ -20,7 +20,7 @@ export const QuerySpecSchema = z.object({
   filters: z.object({
     region: z.array(z.enum(REGIONS)).optional(),
     domain: z.enum(['customer', 'supplier']).optional(),
-    status: z.enum(['active', 'hold', 'inactive']).optional().describe('partners only; hold = on hold'),
+    status: z.enum(['active', 'hold', 'inactive']).optional().describe('partners only. Set to hold whenever the question says on hold, also when it also asks by or per something ("on hold by ERP" is status hold with groupBy erp)'),
     erp: z.enum(ERPS).optional().describe('partners only'),
     type: z.enum(TYPE_CODES).optional().describe('partners only: customer type or supplier category'),
     risk: z.enum(['A', 'B', 'C', 'D']).optional().describe('partners only: finance risk grade'),
@@ -28,7 +28,7 @@ export const QuerySpecSchema = z.object({
     source: z.enum(['hub', 'desk']).optional().describe('requests only: raised in the hub form or in the service desk'),
     approval: z.enum(['automatic', 'central_team']).optional().describe('requests only: approved by the checks or by the central team'),
     route: z.enum(ROUTES).optional().describe('checks only'),
-    group: z.string().min(2).max(60).optional().describe('partners only: part of a corporate group or ultimate parent name, as the person wrote it'),
+    group: z.string().min(2).max(60).optional().describe('partners only: part of a corporate group, ultimate parent or company name, as the person wrote it'),
   }).default({}),
   time: z.enum(TIMES).default('all_time').describe('partners by when they joined, requests by when they were submitted, checks by when they ran'),
   groupBy: z.enum(GROUP_BYS).optional().describe('at most one dimension'),

@@ -20,7 +20,7 @@ Every value is from a closed list except one: `group`, a name the code matches a
 | `filters.source` | requests: hub form, service desk | Which way in |
 | `filters.approval` | requests: automatic, central team | Since the service desk |
 | `filters.route` | checks: exact match here, exact match elsewhere, same company, name match, clear | |
-| `filters.group` | a group or ultimate-parent name, as typed | Matched by code (case-insensitive, contains); the matched names are echoed back |
+| `filters.group` | a group, ultimate-parent or company name, as typed | Matched by code (case-insensitive, contains) against the group, the ultimate parent and the company's own legal name; the matched names are echoed back. A company name matches only in regions the person can see. (Widened on 2026-11-03: "the credit limit of Aurora Nordic AB" names a company, not a group, and matched nothing.) |
 | `time` | `this_month`, `last_30_days`, `last_90_days`, `this_year`, `all_time` | Partners by when they joined, requests by when they were submitted, checks by when they ran |
 | `groupBy` | partners: region, erp, status, type, domain, ultimate_parent, currency. requests: region, state, domain, source, approval, month. checks: region, route, month | At most one dimension, so every answer is a number, a bar chart or a line |
 | `limit` | 1 to 20, default 10 | |
@@ -32,7 +32,7 @@ Every value is from a closed list except one: `group`, a name the code matches a
    - Region filters are intersected with the person's visible regions.
    - Amounts are intersected with their money regions. With none, the answer is the existing note ("not entitled to amounts"), not a number.
    - Grouping by ultimate parent shows a group only if it has a member in a visible region, and sums only visible rows.
-   - Partner names other than a group's never appear in an aggregate answer; listing records is what search is for.
+   - Partner names other than a group's never appear in an aggregate answer, except a company the person named themselves, echoed back from a visible region; listing records is what search is for.
 3. **Runs it.** One parameterised query is built from fixed fragments, one per allowed part. No string from the model reaches SQL except the group name, as a bound parameter.
 4. **Says what ran.** Code, not the model, writes the query in words under the answer: "Partners on hold, by region, all time, in BR, EU (your regions)". A wrong reading by the model shows up there.
 

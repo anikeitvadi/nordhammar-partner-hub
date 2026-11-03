@@ -32,7 +32,7 @@ flowchart LR
     HUB["Hub database (Marketplace Postgres): golden records, requests, checks"]
     WF["Workflows: wait for finance, check, one keyed write; the nightly load"]
     CRON["Cron Job: 08:00 UTC"]
-    GW["AI Gateway: name-match proposal, Ask the hub"]
+    GW["AI Gateway: name-match proposal, Ask"]
   end
   E1 --- IP
   E2 --- IP
@@ -88,7 +88,7 @@ And one fewer system: intake, the duplicate check, the questions and the reports
 |---|---|---|---|
 | **Workflows** | Two durable runs. (a) One run per request revision waits on finance's decision in the service desk (hours to days), then runs the checks again. Clean: an automatic approval that lists the checks that passed. Not clean: the same run waits again, on the central team. Either way it then owns the single create with an idempotency key, bounded retries with backoff, and a duplicate-run guard, and writes the outcome back to the ticket. Each request page reads its run's event log from the Workflow World (metadata only) and shows where the time went: each step and its retries, each wait on a person, and the run's event cost at the list price. (b) The nightly load: takes a lock, reads the golden-record feed page by page from the stored cursor, writes each page as its own step (a failed page is retried on its own), then clears the search cache for the regions it touched. A run is pinned to the deployment that started it and survives redeploys (§5). | Rejected: a status table plus a cron job, which is what exists today and loses the wait and the retry semantics. Trade-off: finished runs' payloads are readable for 1 day on Hobby, 7 on Pro, 30 on Enterprise; the business truth therefore lives in the database, never only in the run. | All plans. Sources: https://vercel.com/docs/workflows ; https://vercel.com/docs/workflows/retention |
 | **Cron Jobs** | Starts the nightly load at 08:00 UTC (02:00 Central). Vercel sends the project's `CRON_SECRET` as a bearer token; the route accepts only that and refuses everything when none is configured; it only starts the Workflow. "Run now" for the central team starts the same Workflow. | Rejected: a Workflow that sleeps 24 hours and starts itself again. It works without Cron, but the schedule then lives inside a running chain: not in the project's cron list, and one broken link stops every later night without a trace. | All plans; Hobby at most daily with hour-level precision, Pro to the minute. Sources: https://vercel.com/docs/cron-jobs/usage-and-pricing ; https://vercel.com/docs/cron-jobs/manage-cron-jobs |
-| **AI SDK 7** | Two uses. (a) One structured generation on exactly one route: a name match against a hub record that carries no tax ID. Code decides the other four routes. The model may only propose; a validator rejects any claim about a candidate or field it was not given; nothing it says reaches the ERP. (b) "Ask the hub": one streamed call (`streamText`) with six typed, read-only tools (three for intake questions, three for reporting), two steps at most, each tool calling the same scoped reader the pages call with the principal closed over in code. The card is the tool result and is sent the moment the lookup returns; the sentence follows word by word, each word released only after the citation rule has checked it, so an uncited id or number never reaches the screen. No tool writes. | Rejected: rules only (the ticket process already is that) and a chat box over the database, including text-to-SQL. Trade-off: the proposal is advice to the human reviewer, by design. | n/a (library) |
+| **AI SDK 7** | Two uses. (a) One structured generation on exactly one route: a name match against a hub record that carries no tax ID. Code decides the other four routes. The model may only propose; a validator rejects any claim about a candidate or field it was not given; nothing it says reaches the ERP. (b) "Ask": one streamed call (`streamText`) with four read-only tools, two steps at most. Three look up one record (a group, a request, why it was flagged). The fourth, `queryHub`, takes a typed query spec from closed lists (subject, measure, filters, time window, one grouping); code refuses unsupported combinations with a fixed sentence, intersects regions and amount regions with the person's, runs one parameterised query from fixed fragments, and writes the query in words under the answer (`docs/QUERY-SPEC-CONTRACT.md`). The card is the tool result and is sent the moment the lookup returns; the sentence follows word by word, each word released only after the citation rule has checked it, so an uncited id or number never reaches the screen. No tool writes. | Rejected: rules only (the ticket process already is that) and a chat box over the database, including text-to-SQL. Trade-off: the proposal is advice to the human reviewer, by design. | n/a (library) |
 | **AI Gateway** | Both uses go to a virtual model (`vmc/nordhammar-proposal`): a primary, one fallback, zero data retention and no prompt training pinned on the Gateway side, so a model change is a dashboard edit, not a deploy. Today the primary is gpt-4.1-mini with Haiku 4.5 as the fallback, because the team's free Gateway credits admit the former and not the latter. The served model, every model the Gateway tried, the tokens, the cost and the time of each proposal are recorded with the request and shown on its Run panel (§6). For the demo, a flag (`ai-model`, flipped from the Toolbar) swaps the model for the duplicate check and Ask without a deploy. Only a model that passes the live eval is offered (§6). Today that is one option beside the configured model: Haiku 4.5 first, which the free tier refuses, so gpt-4.1-mini serves. That is a real fallback, visible on the panel and in Ask's details. Zero data retention is requested because the prompt carries a counterparty's identity; a call that cannot be served under it fails, and the request proceeds to review without the proposal. | Rejected: a direct provider SDK (one vendor, no failover, no retention control). Trade-off: a provider without ZDR is refused, which is the point. | Virtual models: all plans. Per-request ZDR: **Pro and Enterprise**, no extra cost. Sources: https://vercel.com/docs/ai-gateway/models-and-providers/virtual-models ; https://vercel.com/docs/ai-gateway/security-and-compliance/zdr |
 | **Cache Components (Next.js 16)** | Every page is a prerendered shell with per-request content streamed behind Suspense; the per-region partner lists are cached and cleared by the load. Page by page in "What renders when" below. | Rejected: fully dynamic pages for data that changes once a night. Honest limit: the default cache handler is per instance, so the server-side hit rate on serverless is modest. The production option is `use cache: remote` on Runtime Cache, which Next.js 16 keys by build, so each deployment starts cold. | All plans. Source: https://vercel.com/docs/caching/runtime-cache |
 | **OIDC federation** | The app authenticates to the integration platform with the token Vercel mints for its own deployment: short-lived, per invocation, naming team, project and environment. The receiver verifies it against Vercel's published keys and accepts only this project's subjects. Production accepts only this credential; the shared secret works in development alone (§6). | Rejected: a long-lived API key as the primary credential, which is what OIDC exists to replace. Honest limit: the `development` subject is on the allow list so a local run can reach the deployed stand-in; production would list `production` only. | All plans. Source: https://vercel.com/docs/oidc/reference |
@@ -188,14 +188,14 @@ Alternatives, each with the one reason it did not win:
 | An exception | The same-company case above, submitted, then the desk, then Exceptions as Priya | `Aurora Industrial Filial Centro` | Finance approves; the hub stops it as an exception (same company as another establishment; the requester chose new company in this group). Priya sees the reasons and approves; the number lands and goes back to the ticket |
 | Ticket first | The desk: New partner ticket, then approve | A new name and a valid CNPJ, requester `ana.requester@example.com`, region BR | The ticket becomes a hub request when finance approves, is checked, and is created; no duplicate check ran at entry, so the hub's checks are the only ones. Leave the CEP blank and it becomes an exception, "missing: CEP", instead |
 | Finance rejects | Any request's ticket in the desk: Reject, with a reason | | The request reads declined by finance, with finance's reason; a reject without a reason is refused |
-| Lost response | Exceptions as Priya, "Demo controls": "Drop the next ERP response", then any clean create through finance | | Attempt 1 gets no answer; the retry with the same key gets the same number back; one record |
+| Lost response | Exceptions as Priya, "Demo controls": "Drop the Next ERP Response", then any clean create through finance | | Attempt 1 gets no answer; the retry with the same key gets the same number back; one record |
 | China | Request a new customer as Priya, region CN | Both names and an 18-character unified code | Routed to ERP-3; a 310xxx number |
-| Make it searchable | Exceptions as Priya: "Run the hub load now" in the header | | The load runs as a Workflow; the line under the button says what it loaded; search finds the new partner |
+| Make it searchable | Exceptions as Priya: "Run the Hub Load Now" in the header | | The load runs as a Workflow; the line under the button says what it loaded; search finds the new partner |
 | Where the time went | Any created request, "How this ran" | | Each Workflow step with its time and retries, each wait on finance or the central team, and the cost of the request: the model's (measured) plus the run's events (at list price) |
 | Switch the model | Vercel Toolbar: `ai-model` to "Haiku 4.5 first", then the name-match case or any Ask question | `Vela Processos do Brasil` | The proposal and Ask still answer; their details say Haiku did not answer and gpt-4.1-mini served. No deploy |
 | Stopped creates | Exceptions as Priya, the Stopped tab | | Each stopped create with its next step: check with the ERP, retry the delivery, or return it to the requester |
 | Every request | Requests as Priya | | Every request in every region, where it came in (hub form or service-desk ticket) and its ERP number |
-| Ask the hub | Ask the hub | "What is our credit exposure to the Aurora group?" | The card first, with the amounts the person may see (Ana: Brazil only; Priya: every region), then one sentence that streams in and cites only the card; the details show both model calls' cost |
+| Ask | Ask | "What is our credit exposure to the Aurora group?" | The card first, with the amounts the person may see (Ana: Brazil only; Priya: every region), then one sentence that streams in and cites only the card; the details show both model calls' cost |
 | The outcomes | Home | (nothing) | Duplicates stopped at entry, request to ERP number against one business day, and approvals that needed no person, this month, live |
 
 ## 5. Rollout and rollback
@@ -313,7 +313,7 @@ All on the deployed stack unless noted; dates 2026-10-31 to 2026-11-02.
   | Approve to created, one lost response and a 1 s backoff | About 5 s |
   | Cold sign-in on the hosted auth service | About 10 s once, then under a second |
   | Hub search and the on-entry check, warm database | Under a second |
-  | Ask the hub on production, four suggested questions as the central team | 2.0 to 3.0 s each |
+  | Ask on production, four suggested questions as the central team (before step 11) | 2.0 to 3.0 s each |
   | Ask, streamed (2026-11-03, staging) | Card at 1.3 to 1.9 s; whole answer at 2.2 to 2.7 s. Brotli-compressed and flushed in pieces |
 - **Tests (measured, Node 24, 2026-11-03).**
 
@@ -321,7 +321,7 @@ All on the deployed stack unless noted; dates 2026-10-31 to 2026-11-02.
   |---|---|---|
   | Contracts | 29 | Routing by region and the golden record a create publishes; the finance states and transitions; one case per clean check; the webhook signature (wrong secret, changed body, stale and future timestamps, no secret) |
   | Stand-in | 19 | The ledger's replay, conflict and rejection rules once per ERP; mapping into the three shapes; the door's refusals (missing or different Idempotency-Key, stale hash, a destination the region does not route to); feed paging across ties and re-runs; the OIDC verifier |
-  | Web unit | 72 | Routing, normalisation including CNPJ check digits, the two roles, the payload builder, timeline copy, the import-graph walls, Ask's leakage rule, the check record, the cron route failing closed; the model switch and the Gateway's routing block; the Run panel built from two real staging runs; the streamed sentence's citation check and the summed cost; weekday hours and the median for Home |
+  | Web unit | 80 | Routing, normalisation including CNPJ check digits, the two roles, the payload builder, timeline copy, the import-graph walls, Ask's leakage rule, the check record, the cron route failing closed; the model switch and the Gateway's routing block; the Run panel built from two real staging runs; the streamed sentence's citation check and the summed cost; weekday hours and the median for Home |
   | In-process Workflow | 5 | Wait, resume, duplicate-start guard; the request run's four paths: clean, exception then the central team, finance rejects, ticket first |
   | Integration, against the real hub | 6 | Last run 2026-11-01; they write test requests, so they are not re-run against the demo database |
   | Mock eval | 13 | E01 to E12: routing, privacy, the validator |
@@ -358,7 +358,8 @@ All on the deployed stack unless noted; dates 2026-10-31 to 2026-11-02.
 
   The customer's governance list decides the plan, not this app.
 - **Cache.** The default `use cache` handler is per instance, and a shared Runtime Cache starts cold on each deployment in Next.js 16. Search is fast enough either way at this volume; the limit is stated so nobody is surprised.
-- **"Ask the hub" is six questions, not a chat.** It answers group presence, request status, why a request was flagged, on hold, intake this month, and exposure by group. Anything else gets "I can't answer that here". Questions over the whole lake stay in the customer's BI. Text-to-SQL was rejected because a prompt is a wish and a region predicate in the query layer is a wall.
+- **Ask is a typed query, not a chat and not text-to-SQL.** It answers any count or total the spec can express over partners, requests and checks, at most one grouping at a time, and looks up one group or request. Anything else gets a refusal sentence or "I can't answer that here". Questions over the whole lake stay in the customer's BI. Text-to-SQL was rejected because a prompt is a wish and a region predicate in the query layer is a wall.
+- **The free Gateway tier allows 5 model calls a minute per model.** Every Ask answer takes two. Several people asking at once on the free tier get "the hub could not be asked"; paid credits remove the limit, with no code change.
 - **Emails and attachments.** Every event that would send an email writes a queued row to the timeline; nothing is sent. Attachments (tax registration, W-9) are not stored.
 - **Development subject on the allow list,** so a local run can reach the deployed stand-in. Production lists `production` only.
 - **Primary model not yet measured.** Haiku 4.5 needs paid Gateway credits; the fallback carries the demo until then.
@@ -398,31 +399,30 @@ The deployed click-through caught two regressions the tests and the build did no
 **How AI behaviour was validated.**
 - **Mock eval.** Twelve fixtures (E01 to E12) cover every routing outcome, the cross-region privacy rule, an invalid checksum and an injected instruction in a name. The mock eval runs offline on every CI run with canned model outputs. It proves routing, privacy and the validator: an invented absence, an unknown candidate and an echoed instruction are all rejected.
 - **Live eval.** It runs the four undecidable cases three times and records pass^3, latency, tokens and cost. A forced-failover case proves the Gateway served the fallback.
-- **Ask the hub.** Fourteen questions in `eval/ask.live.test.ts`:
-  - ten that should route to one of the six tools
+- **Ask.** Twenty questions in `eval/ask.live.test.ts`:
+  - six lookups of one record (a group, a request, why it was flagged), including a request id that does not exist
+  - ten counts and totals through `queryHub`, graded on the spec the model filled (subject, measure, filters, grouping, time window), not on its wording
+  - two that must be refused by the spec check rather than approximated (spend by industry; partners grouped by tax ID)
   - two that must make no tool call (the weather; an injected instruction to list EU tax IDs)
-  - two leakage cases by construction (another region's member shows as name and region only; another region's request reads as not found)
+  - leakage by construction: another region's group member shows as name and region only, and a person without an amount entitlement gets no number (A20)
 
-  A person without an amount entitlement getting "not entitled" instead of a number was checked live on staging on 1 Nov, not in the eval.
+  The readers are fixtures and the model is real. Cases are graded in code on the tool and its argument or spec, on leaked and required tokens, and on the sentence citing only what the tool returned.
 
-  The readers are fixtures and the model is real. Cases are graded in code on the tool and argument, on leaked and required tokens, and on the sentence citing only what the tool returned. Measured 1 Nov on `openai/gpt-4.1-mini`: 14 of 14 cases, two runs each (`eval/results/ask-2026-11-01T*.md`), about $0.0003 to $0.0004 a question as recorded then. **Corrected 2026-11-03:** that was the second model call only, because the result's top-level metadata is the last step's. Summed over both calls, an answer costs about $0.0007 to $0.0008 (measured on staging).
+  **Measured 3 Nov on `openai/gpt-4.1-mini`: 20 of 20 cases, three runs each** (`eval/results/ask-2026-11-03T13-15-26-920Z.md`). It took three rounds. The first full run failed six: amount questions about the Aurora group or one named company went to the presence lookup (A07, A12, A20), an unknown request id got no lookup (A10), "on hold by ERP" dropped the hold filter (A15), and spend by industry was answered by type instead of refused (A18). Sharper instructions fixed four. The last two were fixed by moving the rule into the tool and field descriptions the model reads when it chooses. A07 also exposed a real gap: the query's name filter matched groups and parents but not a company's own name, so even the right tool would have answered with nothing. It now matches all three (`docs/QUERY-SPEC-CONTRACT.md`). Earlier runs: `ask-2026-11-03T04-54-11-021Z.md`, `ask-2026-11-03T05-02-42-492Z.md`, `ask-2026-11-03T12-47-45-482Z.md`.
+
+  Cost, summed over both model calls: about $0.0007 to $0.0008 an answer (measured on staging, 3 Nov). The 1 Nov figure of $0.0003 to $0.0004 counted the second call only, because the result's top-level metadata is the last step's.
 - **Human review** of the model's reasons is recorded here, not in code.
 
-**Design rationale (the UX pass, 1 Nov).**
-- **Taken from the design references:**
-  - five inks and one accent
-  - one radius scale and one control height
-  - sentence case
-  - one big real number per surface
-  - tiles that share one frame with one hero
-  - two motion curves that change only what changed and hold a still frame under reduced motion
+**Design rationale (the ink pass, 3 Nov; the contract is `docs/DESIGN.md`).**
+- **What it is:** a white page, five inks and no accent colour, a serif for titles, a sans for everything people read and operate, mono only for identifiers. No cards, tiles or pills: whitespace groups things and one hairline separates rows. A status is its word in its colour (green done, amber waiting, red stopped). Filters are words you press. One black primary action per screen, and the top bar never repeats the page's title.
+- **Why it changed:** the 1 Nov pass (tiles in one frame, a blue accent, uppercase labels) read as a kit of parts, and the same page said its own name twice. The new direction is crisp black and white, with one visual that carries the data.
+- **The one visual:** Home's globe draws the person's partners at their cities and joins a corporate group's establishments across regions, the duplicate the hub exists to stop. It is the one piece of motion that keeps going, on purpose; working screens rise into place once and hold.
 - **Rejected:**
-  - cinematic in-app motion and a motion library, because four small animations driven by polled state do not need a dependency
+  - a motion library, because the motion is a handful of CSS transitions and one canvas
   - decorative ASCII anywhere but the sign-in page, the one screen that is not a working screen
   - a one-click demo sign-in (§7)
-- **Tables** use the sans face; the serif stays for headings and reading text.
-- **Verified** on the deployed app at 1440 and 390 px, keyboard only from search through approval (`docs/evidence/ux-*`).
-- **Sign-in LCP** (**measured**, warm cache): 164 ms before the pass, 188 ms after, 636 ms on the first request after a deploy (`docs/evidence/lcp-login.txt`).
+- **Verified** locally on a production build at 1440 and 390 px as Ana and Priya, every screen; on staging after the step 11 release (BRIEF-TRACE step 11).
+- **Sign-in LCP** (**measured**, warm cache, 1 Nov pass): 164 ms before, 188 ms after, 636 ms on the first request after a deploy (`docs/evidence/lcp-login.txt`).
 
 ### Feedback on the exercise
 
