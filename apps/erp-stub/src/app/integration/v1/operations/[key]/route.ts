@@ -11,5 +11,5 @@ export async function GET(req: Request, { params }: { params: Promise<{ key: str
   const { key } = await params
   const row = await new NeonStore(url).get(decodeURIComponent(key))
   if (!row) return NextResponse.json({ reason: 'not found' }, { status: 404 })
-  return NextResponse.json({ operationKey: row.operationKey, erp: row.erp, status: row.status, number: row.number, customerNumber: row.number, reason: row.reason })
+  return NextResponse.json({ operationKey: row.operationKey, erp: row.erp, status: row.status, number: row.number, reason: row.reason })
 }

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { ErpCreateCommandSchema, goldenFromPayload, payloadHash, type ErpCreateCommand } from '@intake/contracts'
 import { callerFromRequest } from '@/features/auth/caller'
-import { apply, type Domain } from '@/features/ledger/ledger'
+import { apply } from '@/features/ledger/ledger'
 import { NeonStore } from '@/features/ledger/neon-store'
 import { checkCommand } from './command'
 import { toNative } from './mapping'
@@ -16,17 +16,13 @@ import { toNative } from './mapping'
 //   [LOSTRESPONSE]  commit, then answer 503 (caller retries; replay returns the same number)
 //   or the one-shot switch armed from the operations page (POST /api/demo/faults): same effect, clean legal name.
 //   [REJECT]        business rejection 422 (definitive)
-// `legacyDomain` serves the old /api/customers and /api/suppliers routes for the one deploy in which the hub still
-// calls them; they take the key from the body and are removed once the hub calls this route.
-export async function createPartner(req: Request, opts: { legacyDomain?: Domain } = {}): Promise<Response> {
+export async function createPartner(req: Request): Promise<Response> {
   const caller = await callerFromRequest(req)
   if (!caller) return NextResponse.json({ reason: 'unauthorized' }, { status: 401 })
   const parsed = ErpCreateCommandSchema.safeParse(await req.json().catch(() => null))
   if (!parsed.success) return NextResponse.json({ reason: 'malformed command' }, { status: 400 })
   const cmd: ErpCreateCommand = parsed.data
-  if (opts.legacyDomain && cmd.payload.domain !== opts.legacyDomain) return NextResponse.json({ reason: `this endpoint creates ${opts.legacyDomain}s` }, { status: 400 })
-  const headerKey = opts.legacyDomain ? cmd.operationKey : req.headers.get('idempotency-key')
-  const check = checkCommand(headerKey, cmd, await payloadHash(cmd.payload))
+  const check = checkCommand(req.headers.get('idempotency-key'), cmd, await payloadHash(cmd.payload))
   if (!check.ok) return NextResponse.json({ reason: check.reason }, { status: 400 })
   const faults = process.env.DEMO_CONTROLS_ENABLED === 'true'
   if (faults && /\[TIMEOUT\]/i.test(cmd.payload.legalName)) await new Promise((r) => setTimeout(r, 20_000))
@@ -49,5 +45,5 @@ export async function createPartner(req: Request, opts: { legacyDomain?: Domain 
     return NextResponse.json({ reason: 'response lost after commit (demo fault)' }, { status: 503 })
   }
   if (result.status === 409 || result.status === 422) return NextResponse.json({ reason: result.reason }, { status: result.status })
-  return NextResponse.json({ erp: result.erp, number: result.number, customerNumber: result.number }, { status: result.status })
+  return NextResponse.json({ erp: result.erp, number: result.number }, { status: result.status })
 }

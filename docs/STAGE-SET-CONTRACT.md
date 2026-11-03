@@ -73,7 +73,7 @@ All under `/integration/v1`. Every call carries the app's Vercel OIDC token, ver
 |---|---|---|
 | `POST /integration/v1/partners` with header `Idempotency-Key: <operationKey>` | Body: today's `ErpCreateCommand`. The layer recomputes the payload hash, routes by `payload.destination.region` to ERP-1, ERP-2 or ERP-3, maps the fields, and creates the partner in that ERP's ledger. The header must equal the body's operation key. | 201 `{ erp, number }` created; 200 the same `{ erp, number }` on replay; 409 key reused with a different payload; 422 the ERP refused (definitive); 400 malformed or header mismatch; 401 no valid identity; 503 the fault switch or "not configured" |
 | `GET /integration/v1/operations/{key}` | What happened to a key, for reconcile. 404 means not yet, not never. | `{ erp, status, number, reason }` |
-| `GET /integration/v1/golden-records?since=<cursor>&limit=<n>` | Golden records changed since the cursor, already cleansed on the customer's side (log §16b: no duplicates in the feed). Paged. | `{ records: [...], next: <cursor> \| null }` |
+| `GET /integration/v1/golden-records?since=<cursor>&limit=<n>` | Golden records changed since the cursor, already cleansed on the customer's side (log §16b: no duplicates in the feed). Paged. | `{ records: [...], next: <cursor> \| null }`. `next` is where the following call starts; it is null only on an empty page, so the hub stores it after every non-empty page and stops on an empty one |
 | `POST /api/demo/faults` | Unchanged: arms the one-shot lost-response fault. Demo only. | as today |
 
 The old routes (`/api/customers`, `/api/suppliers`, `/api/operations/:key`) are removed once the hub uses the new ones, so there is exactly one door.
