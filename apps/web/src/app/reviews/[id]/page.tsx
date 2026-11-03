@@ -6,6 +6,7 @@ import { notFound } from 'next/navigation'
 import { requirePrincipal } from '@/features/auth/principal.server'
 import { isCentral } from '@/features/auth/scope'
 import { getRequest } from '@/features/requests/store.server'
+import { readGroupExposure } from '@/features/customers/reports.server'
 import { decideAction, openReviewAction } from '@/features/reviews/actions'
 import { StatusBadge } from '@/features/requests/status'
 import { SubmitButton } from '@/features/ui/submit-button.client'
@@ -16,6 +17,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 }
 
 const KIND: Record<string, string> = { bill_to: 'Bill-to', ship_to: 'Ship-to', remit_to: 'Remit-to' }
+const money = (n: number, c: string) => new Intl.NumberFormat('en', { style: 'currency', currency: c, maximumFractionDigits: 0 }).format(n)
 
 // WF-06: the form as submitted, the duplicate-check outcome and the requester's reason, side by side. One decision.
 // Approve is not optimistic and has no undo: it unlocks an ERP write that cannot be undone, so it asks once, in
@@ -29,6 +31,8 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
   const s = r.state
   const p = r.payload
   const decidable = s.kind === 'under_review' || s.kind === 'exception'
+  // A new company in an existing group: what the group already holds, so the credit check happens before approval.
+  const exposure = r.dupChoice === 'new_in_group' && r.linkedGoldenId && r.domain === 'customer' ? await readGroupExposure(principal, r.linkedGoldenId) : null
   const thing = r.domain === 'customer' ? 'customer' : 'supplier'
   const approveText = `Approve ${p.legalName} as a new ${thing} in ${p.destination.erp} (${r.region})?\n\nThe ERP will create the record and assign its number. This cannot be undone.`
   return (
@@ -47,6 +51,16 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
       {s.kind === 'exception' ? <p className="panel hint"><strong>Why this was not approved automatically.</strong> {s.reasons.join('; ')}. Finance approved it in the service desk{s.ticketId ? ` (ticket ${s.ticketId})` : ''}.</p> : null}
       <h2>Duplicate check</h2>
       <p className="panel">{r.dupChoice === 'new' ? 'No match found in the hub at submission.' : r.dupChoice === 'new_in_group' ? <>Requester chose <strong>new company in the same group</strong> as {r.linkedGoldenId}.</> : <>Requester chose <strong>not related</strong> to {r.linkedGoldenId}. Reason: “{r.dupReason}”</>}</p>
+      {exposure ? (
+        <>
+          <h2>Group exposure</h2>
+          <p>Approving adds a company to <strong>{exposure.group}</strong>. Before this one, Nordhammar has extended{exposure.totals.length ? <> <strong>{exposure.totals.map((t) => money(t.total, t.currency)).join(' and ')}</strong></> : ' no credit'} to it across {new Set(exposure.members.map((m) => m.region)).size} {new Set(exposure.members.map((m) => m.region)).size === 1 ? 'region' : 'regions'}{exposure.hidden.length ? `, not counting ${exposure.hidden.join(', ')}, where you do not see amounts` : ''}. Finance in {r.region} sets this company&rsquo;s own limit.</p>
+          <table className="results">
+            <thead><tr><th>Company</th><th>Region</th><th className="num">Credit limit</th></tr></thead>
+            <tbody>{exposure.members.map((m) => <tr key={m.goldenId}><td>{m.legalName}</td><td>{m.region}</td><td className="num">{m.credit === 'not_entitled' ? <span className="muted">not shown</span> : m.credit ? money(m.credit.limit, m.credit.currency) : <span className="muted">none</span>}</td></tr>)}</tbody>
+          </table>
+        </>
+      ) : null}
       <h2>Details</h2>
       <dl className="facts">
         <dt>Type</dt><dd>{typeLabel(p.typeCode) ?? <span className="muted">none</span>}</dd>
@@ -66,7 +80,7 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
       ) : null}
       {decidable ? (
         <div className="decide">
-          <p className="muted">Check: the tax ID looks right, the region is right, the duplicate-check outcome makes sense, the reason makes sense. Credit and terms are not yours; finance sets them in the ERP.</p>
+          <p className="muted">Check: the tax ID looks right, the region is right, the duplicate-check outcome makes sense, the reason makes sense{exposure ? ', and the group can carry another company' : ''}. This company&rsquo;s own limit and terms are set by finance in {r.region}.</p>
           <form action={decideAction} className="inline"><input type="hidden" name="requestId" value={r.requestId} /><input type="hidden" name="revision" value={r.revision} /><input type="hidden" name="payloadHash" value={r.payloadHash} /><input type="hidden" name="decision" value="approve" /><SubmitButton pendingLabel="Approving…" confirm={approveText}>Approve and Create in {p.destination.erp}</SubmitButton></form>
           <form action={decideAction} className="stack"><input type="hidden" name="requestId" value={r.requestId} /><input type="hidden" name="revision" value={r.revision} /><input type="hidden" name="payloadHash" value={r.payloadHash} />
             <label htmlFor="reason">Reason <span className="muted">required to send back or decline; the requester reads it</span><input id="reason" name="reason" required minLength={3} /></label>
