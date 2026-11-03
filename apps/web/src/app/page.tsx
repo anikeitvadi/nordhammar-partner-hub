@@ -4,7 +4,7 @@ import { requirePrincipal } from '@/features/auth/principal.server'
 import { hasAnyRegion, visibleRegions } from '@/features/auth/scope'
 import { listMyRequests, listQueue } from '@/features/requests/store.server'
 import { isOperator, listAttention } from '@/features/execution/operator.server'
-import { StatusBadge } from '@/features/requests/status'
+import { StatusBadge, isLive } from '@/features/requests/status'
 import { LocalTime } from '@/features/ui/time.client'
 
 export const metadata: Metadata = { title: 'Home' }
@@ -18,7 +18,7 @@ export default async function HomePage() {
   const region = regions[0]
   const global = principal.globalIdentity
   const [mine, queue, attention] = await Promise.all([listMyRequests(principal), global ? listQueue(principal) : Promise.resolve([]), isOperator(principal) ? listAttention(principal) : Promise.resolve([])])
-  const inFlight = mine.filter((r) => r.state.kind === 'submitted' || r.state.kind === 'under_review' || r.state.kind === 'approved' || r.state.kind === 'creating').length
+  const inFlight = mine.filter((r) => isLive(r.state)).length
   const created = mine.filter((r) => r.state.kind === 'created').length
   const first = principal.displayName.split(' ')[0]
   return (

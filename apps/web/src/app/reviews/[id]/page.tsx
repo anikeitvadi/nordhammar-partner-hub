@@ -28,7 +28,7 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
   if (!r) notFound()
   const s = r.state
   const p = r.payload
-  const decidable = s.kind === 'under_review'
+  const decidable = s.kind === 'under_review' || s.kind === 'exception'
   const thing = r.domain === 'customer' ? 'customer' : 'supplier'
   const approveText = `Approve ${p.legalName} as a new ${thing} in ${p.destination.erp} (${r.region})?\n\nThe ERP will create the record and assign its number. This cannot be undone.`
   return (
@@ -43,6 +43,7 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
         <dt>DUNS</dt><dd>{p.duns ?? <span className="muted">not given</span>}</dd>
         <dt>Will be created in</dt><dd>{p.destination.erp} · {r.region} · {r.domain === 'customer' ? 'customer master' : 'vendor master'}</dd>
       </dl>
+      {s.kind === 'exception' ? <p className="panel hint"><strong>Why this was not approved automatically.</strong> {s.reasons.join('; ')}. Finance approved it in the service desk{s.ticketId ? ` (ticket ${s.ticketId})` : ''}.</p> : null}
       <h2>Duplicate check</h2>
       <p className="panel">{r.dupChoice === 'new' ? 'No match found in the hub at submission.' : r.dupChoice === 'new_in_group' ? <>Requester chose <strong>new company in the same group</strong> as {r.linkedGoldenId}.</> : <>Requester chose <strong>not related</strong> to {r.linkedGoldenId}. Reason: “{r.dupReason}”</>}</p>
       <h2>Details</h2>

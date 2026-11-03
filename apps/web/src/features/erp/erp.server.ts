@@ -79,3 +79,19 @@ export async function readGoldenRecords(since: string | null, limit = 200): Prom
   if (!res.ok) throw new Error(`golden-record feed answered ${res.status}`)
   return GoldenFeedSchema.parse(await res.json())
 }
+
+// The customer's service desk sits behind the same identity check as the integration platform (the deployment's OIDC
+// token), so it is reached from here too: this module stays the one network path to the customer's systems.
+export async function openDeskTicket(t: { hubRequestId: string; hubRevision: number; requesterEmail: string; region: string; domain: string; summary: { legalName: string; taxId: string; country: string } }): Promise<string> {
+  const { base, token } = await config()
+  const res = await fetch(`${base}/desk/v1/tickets`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` }, body: JSON.stringify(t), cache: 'no-store', signal: AbortSignal.timeout(8000) })
+  if (!res.ok) throw new Error(`service desk answered ${res.status}`)
+  return ((await res.json()) as { id: string }).id
+}
+
+// The outcome, written back to the ticket. The key makes a retried write land once.
+export async function commentOnTicket(ticketId: string, key: string, body: string): Promise<void> {
+  const { base, token } = await config()
+  const res = await fetch(`${base}/desk/v1/tickets/${encodeURIComponent(ticketId)}/comments`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` }, body: JSON.stringify({ key, body }), cache: 'no-store', signal: AbortSignal.timeout(8000) })
+  if (!res.ok) throw new Error(`service desk answered ${res.status}`)
+}

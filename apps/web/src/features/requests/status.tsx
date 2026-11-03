@@ -1,7 +1,7 @@
 import type { Domain, RequestState } from '@intake/contracts'
 import { describeCheck } from '@/features/intake/check-record'
 
-export const STATE_LABEL: Record<RequestState['kind'], string> = { draft: 'Draft', submitted: 'Submitted', under_review: 'Under review', approved: 'Approved', creating: 'Creating in ERP', created: 'Created', declined: 'Declined', stopped: 'Stopped' }
+export const STATE_LABEL: Record<RequestState['kind'], string> = { draft: 'Draft', awaiting_finance: 'With finance', checking: 'Checking', exception: 'Exception', submitted: 'Submitted', under_review: 'Under review', approved: 'Approved', creating: 'Creating in ERP', created: 'Created', declined: 'Declined', stopped: 'Stopped' }
 
 export function StatusBadge({ state }: { state: RequestState }) {
   return <span className={`badge badge-${state.kind}`}>{STATE_LABEL[state.kind]}</span>
@@ -11,20 +11,23 @@ export function StatusBadge({ state }: { state: RequestState }) {
 export function describeState(s: RequestState, domain: Domain = 'customer'): string {
   const thing = domain === 'customer' ? 'customer' : 'supplier'
   switch (s.kind) {
-    case 'draft': return s.returnedReason ? 'Returned to you with a note. Fix it and submit again; it goes back into the queue.' : 'Saved as a draft. Only you can see it until you submit.'
-    case 'submitted': return 'In the review queue. A reviewer on the North America or India shift will pick it up, usually the same business day.'
-    case 'under_review': return 'A reviewer has it open.'
+    case 'draft': return s.returnedReason ? 'Returned to you with a note. Fix it and submit again; it goes back to finance.' : 'Saved as a draft. Only you can see it until you submit.'
+    case 'awaiting_finance': return `With finance in the service desk${s.ticketId ? ` (ticket ${s.ticketId})` : ''}. When finance approves, the hub checks it again; if every check passes, the ERP number is assigned automatically.`
+    case 'checking': return `Finance approved. The hub is checking it again now.`
+    case 'exception': return `Waiting for the central master-data team: ${s.reasons.join('; ')}.`
+    case 'submitted': return 'In the central team\'s queue.'
+    case 'under_review': return 'The central team has it open.'
     case 'approved': return `Approved. Creating the ${thing} in the ERP now.`
     case 'creating': return `Creating the ${thing} in the ERP. If the ERP is slow we try again with the same request, so it can never be created twice.`
     case 'created': return `Done. The ERP assigned the ${thing} number.`
-    case 'declined': return `Declined: ${s.reason}`
+    case 'declined': return s.by === 'finance' ? `Declined by finance: ${s.reason}` : `Declined: ${s.reason}`
     case 'stopped': return s.effect === 'unknown' ? 'Stopped: the ERP did not answer. An operator will check with the ERP whether it was created before anything is retried.' : `Stopped: ${s.reason}. An operator will return it to you to fix.`
   }
 }
 
 // States that can still change on their own. The status page polls only while one of these is current.
 export function isLive(s: RequestState): boolean {
-  return s.kind === 'submitted' || s.kind === 'under_review' || s.kind === 'approved' || s.kind === 'creating'
+  return s.kind === 'awaiting_finance' || s.kind === 'checking' || s.kind === 'exception' || s.kind === 'submitted' || s.kind === 'under_review' || s.kind === 'approved' || s.kind === 'creating'
 }
 
 export type TimelineEvent = { at: string; kind: string; actor: string | null; detail: unknown }
@@ -42,7 +45,12 @@ export function describeEvent(e: TimelineEvent): string {
   switch (e.kind) {
     case 'draft_saved': return 'Saved as a draft'
     case 'email_queued': return `Email queued to ${d.to === 'approvers' ? 'the approver team' : 'the requester'}: ${String(d.template ?? '').replace(/_/g, ' ')}`
-    case 'submitted': return `Submitted${by ? ` by ${by}` : ''}${d.dupChoice === 'not_related' ? ', marked not related to the suggested match' : d.dupChoice === 'new_in_group' ? ', as a new company in an existing group' : ''}`
+    case 'ticket_opened': return `Ticket ${String(d.ticketId ?? '')} opened in the service desk for finance`
+    case 'finance_approved': return `Approved by finance${by ? ` (${by})` : ''} in the service desk`
+    case 'finance_rejected': return `Rejected by finance${by ? ` (${by})` : ''}${d.reason ? `: ${String(d.reason)}` : ''}`
+    case 'checks_clean': return `Every check passed after finance approved, so it was approved automatically: ${(d.checks as string[] | undefined)?.join(', ') ?? ''}`
+    case 'exception': return `Not approved automatically. For the central team: ${(d.reasons as string[] | undefined)?.join('; ') ?? ''}`
+    case 'submitted': return d.via === 'service desk' ? `Raised in the service desk (ticket ${String(d.ticketId ?? '')}) by ${by ?? 'the requester'}` : `Submitted${by ? ` by ${by}` : ''}${d.dupChoice === 'not_related' ? ', marked not related to the suggested match' : d.dupChoice === 'new_in_group' ? ', as a new company in an existing group' : ''}`
     case 'resubmitted': return `Submitted again${by ? ` by ${by}` : ''} (version ${String(d.revision ?? '')})`
     case 'opened_for_review': return `Opened for review${by ? ` by ${by}` : ''}`
     case 'approve': return `Approved${by ? ` by ${by}` : ''}. This exact version is what the ERP receives`

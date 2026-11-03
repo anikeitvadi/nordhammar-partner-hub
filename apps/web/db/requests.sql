@@ -105,3 +105,21 @@ create table if not exists hub_checks (
 );
 create index if not exists hub_checks_latest on hub_checks (requester_email, domain, tax_canonical, at desc);
 create index if not exists hub_checks_by_month on hub_checks (at, route);
+
+-- The service desk (docs/SERVICE-DESK-CONTRACT.md). The ticket a request waits on, every webhook event the hub has
+-- acted on (a repeat is answered 200 and ignored), and the central team's switch for automatic approval.
+alter table requests add column if not exists ticket_id text;
+create table if not exists desk_events (
+  event_id text primary key,
+  received_at timestamptz not null default now(),
+  type text not null,
+  ticket_id text not null,
+  request_id text
+);
+create table if not exists hub_settings (
+  id int primary key default 1 check (id = 1),
+  auto_approve boolean not null default true,
+  updated_by text,
+  updated_at timestamptz
+);
+insert into hub_settings (id) values (1) on conflict (id) do nothing;

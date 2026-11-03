@@ -2,7 +2,8 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { requirePrincipal } from '@/features/auth/principal.server'
 import { isOperator, listAttention } from '@/features/execution/operator.server'
-import { armLostResponseAction, reconcileAction, recoverAction, retryDeliveryAction, runLoadNowAction } from '@/features/execution/actions'
+import { armLostResponseAction, reconcileAction, recoverAction, retryDeliveryAction, runLoadNowAction, setAutoApproveAction } from '@/features/execution/actions'
+import { autoApproveSetting } from '@/features/settings/settings.server'
 import { loadStatus } from '@/features/customers/load.server'
 import { LocalTime } from '@/features/ui/time.client'
 import { StatusBadge } from '@/features/requests/status'
@@ -19,6 +20,8 @@ function message(msg: string | undefined): string | null {
   switch (code) {
     case 'load_started': return 'Hub load started. It reads the golden-record feed from where the last load stopped; the line below shows the result when it finishes, usually within a minute.'
     case 'load_running': return 'A hub load is already running. It will finish on its own.'
+    case 'auto_on': return 'Automatic approval is on: a finance-approved request that passes every check is created without a person.'
+    case 'auto_off': return 'Automatic approval is off: every finance-approved request now waits for the central team.'
     case 'delivered': return `Delivery retried: ${n(a)} delivered, ${n(b)} failed.`
     case 'reconciled': return a === 'created' ? 'Checked with the ERP: it had been created. The request is now Created.' : a === 'no_effect' ? 'Checked with the ERP: nothing was created. The request can be returned to the requester.' : 'Nothing to reconcile for that request.'
     case 'recovered': return 'Returned to the requester as a draft.'
@@ -38,7 +41,7 @@ export default async function OperationsPage({ searchParams }: { searchParams: P
   const principal = await requirePrincipal()
   if (!isOperator(principal)) return <section className="narrow card" style={{ marginTop: 48 }}><h1>Operations</h1><p>Your role does not include operations.</p></section>
   const { msg } = await searchParams
-  const [rows, demo, lost, load] = await Promise.all([listAttention(principal), demoControls(), erpLostResponse(), loadStatus()])
+  const [rows, demo, lost, load, auto] = await Promise.all([listAttention(principal), demoControls(), erpLostResponse(), loadStatus(), autoApproveSetting()])
   const text = message(msg)
   return (
     <section>
@@ -51,6 +54,11 @@ export default async function OperationsPage({ searchParams }: { searchParams: P
           Nightly at 08:00 UTC (Vercel Cron), or now. Reads the integration platform&apos;s golden records since the last load and makes new partners searchable.
           {load.lastRunAt ? <> Last load <LocalTime iso={load.lastRunAt} />{load.lastTrigger === 'cron' ? ' (nightly)' : load.lastTrigger === 'manual' ? ' (run now)' : ''}: {load.lastCount ?? 0} {load.lastCount === 1 ? 'record' : 'records'}, {load.lastLinked ?? 0} {load.lastLinked === 1 ? 'request' : 'requests'} linked.</> : ' No load has run yet.'}
         </span>
+      </form>
+      <form action={setAutoApproveAction} className="row">
+        <input type="hidden" name="on" value={auto.on ? 'false' : 'true'} />
+        <SubmitButton pendingLabel="Saving…" className="secondary">{auto.on ? 'Turn automatic approval off' : 'Turn automatic approval on'}</SubmitButton>
+        <span className="muted">Automatic approval is <strong>{auto.on ? 'on' : 'off'}</strong>{auto.updatedBy ? <> (changed by {auto.updatedBy}{auto.updatedAt ? <>, <LocalTime iso={auto.updatedAt} /></> : null})</> : null}. On: a request finance approved that passes every check is created without a person. Off: every one comes to you.</span>
       </form>
       {demo ? <form action={armLostResponseAction} className="row"><SubmitButton pendingLabel="Arming…" className="secondary">Demo: drop the next ERP response</SubmitButton><span className="muted">The ERP commits the create and we never hear back, once. Watch the retry replay the same number.{lost ? ' The erp-lost-response flag is on: every approval arms this by itself.' : ''}</span></form> : null}
       <h2>Needs attention</h2>

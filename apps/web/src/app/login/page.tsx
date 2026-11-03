@@ -25,7 +25,7 @@ const ROLES = [
 const TRY = [
   { text: <>Search <code>aurora</code> as Ana: one group, three establishments, two ERPs.</>, copy: 'aurora' },
   { text: <>Request a customer with CNPJ <code>61.000.101/0001-57</code>: the hub stops you, it already exists.</>, copy: '61.000.101/0001-57' },
-  { text: <>Request <code>Aurora Industrial Nordeste</code> with CNPJ <code>12.345.678/0001-95</code>: no match, submit, approve as Priya, watch the ERP assign the number.</>, copy: '12.345.678/0001-95' },
+  { text: <>Request <code>Aurora Industrial Nordeste</code> with CNPJ <code>12.345.678/0001-95</code>: no match, submit, approve it as finance in the service desk, and watch the hub create it on its own.</>, copy: '12.345.678/0001-95' },
 ]
 
 type Params = Promise<{ error?: string; next?: string }>

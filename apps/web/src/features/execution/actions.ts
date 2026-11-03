@@ -6,6 +6,7 @@ import { requirePrincipal } from '@/features/auth/principal.server'
 import { deliverPending } from './deliver.server'
 import { isOperator, reconcile, recoverToDraft } from './operator.server'
 import { loadStatus } from '@/features/customers/load.server'
+import { setAutoApprove } from '@/features/settings/settings.server'
 import { start } from 'workflow/api'
 import { hubLoadWorkflow } from './load.workflow'
 import { armLostResponseFault } from '@/features/erp/erp.server'
@@ -57,4 +58,13 @@ export async function armLostResponseAction(): Promise<void> {
   if (!(await demoControls())) back('demo_off')
   const r = await armLostResponseFault()
   back(r.ok ? 'armed' : 'arm_failed')
+}
+
+// The central team turns automatic approval on or off. Takes effect for the next finance approval that arrives.
+export async function setAutoApproveAction(formData: FormData): Promise<void> {
+  const principal = await requirePrincipal()
+  const on = String(formData.get('on')) === 'true'
+  if (!(await setAutoApprove(principal, on))) back('not_operator')
+  revalidatePath('/operations')
+  back(on ? 'auto_on' : 'auto_off')
 }

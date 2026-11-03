@@ -1,15 +1,15 @@
 import type { RequestState } from '@intake/contracts'
 
 // The path a request takes, as a blueprint: fine grid, thin strokes, mono labels, one accent. Every label is a name
-// in the code (review.workflow.ts, steps.ts, erp.server.ts, the stub's verify.ts and receive.ts) so the diagram and
+// in the code (request.workflow.ts, desk.steps.ts, steps.ts, erp.server.ts, the stand-in's verify.ts and create.ts) so the diagram and
 // the code say the same words. `active` is derived from the real request state, never from a timer.
 export type Stage = 'request' | 'paused' | 'decide' | 'write' | 'erp' | 'finish'
 
 export function stageFor(kind: RequestState['kind']): Stage {
   switch (kind) {
     case 'draft': return 'request'
-    case 'submitted': case 'under_review': return 'paused'
-    case 'approved': return 'decide'
+    case 'awaiting_finance': case 'submitted': case 'under_review': case 'exception': return 'paused'
+    case 'checking': case 'approved': return 'decide'
     case 'creating': return 'write'
     case 'created': case 'declined': case 'stopped': return 'finish'
   }
@@ -17,11 +17,11 @@ export function stageFor(kind: RequestState['kind']): Stage {
 
 const BOXES: { id: Stage; title: string; lines: string[]; note: string }[] = [
   { id: 'request', title: 'IntakeForm', lines: ['checkMatches', 'submitRequestAction'], note: 'hub checked first' },
-  { id: 'paused', title: 'reviewWorkflow', lines: ['createHook(', '  review:<id>:<rev>)'], note: 'paused, costs nothing' },
-  { id: 'decide', title: 'decideAction', lines: ['deliverPending', 'resumeHook'], note: 'one approval' },
+  { id: 'paused', title: 'requestWorkflow', lines: ['createHook(', '  finance:<id>:<rev>)'], note: 'paused, costs nothing' },
+  { id: 'decide', title: 'checksStep', lines: ['cleanCheck', 'or decideAction'], note: 'auto, or a person' },
   { id: 'write', title: 'erpWriteStep', lines: ['createParty', 'getVercelOidcToken'], note: 'same key on retry' },
-  { id: 'erp', title: 'ERP stand-in', lines: ['authenticate (JWKS)', 'receive → ledger'], note: 'one row per key' },
-  { id: 'finish', title: 'finishStep', lines: ['created | stopped', 'dailyLoadAction'], note: 'number, then the hub' },
+  { id: 'erp', title: 'integration API', lines: ['authenticate (JWKS)', 'route → ERP-1/2/3'], note: 'one row per key' },
+  { id: 'finish', title: 'finishStep', lines: ['created | stopped', 'hubLoadWorkflow'], note: 'number, then the hub' },
 ]
 
 const W = 150, H = 86, GAP = 26, PAD = 16, TOP = 28

@@ -131,7 +131,7 @@ export function IntakeForm({ domain, regions, initialRegion, initial, mode, requ
         <div className="row">
           <SubmitButton pendingLabel="Submitting…">{mode === 'resubmit' ? 'Submit again' : 'Submit request'}</SubmitButton>
           {mode === 'new' ? <SubmitButton pendingLabel="Saving…" formAction={saveDraftAction} className="secondary">Save draft</SubmitButton> : null}
-          <span className="muted">Goes to the review queue. Nothing is created until a reviewer approves.</span>
+          <span className="muted">Goes to finance in the service desk (a ticket opens). When finance approves and every check passes, the ERP number is assigned automatically; anything else goes to the central master-data team.</span>
         </div>
         </div></div>
       </fieldset>

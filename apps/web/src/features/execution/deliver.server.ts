@@ -2,6 +2,7 @@ import 'server-only'
 import { start, resumeHook } from 'workflow/api'
 import { sql } from '@/lib/db'
 import { reviewWorkflow } from './review.workflow'
+import { requestWorkflow } from './request.workflow'
 import { hookToken, type WakePayload } from './steps'
 
 // Delivery to the workflow, from the durable deliveries table. Start and wake are both "at least once" from here;
@@ -15,7 +16,8 @@ export async function deliverPending(requestId: string): Promise<{ delivered: nu
     const revision = d.revision as number; const kind = d.kind as 'start' | 'wake'
     try {
       if (kind === 'start') {
-        const run = await start(reviewWorkflow, [requestId, revision])
+        // Requests submitted since the service-desk step go through finance; older ones keep the review-only run.
+        const run = (d.payload as { flow?: string } | null)?.flow === 'finance' ? await start(requestWorkflow, [requestId, revision]) : await start(reviewWorkflow, [requestId, revision])
         await db`update requests set workflow_run_id = ${run.runId} where request_id = ${requestId}`
         await db`update deliveries set status = 'delivered', attempts = attempts + 1, updated_at = now() where request_id = ${requestId} and revision = ${revision} and kind = 'start'`
       } else {
