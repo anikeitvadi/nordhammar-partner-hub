@@ -196,6 +196,11 @@ Alternatives, each with the one reason it did not win:
 
 Evidence: `docs/evidence/rollout-*`, `deploy-survival-runs.json`.
 
+**Re-run on the redesigned app (2026-11-02, measured).** A rolling release was started for the build that carries this document, and each stage was approved by hand:
+- **Stage one, 10%.** Inspect showed the step 4 deployment as current and the new one as canary at 10%. `?vcrrForceCanary=true` served the canary's deployment id; `?vcrrForceStable=true` served the current one. Twenty plain requests from one machine all landed on the current version, the same bucketing as on 31 October.
+- **Health, checked on the canary.** `/login` and `/how-it-works` answered 200, the cron route 401, and its runtime log held no errors.
+- **Stage two, 50%, then 100%.** The release completed, and every request now carries the new deployment's id.
+
 **Changes that crossed both projects (2026-11-02, measured).** Moving to the integration API changed the app and the stand-in at once. The order kept staging working at every point:
 1. The stand-in's new tables were added; they were additive.
 2. The stand-in was deployed with the old routes kept as aliases.
