@@ -7,14 +7,14 @@ import { isOperator, listAttention } from '@/features/execution/operator.server'
 import { StatusBadge, isLive } from '@/features/requests/status'
 import { LocalTime } from '@/features/ui/time.client'
 import { Suspense } from 'react'
-import { OutcomeTiles, OutcomeTilesLoading } from '@/features/home/outcome-tiles'
+import { ThisMonth, ThisMonthLoading } from '@/features/home/this-month'
 import { ExposureTile } from '@/features/home/exposure-tile'
 
 export const metadata: Metadata = { title: 'Home' }
 
 // The home screen is a grid of tiles: the search (hero), the two requests, one live number, the person's own
-// requests as rows, the three outcomes DECISIONS §1 promises (streamed in), and one tile for what their role does
-// next. Every number is read live; nothing here is copy.
+// requests as rows, this month drawn as a flow and a time strip (streamed in; the §1 outcomes are their captions), and
+// one tile for what their role does next. Every number is read live; nothing here is copy.
 export default async function HomePage() {
   const principal = await requirePrincipal()
   if (!hasAnyRegion(principal)) return <section className="narrow card" style={{ marginTop: 48 }}><h1>Your account has no region yet</h1><p>Ask IT to add you to a region group. Nothing else loads until then.</p></section>
@@ -65,8 +65,8 @@ export default async function HomePage() {
             </ul>
           )}
         </div>
-        <Suspense fallback={<OutcomeTilesLoading />}>
-          <OutcomeTiles principal={principal} />
+        <Suspense fallback={<ThisMonthLoading />}>
+          <ThisMonth principal={principal} />
         </Suspense>
         {isOperator(principal) ? (
           <>
