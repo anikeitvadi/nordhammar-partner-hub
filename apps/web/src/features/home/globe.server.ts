@@ -32,11 +32,13 @@ export async function readGlobe(principal: Principal): Promise<{ globe: GlobeDat
         count(*) filter (where r.state_kind = 'created' and (r.state->>'createdAt')::timestamptz > date_trunc('month', now()))::int as created
       from requests r where r.requester_email = ${principal.email}`,
   ])
-  const points: GlobePoint[] = parties.map((p) => ({ id: p.golden_id as string, name: p.legal_name as string, city: p.city as string, region: p.region as Region, erp: (p.erp_system as string | null) ?? null, erpNumber: (p.erp_number as string | null) ?? null, group: (p.grp as string | null) ?? null, at: where(p.country as string, p.city as string).lonLat, mine: regions.includes(p.region as Region) }))
+  const points: GlobePoint[] = parties.map((p) => ({ id: p.golden_id as string, name: p.legal_name as string, city: p.city as string, region: p.region as Region, erp: (p.erp_system as string | null) ?? null, erpNumber: (p.erp_number as string | null) ?? null, group: (p.grp as string | null) ?? null, at: where(p.country as string, p.city as string).lonLat, mine: regions.includes(p.region as Region), hold: p.status === 'hold' }))
   // A group's establishments, joined in a chain; only groups that span more than one city make an arc worth drawing.
   const byGroup = new Map<string, GlobePoint[]>()
   for (const p of points) if (p.group) byGroup.set(p.group, [...(byGroup.get(p.group) ?? []), p])
   // One arc per pair of different cities in a group, drawn once even when several establishments share the pair.
+  // groups with companies in more than one region: the cross-border groups Home counts
+  const crossGroups = new Set([...byGroup].filter(([, g]) => new Set(g.map((p) => p.region)).size > 1).map(([name]) => name))
   const arcs: GlobeArc[] = []
   const seen = new Set<string>()
   for (const [group, g] of byGroup) for (let i = 0; i < g.length - 1; i++) {
@@ -45,9 +47,9 @@ export async function readGlobe(principal: Principal): Promise<{ globe: GlobeDat
     const key = [a.at.join(','), b.at.join(',')].sort().join('|')
     if (seen.has(key)) continue
     seen.add(key)
-    arcs.push({ group, from: a.at, to: b.at, fromCity: a.city, toCity: b.city, mine: g.some((p) => p.mine) })
+    arcs.push({ group, from: a.at, to: b.at, fromCity: a.city, toCity: b.city, mine: g.some((p) => p.mine), cross: crossGroups.has(group) })
   }
-  const crossBorderGroups = [...byGroup.values()].filter((g) => new Set(g.map((p) => p.region)).size > 1).length
+  const crossBorderGroups = crossGroups.size
   const events: GlobeEvent[] = [
     ...created.map((r) => ({ kind: 'created' as const, name: r.name as string, city: (r.city as string) ?? '', at: where(r.country as string, r.city as string).lonLat })),
     ...stopped.map((r) => ({ kind: 'stopped' as const, name: r.legal_name as string, city: r.city as string, at: where(r.country as string, r.city as string).lonLat })),

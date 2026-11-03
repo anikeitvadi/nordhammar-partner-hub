@@ -1,11 +1,12 @@
-import Link from 'next/link'
 import { isCentral, type Principal } from '@/features/auth/scope'
 import { Globe } from './globe.client'
 import { Greeting } from './greeting.client'
 import { readGlobe } from './globe.server'
+import { Figure } from './figure.client'
+import { GlobeCaption } from './globe-caption.client'
 
 // Home's opening: the greeting, then six figures, each a row that opens the list behind it, and the globe that draws
-// the same partners. The central team sees the hub across every region; a regional user sees their region and their own
+// the same partners. Hovering or focusing a figure points the globe at what it counts (lens.client.ts). The central team sees the hub across every region; a regional user sees their region and their own
 // requests (globe.server.ts). Every number is read live.
 const NAME: Record<string, string> = { BR: 'Brazil', EU: 'Europe', US: 'United States', IN: 'India', CN: 'China' }
 export async function HomeHero({ principal, name }: { principal: Principal; name: string }) {
@@ -20,24 +21,24 @@ export async function HomeHero({ principal, name }: { principal: Principal; name
           <div className="figures">
             <section aria-label="The hub">
               <h2>The hub</h2>
-              <Figure n={f.partners} label={plural(f.partners, 'partner', 'partners')} href="/customers" />
+              <Figure n={f.partners} label={plural(f.partners, 'partner', 'partners')} href="/customers" show="partners" />
               <Figure n={f.regions} label={`${plural(f.regions, 'region', 'regions')} on ${f.erps} ${plural(f.erps, 'ERP', 'ERPs')}`} />
-              <Figure n={f.crossBorderGroups} label={plural(f.crossBorderGroups, 'cross-border group', 'cross-border groups')} href="/customers?status=grouped" />
+              <Figure n={f.crossBorderGroups} label={plural(f.crossBorderGroups, 'cross-border group', 'cross-border groups')} href="/customers?status=grouped" show="groups" />
             </section>
             <section aria-label="This month">
               <h2>This month</h2>
               <Figure n={f.requestsIn} label={plural(f.requestsIn, 'request in', 'requests in')} href="/requests" />
-              <Figure n={f.numbersOut} label={plural(f.numbersOut, 'ERP number out', 'ERP numbers out')} href="/requests" />
-              <Figure n={f.stopped} label={plural(f.stopped, 'duplicate stopped', 'duplicates stopped')} />
+              <Figure n={f.numbersOut} label={plural(f.numbersOut, 'ERP number out', 'ERP numbers out')} href="/requests" show="created" />
+              <Figure n={f.stopped} label={plural(f.stopped, 'duplicate stopped', 'duplicates stopped')} show="stopped" />
             </section>
           </div>
         ) : (
           <div className="figures">
             <section aria-label={NAME[f.where] ?? f.where}>
               <h2>{NAME[f.where] ?? f.where}</h2>
-              <Figure n={f.partners} label={plural(f.partners, 'partner', 'partners')} href={`/customers?in=${f.where}`} />
-              <Figure n={f.onHold} label="on hold" href={`/customers?in=${f.where}&status=hold`} />
-              <Figure n={f.groupsAbroad} label="in groups abroad" />
+              <Figure n={f.partners} label={plural(f.partners, 'partner', 'partners')} href={`/customers?in=${f.where}`} show="partners" />
+              <Figure n={f.onHold} label="on hold" href={`/customers?in=${f.where}&status=hold`} show="hold" />
+              <Figure n={f.groupsAbroad} label="in groups abroad" show="abroad" />
             </section>
             <section aria-label="Your requests">
               <h2>Your requests</h2>
@@ -50,15 +51,10 @@ export async function HomeHero({ principal, name }: { principal: Principal; name
       </div>
       <figure className="globe-figure">
         <Globe data={globe} />
-        <figcaption>{f.kind === 'central' ? <>Each line joins one group&rsquo;s companies in two places. Drag to turn it.</> : <>Your region in ink, the rest of the company behind it. Each line joins one group&rsquo;s companies. Drag to turn it.</>}</figcaption>
+        <GlobeCaption central={f.kind === 'central'} />
       </figure>
     </div>
   )
-}
-
-function Figure({ n, label, href }: { n: number; label: string; href?: string }) {
-  const body = <><span className="fig-n">{n}</span><span className="fig-label">{label}</span></>
-  return href ? <Link href={href} className="fig fig-link">{body}<span className="fig-go" aria-hidden="true">→</span></Link> : <div className="fig">{body}</div>
 }
 
 export function HomeHeroLoading() {
