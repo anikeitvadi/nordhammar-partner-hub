@@ -47,7 +47,8 @@ export async function handleDeskWebhook(raw: string, headers: Headers): Promise<
     if (!n.ok) return Response.json({ reason: `tax ID ${n.reason.replace('_', ' ')}` }, { status: 400 })
     const values: Record<string, string> = { legalName: p.legalName, localName: p.localName ?? '', country: p.country, typeCode: p.typeCode ?? '', industry: p.industry ?? '', reasonText: p.reason, reasonReference: e.ticket.id,
       'main.street': p.main.street, 'main.number': p.main.number ?? '', 'main.district': p.main.district ?? '', 'main.city': p.main.city, 'main.regionCode': p.main.regionCode ?? '', 'main.postalCode': p.main.postalCode ?? '', 'main.country': p.country }
-    const built = buildPayload(e.ticket.domain, e.ticket.region as Region, n.taxId, values)
+    // Built leniently: a gap is the clean check's to name, as an exception for the central team (missingFields).
+    const built = buildPayload(e.ticket.domain, e.ticket.region as Region, n.taxId, values, { complete: false })
     if (!built.ok) return Response.json({ reason: `incomplete: ${built.problems.map((x) => x.message).join(' ')}` }, { status: 400 })
     const created = await createFromTicket({ requesterEmail: e.ticket.requesterEmail, domain: e.ticket.domain, region: e.ticket.region as Region, payload: built.payload, ticketId: e.ticket.id, submittedAt: e.occurredAt })
     const run = await start(requestWorkflow, [created.requestId, created.revision, f])

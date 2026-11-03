@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { cleanCheck, signDeskWebhook, transition, verifyDeskWebhook, DeskWebhookSchema, type CleanFacts, type RequestState } from './index'
+import { cleanCheck, missingFields, signDeskWebhook, transition, verifyDeskWebhook, DeskWebhookSchema, ERP_BY_REGION, type CanonicalPayload, type CleanFacts, type RequestState } from './index'
 
 const clean: CleanFacts = { taxValid: true, exactMatches: [], openRequestsSameTax: [], relatedMatches: [], nameMatches: [], aiReading: null, dupChoice: 'new', missingFields: [], autoApproveOn: true }
 
@@ -72,5 +72,26 @@ describe('the signed webhook', () => {
     const e = { type: 'ticket.finance_rejected', occurredAt: 't', ticket: { id: 'SD-10421', hubRequestId: 'R-1', requesterEmail: 'a@x', region: 'BR', domain: 'customer', partner: null }, decision: { by: 'Marta', reason: null } }
     expect(DeskWebhookSchema.safeParse(e).success).toBe(false)
     expect(DeskWebhookSchema.safeParse({ ...e, decision: { by: 'Marta', reason: 'credit check failed' } }).success).toBe(true)
+  })
+})
+
+describe('what a request must carry before an ERP may create it', () => {
+  const p = (region: 'BR' | 'US' | 'IN' | 'EU' | 'CN', over: Partial<CanonicalPayload> = {}, addr: Partial<CanonicalPayload['addresses'][number]> = {}): CanonicalPayload => ({
+    schemaVersion: 2, domain: 'customer', destination: { erp: ERP_BY_REGION[region], region }, identity: { country: region === 'EU' ? 'DE' : region, scheme: 'X', canonical: '1' }, identifiers: [], duns: null,
+    legalName: 'Acme', localName: region === 'CN' ? '阿克米' : null, typeCode: 'oem', industry: null, paymentTerms: null,
+    addresses: [{ kind: 'bill_to', street: 'Rua A', number: '1', complement: null, district: 'Centro', city: 'Curitiba', regionCode: 'PR', postalCode: '80020-310', country: 'BR', ...addr }],
+    contact: null, reason: { text: 'why', reference: null }, ...over,
+  })
+  it('a complete request in each region has nothing missing', () => {
+    for (const r of ['BR', 'US', 'IN', 'EU', 'CN'] as const) expect(missingFields(p(r))).toEqual([])
+  })
+  it('names each gap the way the form labels it', () => {
+    expect(missingFields(p('BR', { typeCode: null }, { postalCode: null, district: null }))).toEqual(['customer type', 'bairro', 'CEP'])
+    expect(missingFields(p('US', {}, { postalCode: '', regionCode: null }))).toEqual(['state', 'ZIP'])
+    expect(missingFields(p('EU', {}, { postalCode: null }))).toEqual(['postal code'])
+    expect(missingFields(p('CN', { localName: null }, { postalCode: null, regionCode: null }))).toEqual(['legal name in Chinese'])
+  })
+  it('a supplier is filed under a category, at its remit-to address', () => {
+    expect(missingFields(p('BR', { domain: 'supplier', typeCode: null, addresses: [{ kind: 'remit_to', street: '', number: null, complement: null, district: 'X', city: 'Y', regionCode: 'SP', postalCode: '1', country: 'BR' }] }))).toEqual(['supplier category', 'remit-to street'])
   })
 })

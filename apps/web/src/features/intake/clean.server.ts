@@ -1,5 +1,5 @@
 import 'server-only'
-import { cleanCheck, type CanonicalPayload, type CleanFacts, type CleanResult, type Domain, type Region } from '@intake/contracts'
+import { cleanCheck, missingFields, type CanonicalPayload, type CleanFacts, type CleanResult, type Domain, type Region } from '@intake/contracts'
 import { sql } from '@/lib/db'
 import { normalizeTaxId } from './normalize'
 
@@ -36,8 +36,8 @@ export async function gatherCleanFacts(requestId: string): Promise<CleanFacts | 
     nameMatches: names.filter((c) => !c.taxCanonical || c.country !== p.identity.country).map((c) => ({ goldenId: c.goldenId, legalName: c.legalName })),
     aiReading: (check[0]?.ai_verdict as CleanFacts['aiReading']) ?? null,
     dupChoice: (r.dup_choice as CleanFacts['dupChoice']) ?? 'new',
-    // The payload was built by the form's builder and refused if incomplete, so nothing required can be missing here.
-    missingFields: [],
+    // Judged on the stored payload, not trusted from the form: a ticket raised in the desk can arrive with gaps.
+    missingFields: missingFields(p),
     autoApproveOn: (settings[0]?.auto_approve as boolean | undefined) ?? true,
   }
 }

@@ -32,7 +32,8 @@ export async function openTicketStep(requestId: string, revision: number, workfl
   await sql()`update requests set workflow_run_id = ${workflowRunId} where request_id = ${requestId}`
   if (r.ticketId) return r.ticketId
   if (r.state.kind !== 'awaiting_finance') return null
-  const id = await openDeskTicket({ hubRequestId: requestId, hubRevision: revision, requesterEmail: r.requester, region: r.region, domain: r.domain, summary: { legalName: r.payload.legalName, taxId: r.payload.identity.canonical, country: r.payload.identity.country } })
+  // Finance reads the reason and the contact before approving (docs/FORM-FIELD-INVENTORY.md, finding 1).
+  const id = await openDeskTicket({ hubRequestId: requestId, hubRevision: revision, requesterEmail: r.requester, region: r.region, domain: r.domain, summary: { legalName: r.payload.legalName, taxId: r.payload.identity.canonical, country: r.payload.identity.country, reason: r.payload.reason.text, contactName: r.payload.contact?.name || null, contactEmail: r.payload.contact?.email || null } })
   const t = transition(r.state, { type: 'ticket_opened', ticketId: id })
   if (!t.ok) return id
   const db = sql()

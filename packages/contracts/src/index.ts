@@ -331,6 +331,28 @@ export function goldenFromPayload(p: CanonicalPayload, erpNumber: string, at: st
   }
 }
 
+// What a request must carry before an ERP may create it, per region (docs/FORM-FIELD-INVENTORY.md §2). Each one has a
+// reader: the type is every ERP's account group; the address is the ERP's invoice address, with the postal code and
+// (Brazil) the bairro an invoice needs; the reason is what finance reads. The form asks for exactly these, and the
+// clean check names any that are missing, so a ticket raised in the desk with a gap becomes an exception, not a create.
+export function missingFields(p: CanonicalPayload): string[] {
+  const region = p.destination.region
+  const main = p.addresses.find((a) => a.kind === (p.domain === 'customer' ? 'bill_to' : 'remit_to')) ?? p.addresses[0]
+  const addr = p.domain === 'customer' ? 'bill-to' : 'remit-to'
+  const missing: string[] = []
+  const blank = (v: string | null | undefined) => !v || !v.trim()
+  if (blank(p.legalName)) missing.push('legal name')
+  if (region === 'CN' && blank(p.localName)) missing.push('legal name in Chinese')
+  if (blank(p.typeCode)) missing.push(p.domain === 'customer' ? 'customer type' : 'supplier category')
+  if (!main || blank(main.street)) missing.push(`${addr} street`)
+  if (!main || blank(main.city)) missing.push(`${addr} city`)
+  if ((region === 'BR' || region === 'US' || region === 'IN') && blank(main?.regionCode)) missing.push(region === 'BR' ? 'UF' : 'state')
+  if (region === 'BR' && blank(main?.district)) missing.push('bairro')
+  if (region !== 'CN' && blank(main?.postalCode)) missing.push(region === 'BR' ? 'CEP' : region === 'US' ? 'ZIP' : region === 'IN' ? 'PIN' : 'postal code')
+  if (blank(p.reason.text)) missing.push('reason')
+  return missing
+}
+
 // ---- Service desk: finance approval, the clean check, the signed webhook (docs/SERVICE-DESK-CONTRACT.md) ----
 
 // What the hub found when finance's approval arrived. Gathered by a Workflow step from the hub; judged here, purely.

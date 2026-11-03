@@ -459,3 +459,7 @@ button.strip-tile:hover { background: var(--canvas); }
 .new-menu .menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 20; display: grid; min-width: 180px; padding: 6px; background: var(--surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); }
 .new-menu .menu a { padding: 8px 10px; border-radius: 6px; text-decoration: none; color: inherit; font-family: var(--sans); }
 .new-menu .menu a:hover, .new-menu .menu a:focus-visible { background: var(--ink-1); }
+
+/* The automatic check's quiet result line under the tax ID (step 10). */
+.check-line { margin: 6px 0 0; font-family: var(--sans); font-size: .9rem; }
+.check-line.ok::before { content: "✓ "; color: var(--accent); }

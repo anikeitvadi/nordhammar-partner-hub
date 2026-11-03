@@ -82,7 +82,7 @@ export async function readGoldenRecords(since: string | null, limit = 200): Prom
 
 // The customer's service desk sits behind the same identity check as the integration platform (the deployment's OIDC
 // token), so it is reached from here too: this module stays the one network path to the customer's systems.
-export async function openDeskTicket(t: { hubRequestId: string; hubRevision: number; requesterEmail: string; region: string; domain: string; summary: { legalName: string; taxId: string; country: string } }): Promise<string> {
+export async function openDeskTicket(t: { hubRequestId: string; hubRevision: number; requesterEmail: string; region: string; domain: string; summary: { legalName: string; taxId: string; country: string; reason: string; contactName: string | null; contactEmail: string | null } }): Promise<string> {
   const { base, token } = await config()
   const res = await fetch(`${base}/desk/v1/tickets`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` }, body: JSON.stringify(t), cache: 'no-store', signal: AbortSignal.timeout(8000) })
   if (!res.ok) throw new Error(`service desk answered ${res.status}`)

@@ -40,7 +40,8 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
         <dt>Legal name</dt><dd>{p.legalName}{p.localName ? <span className="muted"> · {p.localName}</span> : null}</dd>
         <dt>{p.identity.scheme}</dt><dd>{p.identity.canonical} <span className="muted">· {p.identity.country}</span></dd>
         {p.identifiers.map((i) => <Fragment key={i.scheme}><dt>{i.scheme}</dt><dd>{i.value}</dd></Fragment>)}
-        <dt>DUNS</dt><dd>{p.duns ?? <span className="muted">not given</span>}</dd>
+        {/* Fields the form no longer asks for (docs/FORM-FIELD-INVENTORY.md) show only on older requests that carry them. */}
+        {p.duns ? <><dt>DUNS</dt><dd>{p.duns}</dd></> : null}
         <dt>Will be created in</dt><dd>{p.destination.erp} · {r.region} · {r.domain === 'customer' ? 'customer master' : 'vendor master'}</dd>
       </dl>
       {s.kind === 'exception' ? <p className="panel hint"><strong>Why this was not approved automatically.</strong> {s.reasons.join('; ')}. Finance approved it in the service desk{s.ticketId ? ` (ticket ${s.ticketId})` : ''}.</p> : null}
@@ -49,8 +50,8 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
       <h2>Details</h2>
       <dl className="facts">
         <dt>Type</dt><dd>{typeLabel(p.typeCode) ?? <span className="muted">—</span>}</dd>
-        <dt>Industry</dt><dd>{p.industry ?? <span className="muted">—</span>}</dd>
-        <dt>Payment terms</dt><dd>{p.paymentTerms ?? <span className="muted">finance decides</span>}</dd>
+        {p.industry ? <><dt>Industry</dt><dd>{p.industry}</dd></> : null}
+        {p.paymentTerms ? <><dt>Payment terms</dt><dd>{p.paymentTerms}</dd></> : null}
         {p.addresses.map((a, i) => <Fragment key={i}><dt>{KIND[a.kind]}</dt><dd>{[a.street, a.number].filter(Boolean).join(' ')}{a.complement ? `, ${a.complement}` : ''}{a.district ? `, ${a.district}` : ''}, {a.city}{a.regionCode ? ` ${a.regionCode}` : ''}{a.postalCode ? ` ${a.postalCode}` : ''} · {a.country}</dd></Fragment>)}
         <dt>Contact</dt><dd>{p.contact ? `${p.contact.name} ${p.contact.email}`.trim() : <span className="muted">—</span>}</dd>
         <dt>Reason</dt><dd>{p.reason.text}{p.reason.reference ? <span className="muted"> · {p.reason.reference}</span> : null}</dd>

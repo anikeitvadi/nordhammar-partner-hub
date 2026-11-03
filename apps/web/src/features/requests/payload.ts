@@ -1,4 +1,4 @@
-import type { Address, CanonicalPayload, Domain, Region, TaxId } from '@intake/contracts'
+import { missingFields, type Address, type CanonicalPayload, type Domain, type Region, type TaxId } from '@intake/contracts'
 
 // Pure. Builds the canonical payload from the request form's fields. Every Server Action that accepts a form
 // (submit, save draft, resubmit) goes through here, so the shape the reviewer approves is one function with tests.
@@ -36,46 +36,37 @@ const n = (v: string | undefined) => t(v) || null
 
 export type PayloadProblem = { field: string; message: string }
 
-export function buildPayload(domain: Domain, region: Region, taxId: TaxId, f: FormValues): { ok: true; payload: CanonicalPayload } | { ok: false; problems: PayloadProblem[] } {
+// The form input each missing field belongs under, so the error shows where it is typed.
+const FIELD_OF: Record<string, string> = { 'legal name': 'legalName', 'legal name in Chinese': 'localName', 'customer type': 'typeCode', 'supplier category': 'typeCode', 'bill-to street': 'main.street', 'remit-to street': 'main.street', 'bill-to city': 'main.city', 'remit-to city': 'main.city', UF: 'main.regionCode', state: 'main.regionCode', bairro: 'main.district', CEP: 'main.postalCode', ZIP: 'main.postalCode', PIN: 'main.postalCode', 'postal code': 'main.postalCode', reason: 'reasonText' }
+
+// `complete: true` (the hub form) refuses a request with any field from missingFields absent. `complete: false` (a
+// ticket raised in the service desk) builds what it can, and the clean check names the gaps as an exception, because
+// finance has already approved it and the central team should see it rather than the desk getting an error.
+// Fields with no reader (docs/FORM-FIELD-INVENTORY.md §2) are never taken from the form: DUNS, secondary IDs, industry,
+// payment terms, ship-to and the PO reference are null or empty in every new payload. The shape stays version 2.
+export function buildPayload(domain: Domain, region: Region, taxId: TaxId, f: FormValues, opts: { complete?: boolean } = {}): { ok: true; payload: CanonicalPayload } | { ok: false; problems: PayloadProblem[] } {
   const problems: PayloadProblem[] = []
-  const legalName = t(f.legalName)
-  if (!legalName) problems.push({ field: 'legalName', message: 'Legal name is required.' })
-  if (region === 'CN' && !t(f.localName)) problems.push({ field: 'localName', message: 'The legal name in Chinese is required for China.' })
-  const mainKind = domain === 'customer' ? 'bill_to' : 'remit_to'
-  const main = address(mainKind, 'main', f, region)
-  if (!main.street) problems.push({ field: 'main.street', message: `${domain === 'customer' ? 'Bill-to' : 'Remit-to'} street is required.` })
-  if (!main.city) problems.push({ field: 'main.city', message: 'City is required.' })
-  if ((region === 'BR' || region === 'US' || region === 'IN') && !main.regionCode) problems.push({ field: 'main.regionCode', message: region === 'BR' ? 'UF is required.' : 'State is required.' })
-  if (region === 'BR' && !main.district) problems.push({ field: 'main.district', message: 'Bairro is required.' })
-  const reasonText = t(f.reasonText)
-  if (!reasonText) problems.push({ field: 'reasonText', message: `Say why this ${domain} is needed.` })
-  for (const sec of SECONDARY_IDS[region] ?? []) if (sec.required && !t(f[`id_${sec.scheme}`])) problems.push({ field: `id_${sec.scheme}`, message: `${sec.label} is required.` })
-  const duns = t(f.duns).replace(/\D/g, '')
-  if (t(f.duns) && duns.length !== 9) problems.push({ field: 'duns', message: 'DUNS is 9 digits.' })
   const email = t(f.contactEmail)
   if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) problems.push({ field: 'contactEmail', message: 'Contact email does not look like an email.' })
-  if (problems.length) return { ok: false, problems }
-
-  const addresses: Address[] = [main]
-  const ship = address('ship_to', 'ship', f, region)
-  if (ship.street && ship.city) addresses.push(ship)
-  const identifiers = (SECONDARY_IDS[region] ?? []).map((sec) => ({ scheme: sec.scheme, value: t(f[`id_${sec.scheme}`]) })).filter((i) => i.value)
+  const mainKind = domain === 'customer' ? 'bill_to' : 'remit_to'
   const payload: CanonicalPayload = {
     schemaVersion: 2,
     domain,
     destination: { erp: ERP_BY_REGION[region], region },
     identity: { country: taxId.country, scheme: taxId.scheme, canonical: taxId.canonical },
-    identifiers,
-    duns: duns || null,
-    legalName,
+    identifiers: [],
+    duns: null,
+    legalName: t(f.legalName),
     localName: n(f.localName),
     typeCode: n(f.typeCode),
-    industry: n(f.industry),
-    paymentTerms: n(f.paymentTerms),
-    addresses,
+    industry: null,
+    paymentTerms: null,
+    addresses: [address(mainKind, 'main', f, region)],
     contact: t(f.contactName) || email ? { name: t(f.contactName), email } : null,
-    reason: { text: reasonText, reference: n(f.reasonReference) },
+    reason: { text: t(f.reasonText), reference: null },
   }
+  if (opts.complete !== false) for (const m of missingFields(payload)) problems.push({ field: FIELD_OF[m] ?? m, message: `${m.charAt(0).toUpperCase()}${m.slice(1)} is required.` })
+  if (problems.length) return { ok: false, problems }
   return { ok: true, payload }
 }
 

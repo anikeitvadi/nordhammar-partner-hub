@@ -47,7 +47,7 @@ export function PartyDetail({ party: p, compact = false }: { party: Party; compa
 
       <h2>Commercial</h2>
       <dl className="facts">
-        <dt>Industry</dt><dd>{p.industry ?? <span className="muted">not set</span>}</dd>
+        {p.industry ? <><dt>Industry</dt><dd>{p.industry}</dd></> : null}
         <dt>Payment terms</dt><dd>{p.paymentTerms ?? <span className="muted">not set</span>}{p.currency ? <span className="muted"> · {p.currency}</span> : null}</dd>
         <dt>Risk rating</dt><dd>{p.riskRating ?? <span className="muted">not rated</span>}</dd>
         <dt>Since</dt><dd>{p.inceptionAt ?? <span className="muted">unknown</span>}{p.lastActivityAt ? <span className="muted"> · last activity {p.lastActivityAt}</span> : null}</dd>
