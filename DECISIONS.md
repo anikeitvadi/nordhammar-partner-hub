@@ -373,7 +373,7 @@ All on the deployed stack unless noted; dates 2026-10-31 to 2026-11-02.
 
 ## 8. Development tooling and validation
 
-**Tools.** Claude Code (Anthropic's agent, in the desktop app) wrote the code under direction. A second agent reviewed the scope against the target workflow catalogue before the screens were rebuilt, and a third was asked to rule on the identity-provider choice. The installed packages were read instead of memory: Next.js 16.4, Workflow SDK 5.2, AI SDK 7.
+**Tools.** Claude Code (Anthropic's agent, in the desktop app) wrote the code under direction. A separate agent on Factory, set up only to review, checked every change against the brief and the running app before it was accepted; its findings went into a review log and each was decided by me. It caught the golden records being seeded into the app instead of arriving through the load, the missing run trace (which became the Run panel, the model switch, streamed Ask answers and Home's live outcomes), and it held each change to the core story: the durable workflow owns the one keyed ERP write. It also reviewed the scope against the target workflow catalogue before the screens were rebuilt, and another agent was asked to rule on the identity-provider choice. The installed packages were read instead of memory: Next.js 16.4, Workflow SDK 5.2, AI SDK 7.
 
 **What I steered and what I rejected.**
 - **The screens.** The first cut optimised for the deep dive and left the three user-facing screens thin. They were rebuilt as search-first, record, two-step form.
