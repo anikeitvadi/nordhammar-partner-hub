@@ -1,4 +1,4 @@
-import { receive } from '@/features/erp/receive'
+import { createPartner } from '@/features/integration/create'
 
-// POST /api/suppliers: the vendor master. Same ledger, its own number range, the same replay and conflict rules.
-export async function POST(req: Request) { return receive(req, 'supplier') }
+// Old route, kept for the one deploy in which the hub still calls it. Removed once the hub calls /integration/v1/partners.
+export async function POST(req: Request) { return createPartner(req, { legacyDomain: 'supplier' }) }

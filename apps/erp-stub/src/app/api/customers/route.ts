@@ -1,4 +1,4 @@
-import { receive } from '@/features/erp/receive'
+import { createPartner } from '@/features/integration/create'
 
-// POST /api/customers: the customer master. See features/erp/receive.ts.
-export async function POST(req: Request) { return receive(req, 'customer') }
+// Old route, kept for the one deploy in which the hub still calls it. Removed once the hub calls /integration/v1/partners.
+export async function POST(req: Request) { return createPartner(req, { legacyDomain: 'customer' }) }
