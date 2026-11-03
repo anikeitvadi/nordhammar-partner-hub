@@ -37,7 +37,8 @@ The integration layer maps the hub's canonical payload into each shape. The hub 
 | `TAX_NO` | identity.canonical, digits only | CNPJ, EIN or GSTIN with no punctuation |
 | `CTRY` | identity.country | Routing and tax rules |
 | `STATE` | main address regionCode | UF or state; required for BR, US and IN |
-| `CITY`, `STREET` | main address | Bill-to (customer) or remit-to (supplier) |
+| `CITY`, `STREET` | main address | Bill-to (customer) or remit-to (supplier). Since step 10 the complement rides on `STREET` ("RUA X 455, SALA 3") |
+| `DISTRICT`, `POSTAL` | main address district and postal code | Added in step 10: an invoice in Brazil needs the bairro and the CEP, in the US the ZIP, in India the PIN (docs/FORM-FIELD-INVENTORY.md, finding 4) |
 | `ACCT_GROUP` | typeCode | Customer type or supplier category |
 | `CREATED_ON` | assigned | Shown on the stage-set console |
 

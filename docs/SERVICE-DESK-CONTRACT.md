@@ -34,7 +34,7 @@ Clean means every one of these holds at the moment finance's approval arrives. T
 3. No golden record shares the company key (another establishment of the same company).
 4. No golden record without a tax ID matches the name. A name match is the case only the model can read, and the model never decides alone.
 5. The requester did not override a match ("new company in this group", "not related"). An override is a person's judgement, so another person looks at it.
-6. Every field the ERP needs is present. This matters for ticket-first requests, which can arrive incomplete.
+6. Every field the ERP needs is present. This matters for ticket-first requests, which can arrive incomplete. (Step 10: `missingFields` in contracts, the same list the form asks for; until then this check could not fail.)
 
 Anything else is an exception, and its reason is stored: "possible duplicate: same tax ID as …", "same company as …", "name match, AI reading unsure", "requester said not related", "missing: bill-to address". The model never makes a request clean or unclean; it only adds its reading to an exception.
 
@@ -94,7 +94,7 @@ Answers: 200 accepted, or a repeat; 401 bad signature or stale timestamp; 400 ma
 ## 6. Hub to desk
 
 The hub calls the desk the way it calls the integration platform: with its own Vercel OIDC token, verified by the stand-in's existing verifier.
-- `POST /desk/v1/tickets` opens a ticket for a direct request: the request id, requester, region, domain and a partner summary (name, tax ID, country). Answers `{ id: "SD-10421" }`.
+- `POST /desk/v1/tickets` opens a ticket for a direct request: the request id, requester, region, domain and a partner summary (name, tax ID, country; since step 10 also the reason and the contact, which finance reads before approving). Answers `{ id: "SD-10421" }`.
 - `POST /desk/v1/tickets/{id}/comments` writes the outcome back: "Created in ERP-1, number 110203", "Waiting for the central master-data team: possible duplicate", "Declined by the central team: …".
 
 ## 7. The stand-in's tables

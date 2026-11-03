@@ -1,4 +1,6 @@
-# The request form: every field, who reads it, and what happens to it (step 10, for Ani's OK before anything is built)
+# The request form: every field, who reads it, and what happens to it (step 10)
+
+**Approved by Ani on 2026-11-03: the verdicts in §2, Option A for the payload, no registry prefill. Built and measured; see DECISIONS §6.**
 
 Review log §8: derive the form from the data. Every field below is traced to who reads it after the requester types it:
 - the three ERPs, through the integration platform's mapping (`apps/erp-stub/src/features/integration/mapping.ts`)

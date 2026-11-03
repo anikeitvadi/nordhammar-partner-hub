@@ -184,9 +184,9 @@ Alternatives, each with the one reason it did not win:
 | Same company, new branch | Request a new customer | `Aurora Industrial Filial Centro`, CNPJ `61.000.101/0005-80` | "Same company, different establishment": pre-selects "new company in this group" |
 | Name match, the AI proposal | Request a new customer | `Vela Processos do Brasil`, CNPJ `61.000.103/0002-27` | A legacy record with no tax ID; the model's evidence rows; a human decides. After submit, the timeline names the model's reading, the model and the cost |
 | Invalid tax ID | Request a new customer | CNPJ `61.000.103/0001-47` | Fails its check digits; nothing is searched |
-| Clean create, end to end | Request a new customer, then the desk as finance | `Estrela Brasil Indústria`, CNPJ `61.000.104/0001-90`, any bill-to | Submit; the status page shows the ticket. Approve the ticket in the desk. Within seconds the status page reads approved automatically, with the checks that passed, then an ERP-1 number in the 110xxx series; the ticket gets the number as a comment |
+| Clean create, end to end | Request a new customer, then the desk as finance | `Estrela Brasil Indústria`, CNPJ `61.000.104/0001-90`, a type, a bill-to with its CEP, a reason | The hub is checked as you type; step 2 opens on its own. Submit; the status page shows the ticket, and the ticket shows finance the reason and the contact. Approve the ticket in the desk. Within seconds the status page reads approved automatically, with the checks that passed, then an ERP-1 number in the 110xxx series; the ticket gets the number as a comment |
 | An exception | The same-company case above, submitted, then the desk, then Exceptions as Priya | `Aurora Industrial Filial Centro` | Finance approves; the hub stops it as an exception (same company as another establishment; the requester chose new company in this group). Priya sees the reasons and approves; the number lands and goes back to the ticket |
-| Ticket first | The desk: New partner ticket, then approve | A new name and a valid CNPJ, requester `ana.requester@example.com`, region BR | The ticket becomes a hub request when finance approves, is checked, and is created; no duplicate check ran at entry, so the hub's checks are the only ones |
+| Ticket first | The desk: New partner ticket, then approve | A new name and a valid CNPJ, requester `ana.requester@example.com`, region BR | The ticket becomes a hub request when finance approves, is checked, and is created; no duplicate check ran at entry, so the hub's checks are the only ones. Leave the CEP blank and it becomes an exception, "missing: CEP", instead |
 | Finance rejects | Any request's ticket in the desk: Reject, with a reason | | The request reads declined by finance, with finance's reason; a reject without a reason is refused |
 | Lost response | Exceptions as Priya, "Demo controls": "Drop the next ERP response", then any clean create through finance | | Attempt 1 gets no answer; the retry with the same key gets the same number back; one record |
 | China | Request a new customer as Priya, region CN | Both names and an 18-character unified code | Routed to ERP-3; a 310xxx number |
@@ -281,6 +281,10 @@ All on the deployed stack unless noted; dates 2026-10-31 to 2026-11-02.
   | Ticket first, lost response armed | R-MW03P6EMCDCF, SD-10426 | Attempt 1 got a 503 after the commit; attempt 2 replayed 110207; one record for the key | 2.9 s |
 
   Times run from the hub recording finance's approval to the number, read from the request's events.
+- **The form asks only for what someone reads (measured, 2026-11-03).** The field inventory (`docs/FORM-FIELD-INVENTORY.md`) traced every field to a reader; six with none were cut, and a Brazilian customer went from up to 26 inputs to 13. Three effects, on staging:
+  - Finance's ticket for R-MW068999F87V (SD-10428) shows the reason and the contact; before, it showed the name, tax ID and country only.
+  - ERP-1's record for it (110209) holds the postal code, the bairro and the complement; before, it dropped all three.
+  - A ticket raised in the desk without a CEP (SD-10430) became an exception, "missing: CEP". Before, the check that claimed to look for missing fields could not fail.
 - **Where the time went and what it cost (measured, 2026-11-03).** The Run panel on staging, read from Workflow's own event log:
 
   | Request | Run | Waiting on people | In steps | Events | Cost |
@@ -358,6 +362,7 @@ All on the deployed stack unless noted; dates 2026-10-31 to 2026-11-02.
 - **Emails and attachments.** Every event that would send an email writes a queued row to the timeline; nothing is sent. Attachments (tax registration, W-9) are not stored.
 - **Development subject on the allow list,** so a local run can reach the deployed stand-in. Production lists `production` only.
 - **Primary model not yet measured.** Haiku 4.5 needs paid Gateway credits; the fallback carries the demo until then.
+- **The request payload still has room for six fields nobody fills.** DUNS, secondary IDs, industry, payment terms, ship-to and the PO reference are null in every new request; the shape stays version 2 so every hash and replay of an older request stays valid. Removing them is a version 3 that the integration platform accepts alongside 2 until the last version-2 run finishes: a named follow-up, not done this week.
 - **The eval grades one field nobody uses.** The proposal's `groupRelation` is in the schema and the pass rule, but the instructions never define it and the app never reads it. gpt-4.1 fails on it alone. Removing it, or defining it, and re-running every model is the next eval change; until then the switch offers only what passed.
 - **The demo's people are shared.** Everyone trying the demo signs in as the same four people, so signing out ends only that browser's session. A session ended elsewhere lands on the sign-in page with "Your session ended" and the page it was on kept; until 2026-11-03 it showed an error page, because its cookie still passed the proxy's local check (`06d6d6d`, measured on staging).
 - **Skew Protection off** during the rollout test, by instruction; see §5.
