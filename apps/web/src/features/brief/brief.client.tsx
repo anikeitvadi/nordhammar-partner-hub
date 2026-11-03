@@ -7,7 +7,7 @@ import type { BriefFigures } from './types'
 // Arrow keys move between parts; the hash keeps the place, so a link can open a part. Under 960 px the stage folds
 // under its own row. Print shows every part in order.
 
-const DEMO = 'https://staging-nordhammar.vercel.app'
+const DEMO = 'https://nordhammar-partner-hub.vercel.app/login'
 const REPO = 'https://github.com/anikeitvadi/nordhammar-partner-hub'
 const DESK = 'https://customer-intake-erp-stub.vercel.app/desk'
 
@@ -19,7 +19,7 @@ const PARTS: Part[] = [
   { id: 'vercel', title: 'Vercel choices', line: 'Six primitives, each doing one job, each with its trade-off.', Body: Choices },
   { id: 'demo', title: 'The demo', line: 'Live and public, with Nordhammar’s systems played by a stand-in.', Body: Demo },
   { id: 'rollout', title: 'Rollout', line: 'Preview, a Brazil pilot, a 10, 50, 100 canary, then region by region.', Body: Rollout },
-  { id: 'measures', title: 'Success measures', line: 'No duplicates at entry; an ERP number within a business day.', Body: Measures },
+  { id: 'measures', title: 'Success measures', line: 'No duplicates at entry; a number in a day; questions without a report.', Body: Measures },
   { id: 'risks', title: 'Limits and risks', line: 'What you should know before kickoff, plainly.', Body: Risks },
   { id: 'tooling', title: 'How it was built', line: 'Claude Code builds, a Factory agent reviews, evals gate the AI.', Body: Tooling },
 ]
@@ -83,6 +83,7 @@ function Premise() {
       <p className="for">For Nordhammar Industries &middot; master data, finance and platform teams</p>
       <p className="lead">One record for every partner, in every region.</p>
       <p>Your integration platform already publishes one golden record per legal entity; its first load took North American customers from about 70,000 records to 34,000. But duplicates are still created every morning, at intake, in five regions that cannot see each other. This proposal moves the check to the moment of entry: a partner hub that searches every region before a request is made, keeps finance approving in your service desk, and creates each partner once, in the right ERP.</p>
+      <p>Because it holds the cleansed records, the hub also lets anyone search and ask across every region, and gives your central team, the final check after regional finance, a group&rsquo;s credit exposure across regions before it approves another company into it.</p>
       <p><strong>Why Vercel.</strong> The hard parts are a request that waits days for finance and then writes to an ERP once, even when a response is lost; an AI that may advise but never decide; and search that is fast in five regions. Vercel runs those as managed primitives, so your teams look after an intake product, not infrastructure. Your ERPs, integration platform and service desk stay where they are.</p>
     </div>
   )
@@ -213,16 +214,17 @@ function Demo({ f }: { f: BriefFigures | null }) {
   return (
     <>
       <div className="brief-links">
-        <a href={DEMO}><span>The hub</span><b>staging-nordhammar.vercel.app</b></a>
+        <a href={DEMO}><span>The hub (start at sign-in)</span><b>nordhammar-partner-hub.vercel.app</b></a>
         <a href={REPO}><span>Repository</span><b>github.com/anikeitvadi/nordhammar-partner-hub</b></a>
         <a href={DESK}><span>Nordhammar&rsquo;s systems, played by a stand-in</span><b>customer-intake-erp-stub.vercel.app</b></a>
       </div>
-      <p>Sign in as Ana (regional user, Brazil), Jonas (regional user, Europe) or Priya (central master-data team), and as finance in the service desk. The passwords are in the email that sent you here.</p>
+      <p>Start as Priya (central master-data team); Ana (Brazil) and Jonas (Europe) show what a regional user can and cannot see. Finance signs in to the service desk. The passwords are in the email that sent you here.</p>
       <ol className="brief-steps">
-        <li><b>Stopped at entry</b><span>As Ana, request a customer whose tax ID already exists. The hub stops it before the form goes further.</span></li>
-        <li><b>A clean one</b><span>Request a new customer. Open its ticket, sign in as finance and approve it.</span></li>
-        <li><b>The number</b><span>Seconds later the ERP number is on the request and on the ticket. Nobody retyped anything.</span></li>
-        <li><b>What it cost</b><span>As Priya, decide an exception and open &ldquo;How this ran&rdquo;: each step, each wait on a person, each model call&rsquo;s cost.</span></li>
+        <li><b>Start as Priya</b><span>The central team sees the whole hub: search <code>aurora</code> and find one group, three companies, two regions, two ERPs.</span></li>
+        <li><b>Stopped at entry</b><span>Request a customer whose tax ID already exists. The hub stops it before the form goes further.</span></li>
+        <li><b>A clean one</b><span>Use the fresh example on the sign-in page, submit, open its ticket and approve it as finance. Seconds later the ERP number is on the request and on the ticket.</span></li>
+        <li><b>The credit check</b><span>In Exceptions, open a request that adds a company to the Aurora group: what the group already holds, per currency, in every region.</span></li>
+        <li><b>Then as Ana</b><span>A regional user: she searches every region, but Europe&rsquo;s terms and credit stay with Europe, and Ask gives her no figure for them.</span></li>
       </ol>
       {f ? <p className="note">Live in the demo now: {f.partners} partners in {f.regions} regions on {f.erps} ERPs.</p> : null}
     </>
@@ -267,6 +269,8 @@ function Measures({ f }: { f: BriefFigures | null }) {
         <div><dt>Duplicates created at entry</dt><dd>Near zero; every stop is counted</dd></div>
         <div><dt>Request to ERP number</dt><dd>Within one business day; today it takes days</dd></div>
         <div><dt>Steward hours on duplicates</dt><dd>Half within two quarters</dd></div>
+        <div><dt>Questions answered without a report</dt><dd>Counted from week one: group exposure, partners on hold, time to a number, asked in the hub instead of requested from BI</dd></div>
+        <div><dt>Group credit checked before a new company joins</dt><dd>Every time; the central team sees the group&rsquo;s exposure in every region on the request</dd></div>
         <div><dt>Duplicate ERP records from retries</dt><dd>Zero: every create is keyed, and a lost response was replayed with the same number</dd></div>
         <div><dt>Search and the duplicate check</dt><dd>Under one second</dd></div>
         <div><dt>AI behaviour</dt><dd>Every evaluation case passes three runs of three before a model or prompt change ships; every call&rsquo;s cost is recorded ($0.00038 a suggestion)</dd></div>
@@ -281,6 +285,7 @@ const RISKS = [
   { t: 'Search is as fresh as the last load', d: 'A partner created today is searchable after the next load, or after the central team runs it. Until then a reservation on the tax ID stops a second request.' },
   { t: 'Automatic approval trusts the checks', d: 'They are deterministic and listed on each approval, and the AI never makes a request clean. It can be switched off. Production also stops a person approving an exception they raised.' },
   { t: 'Data residency', d: 'EU-only processing is possible: an EU function region, an EU database, EU model inference. Some workflow metadata is stored in the US by default; the DPO reviews that before kickoff.' },
+  { t: 'Who sees what', d: 'Everyone reads every region\u2019s partners (names, tax IDs, groups); work and amounts stay in each person\u2019s own regions. If a region may not see another, one flag per person turns cross-region reading off, with no release.' },
   { t: 'Plan', d: 'The design needs Pro. Directory sync for SSO, audit-log streaming and Secure Compute need Enterprise; governance decides which.' },
   { t: 'Not built', d: 'Email notifications (logged, not sent), attachments such as tax certificates, and the real identity provider. Each is a scoped follow-up.' },
 ]

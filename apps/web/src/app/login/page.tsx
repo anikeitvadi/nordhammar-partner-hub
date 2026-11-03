@@ -3,6 +3,7 @@ import { Suspense } from 'react'
 import { signIn } from '@/features/auth/actions'
 import { SubmitButton } from '@/features/ui/submit-button.client'
 import { CopyButton } from '@/features/ui/copy-button.client'
+import { FreshExample } from '@/features/ui/fresh-example.client'
 import { AsciiLedger } from '@/features/ui/ascii-ledger.client'
 import { recentLedger } from '@/features/requests/ledger.server'
 
@@ -17,15 +18,19 @@ const ERRORS: Record<string, string> = {
 
 // The front door: the statement and the ledger mark on the left, the sign-in form on the right, then the three demo
 // people and three things to try, as plain ruled lists. Passwords travel in the submission email, never here.
+// Priya first: the central team sees the whole hub, so that is where a grader starts. Ana and Jonas are there to show
+// what a regional user can and cannot see.
 const ROLES = [
-  { who: 'Ana Silva', role: 'Regional user · Brazil', email: 'ana.requester@example.com', can: 'searches and requests in Brazil, sees Brazil amounts, cannot approve' },
-  { who: 'Jonas Weber', role: 'Regional user · Europe', email: 'jonas.requester@example.com', can: 'the same, in Europe' },
-  { who: 'Priya Nair', role: 'Central master data team · all regions', email: 'priya.reviewer@example.com', can: 'decides requests, fixes stopped ERP calls, runs the hub load, sees every amount' },
+  { who: 'Priya Nair', role: 'Central master data team · all regions', email: 'priya.reviewer@example.com', can: 'start here: every region, every amount, the final check on duplicates and group credit' },
+  { who: 'Ana Silva', role: 'Regional user · Brazil', email: 'ana.requester@example.com', can: 'searches every region, requests in Brazil, sees Brazil amounts only, cannot approve' },
+  { who: 'Jonas Weber', role: 'Regional user · Europe', email: 'jonas.requester@example.com', can: 'the same, from Europe' },
 ]
-const TRY = [
-  { text: <>Search <code>aurora</code> as Ana: one group, three establishments, two ERPs.</>, copy: 'aurora' },
+const TRY: { text: React.ReactNode; copy?: string }[] = [
+  { text: <>As Priya, search <code>aurora</code>: one group, three companies in two regions on two ERPs; open one to see its credit.</>, copy: 'aurora' },
   { text: <>Request a customer with CNPJ <code>61.000.101/0001-57</code>: the hub stops you, it already exists.</>, copy: '61.000.101/0001-57' },
-  { text: <>Request <code>Aurora Industrial Nordeste</code> with CNPJ <code>12.345.678/0001-95</code>: no match, submit, approve it as finance in the service desk, and watch the hub create it on its own.</>, copy: '12.345.678/0001-95' },
+  { text: <FreshExample /> },
+  { text: <>Open Exceptions and a request that adds a company to the Aurora group: before approving, Priya sees what the group already holds in every region.</> },
+  { text: <>Sign in as Ana and search <code>aurora</code> again: she sees every company, but not Europe&rsquo;s terms or credit. Ask &ldquo;What is the credit limit of Aurora Nordic AB?&rdquo; and no figure comes back.</> },
 ]
 
 type Params = Promise<{ error?: string; next?: string }>
@@ -58,6 +63,7 @@ export default function LoginPage({ searchParams }: { searchParams: Params }) {
       <div>
         <h1 className="door-title">One record for every partner, in every region.</h1>
         <p className="door-lede">Search before you request. Every customer and supplier we already have, in five regions and three ERPs, behind one search box. Finance approves, the ERP assigns the number, and the hub shows it.</p>
+        <p className="door-brief"><a href="/brief">Read the brief</a>: the problem, the architecture, the Vercel choices and the rollout, on one page.</p>
         <Suspense fallback={<div className="ledger" aria-hidden="true" />}>
           <Ledger />
         </Suspense>
@@ -78,13 +84,13 @@ export default function LoginPage({ searchParams }: { searchParams: Params }) {
           </ul>
         </div>
         <div>
-          <h2>Three things to try</h2>
+          <h2>Five things to try</h2>
           <ol className="try">
-            {TRY.map((t, i) => <li key={i}><span>{t.text}</span><CopyButton text={t.copy} /></li>)}
+            {TRY.map((t, i) => <li key={i}><span>{t.text}</span>{t.copy ? <CopyButton text={t.copy} /> : <span />}</li>)}
           </ol>
         </div>
       </div>
-      <p className="door-foot">Built on Next.js Cache Components, a durable workflow for the ERP write, OIDC to the ERP boundary, and one AI suggestion behind a validator. Every decision and its reason is in DECISIONS.md. <a href="/brief">The brief</a> · <a href="/how-it-works">How it works</a></p>
+      <p className="door-foot">Built on Next.js Cache Components, a durable workflow for the ERP write, OIDC to the ERP boundary, and one AI suggestion behind a validator. Every decision and its reason is in DECISIONS.md. <a href="/how-it-works">How it works</a></p>
     </section>
   )
 }

@@ -282,7 +282,9 @@ details.tech dd { margin: 0; font-family: var(--mono); font-size: 13px; color: v
 /* the sign-in page: the statement and the mark on the left, the door on the right, then who to be and what to try */
 .door { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(320px, .75fr); gap: 32px 80px; padding-top: 24px; }
 .door-title { font: 400 clamp(40px, 5vw, 56px)/1.05 var(--serif); color: var(--ink); margin: 0 0 20px; max-width: 14ch; }
-.door-lede { max-width: 34em; font-size: 16px; margin: 0 0 36px; }
+.door-lede { max-width: 34em; font-size: 16px; margin: 0 0 14px; }
+.door-brief { margin: 0 0 36px; font-size: 15px; color: var(--ink-2); }
+.door-brief a { font-weight: 500; text-decoration-color: var(--ink); }
 .door-form { display: grid; gap: 4px; align-content: start; }
 .door-form label { display: block; font-size: 13px; font-weight: 500; color: var(--ink); margin: 0 0 12px; }
 .door-form label input { display: block; width: 100%; margin-top: 6px; }
@@ -294,7 +296,8 @@ details.tech dd { margin: 0; font-family: var(--mono); font-size: 13px; color: v
 .people .who { color: var(--ink); font-weight: 500; }
 .people .what { display: block; font-size: 13px; color: var(--ink-3); }
 .try { counter-reset: t; }
-.try li > span::before { counter-increment: t; content: counter(t) ". "; color: var(--ink-3); }
+.try li > span:first-child::before { counter-increment: t; content: counter(t) ". "; color: var(--ink-3); }
+.fresh-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-top: 8px; }
 .door-foot { grid-column: 1 / -1; font-size: 13px; color: var(--ink-3); padding-top: 8px; }
 
 /* Ask */
@@ -432,16 +435,16 @@ details.tech dd { margin: 0; font-family: var(--mono); font-size: 13px; color: v
 /* The brief (/brief): one screen. The premise and the eight parts on the left, the chosen part on the stage. A part
    arrives whole; long things open in place; the diagrams draw themselves once. Print shows every part in order. */
 .brief { display: grid; grid-template-columns: minmax(380px, 5fr) minmax(0, 7fr); height: 100vh; overflow: hidden; }
-.brief-side { display: flex; flex-direction: column; gap: 22px; padding: 28px 36px 24px 44px; border-right: 1px solid var(--rule); overflow-y: auto; }
+.brief-side { display: flex; flex-direction: column; gap: 16px; padding: 24px 36px 18px 44px; border-right: 1px solid var(--rule); overflow-y: auto; }
 .brief-mast { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; }
 .brief-mark { font: 400 20px var(--serif); color: var(--ink); }
 .brief-mast nav { display: flex; gap: 18px; font-size: 13px; }
-.brief-premise p { margin: 0 0 10px; font-size: 14px; line-height: 1.55; }
+.brief-premise p { margin: 0 0 8px; font-size: 13.5px; line-height: 1.5; }
 .brief-premise .for { font-size: 13px; color: var(--ink-3); margin: 0 0 10px; }
-.brief-premise .lead { font: 400 34px/1.08 var(--serif); color: var(--ink); margin: 0 0 16px; }
+.brief-premise .lead { font: 400 32px/1.08 var(--serif); color: var(--ink); margin: 0 0 12px; }
 .brief-index { list-style: none; margin: auto 0 0; padding: 0; }
 .brief-index li { border-top: 1px solid var(--rule); }
-.brief-index > li > button { display: grid; grid-template-columns: 132px minmax(0, 1fr); align-items: baseline; gap: 12px; width: 100%; height: auto; padding: 9px 10px; margin: 0 -10px; width: calc(100% + 20px); background: none; color: var(--ink-2); text-align: left; font-weight: 400; border-radius: var(--radius); transition: background var(--t-feedback) ease, color var(--t-feedback) ease; }
+.brief-index > li > button { display: grid; grid-template-columns: 132px minmax(0, 1fr); align-items: baseline; gap: 12px; width: 100%; height: auto; padding: 8px 10px; margin: 0 -10px; width: calc(100% + 20px); background: none; color: var(--ink-2); text-align: left; font-weight: 400; border-radius: var(--radius); transition: background var(--t-feedback) ease, color var(--t-feedback) ease; }
 .brief-index > li > button:hover { background: var(--wash); color: var(--ink); }
 .brief-index li.on > button { background: var(--wash); color: var(--ink); }
 .brief-index .t { font-size: 14px; font-weight: 500; color: var(--ink); }
