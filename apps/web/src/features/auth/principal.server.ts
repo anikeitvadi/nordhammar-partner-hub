@@ -1,5 +1,6 @@
 import 'server-only'
 import { headers } from 'next/headers'
+import { redirect } from 'next/navigation'
 import { connection } from 'next/server'
 import type { Region, Role } from '@intake/contracts'
 import { sql } from '@/lib/db'
@@ -31,8 +32,14 @@ export async function getPrincipal(): Promise<Principal | null> {
   }
 }
 
+// No verified person: back to the sign-in page, keeping where they were going. This is the case the proxy cannot see:
+// a session revoked elsewhere still carries claims that pass its local check, and getUser() then refuses it.
 export async function requirePrincipal(): Promise<Principal> {
   const p = await getPrincipal()
-  if (!p) throw new Error('unauthenticated')
+  if (!p) {
+    const path = (await headers()).get('x-hub-path') ?? ''
+    const next = path.startsWith('/') && !path.startsWith('//') && !path.startsWith('/login') && path !== '/' ? `&next=${encodeURIComponent(path)}` : ''
+    redirect(`/login?error=expired${next}`)
+  }
   return p
 }

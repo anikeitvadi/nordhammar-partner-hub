@@ -14,8 +14,10 @@ export async function signIn(formData: FormData) {
   redirect(safeNext)
 }
 
+// This browser only. Supabase's default ends every session of the person, and the demo's people are shared by
+// everyone trying it, so one sign-out would sign out every other viewer.
 export async function signOut() {
   const supabase = await supabaseServer()
-  await supabase.auth.signOut()
+  await supabase.auth.signOut({ scope: 'local' })
   redirect('/login')
 }

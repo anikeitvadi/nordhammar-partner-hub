@@ -6,6 +6,9 @@ import { supabaseEnv } from '@/features/auth/env'
 // round trip to the auth server; the server modules do the verified getUser), and sends anonymous users to /login.
 // It does NOT decide what a user may see; that is the server modules' job with fresh entitlements.
 export async function proxy(request: NextRequest) {
+  // Where the person was going, for requirePrincipal's redirect when the server's verified check fails (a revoked
+  // session can still carry claims that pass the local check below). Always overwritten, never taken from the client.
+  request.headers.set('x-hub-path', request.nextUrl.pathname + request.nextUrl.search)
   let response = NextResponse.next({ request })
   const { url: supabaseUrl, publishableKey } = supabaseEnv()
   const supabase = createServerClient(supabaseUrl, publishableKey, {
