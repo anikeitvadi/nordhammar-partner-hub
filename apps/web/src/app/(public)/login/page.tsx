@@ -66,7 +66,7 @@ export default function LoginPage({ searchParams }: { searchParams: Params }) {
         <Suspense fallback={<form className="door-form" aria-busy="true"><label>Email<input type="email" disabled /></label><label>Password<input type="password" disabled /></label><button type="button" disabled>Sign In</button></form>}>
           <SignInForm searchParams={searchParams} />
         </Suspense>
-        <p className="muted small">Demo passwords are in the email that sent you here. No account? Ask IT to add you to a region group.</p>
+        <p className="muted small">Demo passwords are in the email that sent you here.</p>
         <h2>Three people, two roles</h2>
         <ul className="people">
           {ROLES.map((r) => <li key={r.email}><span><span className="who">{r.who}</span><span className="role">{r.role}</span><span className="what">{r.can}</span><code className="email">{r.email}</code></span><CopyButton text={r.email} /></li>)}
