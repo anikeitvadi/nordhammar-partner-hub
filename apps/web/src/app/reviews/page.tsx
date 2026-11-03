@@ -53,18 +53,18 @@ export default async function CentralTeamPage({ searchParams }: { searchParams: 
         <>
           <p className="muted count" role="status">{queue.length === 0 ? 'Nothing waiting. Finance-approved requests that pass every check are created without you.' : `${queue.length} waiting, oldest first, every region. Each says why it was not approved automatically.`}</p>
           {queue.length === 0 ? null : (
-            <table className="results"><thead><tr><th>Request</th><th>Name</th><th className="col-secondary">Type</th><th className="col-secondary">Region</th><th>Why it is here</th><th className="col-secondary">Waiting since</th></tr></thead>
-              <tbody>{queue.map((r) => <tr key={r.requestId}><td><Link href={`/reviews/${r.requestId}`}><code>{r.requestId}</code></Link></td><td>{r.legalName}</td><td className="col-secondary">{r.domain === 'customer' ? 'Customer' : 'Supplier'}</td><td className="col-secondary">{r.region}</td><td>{r.state.kind === 'exception' ? <span className="small">{r.state.reasons.join('; ')}</span> : <><StatusBadge state={r.state} /><div className="muted small">raised before the service desk; reviewed as before</div></>}</td><td className="col-secondary"><LocalTime iso={r.createdAt} relative /></td></tr>)}</tbody></table>
+            <table className="results"><thead><tr><th className="col-secondary">Request</th><th>Name</th><th className="col-secondary">Type</th><th className="col-secondary">Region</th><th>Why it is here</th><th className="col-secondary">Waiting since</th></tr></thead>
+              <tbody>{queue.map((r) => <tr key={r.requestId}><td className="col-secondary"><Link href={`/reviews/${r.requestId}`}><code>{r.requestId}</code></Link></td><td><Link href={`/reviews/${r.requestId}`}>{r.legalName}</Link></td><td className="col-secondary">{r.domain === 'customer' ? 'Customer' : 'Supplier'}</td><td className="col-secondary">{r.region}</td><td>{r.state.kind === 'exception' ? <span className="small">{r.state.reasons.join('; ')}</span> : <><StatusBadge state={r.state} /><div className="muted small">raised before the service desk; reviewed as before</div></>}</td><td className="col-secondary"><LocalTime iso={r.createdAt} relative /></td></tr>)}</tbody></table>
           )}
         </>
       ) : (
         <>
           <p className="muted count" role="status">{attention.length === 0 ? 'Nothing stopped, nothing pending.' : `${attention.length} ${attention.length === 1 ? 'request needs' : 'requests need'} a look. No action here creates a partner: each is a read or a replay with the same key.`}</p>
           {attention.length === 0 ? null : (
-            <table className="results"><thead><tr><th>Request</th><th>Name</th><th className="col-secondary">Type</th><th className="col-secondary">Region</th><th>State</th><th className="col-secondary">Pending deliveries</th><th>Next step</th></tr></thead>
+            <table className="results"><thead><tr><th className="col-secondary">Request</th><th>Name</th><th className="col-secondary">Type</th><th className="col-secondary">Region</th><th>State</th><th className="col-secondary">Pending deliveries</th><th>Next step</th></tr></thead>
               <tbody>{attention.map((r) => (
                 <tr key={r.requestId}>
-                  <td><Link href={`/requests/${r.requestId}`}><code>{r.requestId}</code></Link></td><td>{r.legalName}</td><td className="col-secondary">{r.domain === 'customer' ? 'Customer' : 'Supplier'}</td><td className="col-secondary">{r.region}</td>
+                  <td className="col-secondary"><Link href={`/requests/${r.requestId}`}><code>{r.requestId}</code></Link></td><td><Link href={`/requests/${r.requestId}`}>{r.legalName}</Link></td><td className="col-secondary">{r.domain === 'customer' ? 'Customer' : 'Supplier'}</td><td className="col-secondary">{r.region}</td>
                   <td><StatusBadge state={r.state} />{r.state.kind === 'stopped' ? <div className="muted small">{STOP[r.state.category] ?? r.state.category}; {r.state.effect === 'unknown' ? 'not yet known whether it was created' : 'nothing was created'}</div> : null}</td>
                   <td className="col-secondary">{r.pendingDeliveries.length ? r.pendingDeliveries.map((d, i) => <div key={i}>{d.kind} · {d.attempts} attempt(s){d.lastError ? ` · ${d.lastError}` : ''}</div>) : 'none'}</td>
                   <td className="actions">

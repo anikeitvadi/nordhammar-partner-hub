@@ -22,10 +22,11 @@ export default async function RequestsPage() {
       {rows.length === 0 ? (
         <p className="panel">None yet. A request is a new customer or supplier the hub does not have: you check the hub, fill one form, finance approves it in the service desk, and the ERP number comes back here. <Link href={`/intake/new?domain=customer&region=${region}`}>Request a customer</Link> or <Link href={`/intake/new?domain=supplier&region=${region}`}>a supplier</Link>.</p>
       ) : (
-        <table className="results"><thead><tr><th>Request</th><th>Name</th><th className="col-secondary">Type</th><th className="col-secondary">Region</th><th className="col-secondary">Came in</th><th>Status</th><th className="col-secondary">ERP number</th>{all ? <th className="col-secondary">Requester</th> : null}<th className="col-secondary">Moved</th></tr></thead>
+        <table className="results"><thead><tr><th className="col-secondary">Request</th><th>Name</th><th className="col-secondary">Type</th><th className="col-secondary">Region</th><th className="col-secondary">Came in</th><th>Status</th><th className="col-secondary">ERP number</th>{all ? <th className="col-secondary">Requester</th> : null}<th className="col-secondary">Moved</th></tr></thead>
           <tbody>{rows.map((r) => (
             <tr key={r.requestId}>
-              <td><Link href={`/requests/${r.requestId}`}><code>{r.requestId}</code></Link></td><td>{r.legalName}</td>
+              {/* On a phone the id column is hidden (it alone overflowed 390 px), so the name carries the link. */}
+              <td className="col-secondary"><Link href={`/requests/${r.requestId}`}><code>{r.requestId}</code></Link></td><td><Link href={`/requests/${r.requestId}`}>{r.legalName}</Link></td>
               <td className="col-secondary">{r.domain === 'customer' ? 'Customer' : 'Supplier'}</td><td className="col-secondary">{r.region}</td>
               <td className="col-secondary">{r.source === 'desk' ? `Service desk, ${r.ticketId}` : r.ticketId ? `Hub form, ${r.ticketId}` : 'Hub form'}</td>
               <td><StatusBadge state={r.state} /></td>
