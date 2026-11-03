@@ -3,7 +3,7 @@ import { ERPS, REGIONS, type Region } from '@intake/contracts'
 import { CUSTOMER_TYPES, SUPPLIER_TYPES } from '@/features/requests/payload'
 
 // Pure. The typed query spec Ask's model fills instead of writing SQL (docs/QUERY-SPEC-CONTRACT.md). Every part is from a
-// closed list except a group name, which code matches. This module decides what is allowed, says the query in words and
+// closed list except two names, a group and one company, which code matches. This module decides what is allowed, says the query in words and
 // picks the chart; query.server.ts runs it. Tested without a database or a model.
 
 export const SUBJECTS = ['partners', 'requests', 'checks'] as const
@@ -28,7 +28,8 @@ export const QuerySpecSchema = z.object({
     source: z.enum(['hub', 'desk']).optional().describe('requests only: raised in the hub form or in the service desk'),
     approval: z.enum(['automatic', 'central_team']).optional().describe('requests only: approved by the checks or by the central team'),
     route: z.enum(ROUTES).optional().describe('checks only'),
-    group: z.string().min(2).max(60).optional().describe('partners only: part of a corporate group, ultimate parent or company name, as the person wrote it'),
+    group: z.string().min(2).max(60).optional().describe('partners only: a corporate group or an ultimate parent, and every company under it ("the Aurora group", "exposure to X and its subsidiaries"), as the person wrote it'),
+    partner: z.string().min(2).max(80).optional().describe('partners only: one company by its own name, only that company\'s record ("the credit limit of Aurora Nordic AB"), as the person wrote it'),
   }).default({}),
   time: z.enum(TIMES).default('all_time').describe('partners by when they joined, requests by when they were submitted, checks by when they ran'),
   groupBy: z.enum(GROUP_BYS).optional().describe('at most one dimension'),
@@ -40,7 +41,7 @@ type FilterKey = keyof QuerySpec['filters']
 
 // What makes sense, per subject. Anything else is refused with the sentence, never approximated.
 const ALLOWED: Record<Subject, { measures: readonly string[]; filters: readonly FilterKey[]; groupBy: readonly string[]; refusal: string }> = {
-  partners: { measures: ['count', 'credit_limit', 'spend_ytd'], filters: ['region', 'domain', 'status', 'erp', 'type', 'risk', 'group'], groupBy: ['region', 'erp', 'status', 'type', 'domain', 'ultimate_parent', 'currency'], refusal: 'I can count partners, or sum credit limits (customers) and spend (suppliers), by region, ERP, status, type, domain or ultimate parent.' },
+  partners: { measures: ['count', 'credit_limit', 'spend_ytd'], filters: ['region', 'domain', 'status', 'erp', 'type', 'risk', 'group', 'partner'], groupBy: ['region', 'erp', 'status', 'type', 'domain', 'ultimate_parent', 'currency'], refusal: 'I can count partners, or sum credit limits (customers) and spend (suppliers), by region, ERP, status, type, domain or ultimate parent.' },
   requests: { measures: ['count', 'median_hours_to_number'], filters: ['region', 'domain', 'state', 'source', 'approval'], groupBy: ['region', 'state', 'domain', 'source', 'approval', 'month'], refusal: 'I can count requests, or give the median hours from submitted to ERP number, by region, state, domain, source, approval or month.' },
   checks: { measures: ['count', 'stopped_at_entry'], filters: ['region', 'route'], groupBy: ['region', 'route', 'month'], refusal: 'I can count duplicate checks, or the ones that stopped a duplicate, by region, route or month.' },
 }
@@ -63,7 +64,7 @@ const GROUP_WORDS: Record<string, string> = { ultimate_parent: 'ultimate parent'
 
 // The query in words, written by code from the spec and the scope that applied, shown under every answer: if the model
 // misread the question, this line says what was actually counted.
-export function describeSpec(spec: QuerySpec, scope: { regions: Region[]; moneyRegions?: Region[]; groups?: string[] }): string {
+export function describeSpec(spec: QuerySpec, scope: { regions: Region[]; moneyRegions?: Region[]; groups?: string[]; partners?: string[] }): string {
   const f = spec.filters
   const parts = [spec.measure === 'stopped_at_entry' ? MEASURE_WORDS.stopped_at_entry : `${MEASURE_WORDS[spec.measure]} ${spec.measure === 'credit_limit' ? 'customers' : spec.measure === 'spend_ytd' ? 'suppliers' : SUBJECT_WORDS[spec.subject]}`]
   if (f.domain && !isMoney(spec.measure)) parts.push(`${f.domain}s only`)
@@ -76,6 +77,7 @@ export function describeSpec(spec: QuerySpec, scope: { regions: Region[]; moneyR
   if (f.approval) parts.push(f.approval === 'automatic' ? 'approved automatically' : 'approved by the central team')
   if (f.route) parts.push(`route ${f.route.replace(/_/g, ' ')}`)
   if (f.group) parts.push(scope.groups?.length ? `in ${scope.groups.join(', ')}` : `in groups matching "${f.group}" (none found)`)
+  if (f.partner) parts.push(scope.partners?.length ? `${scope.partners.join(', ')} only` : `for "${f.partner}" (no company found)`)
   if (spec.groupBy) parts.push(`by ${GROUP_WORDS[spec.groupBy] ?? spec.groupBy}`)
   // For partners the window is when they joined, and "all time" goes without saying; spend is this year's by definition.
   if (spec.subject !== 'partners') parts.push(TIME_WORDS[spec.time])
@@ -103,13 +105,20 @@ export function chartKind(spec: QuerySpec, rows: number): ChartKind {
 // Where the records behind a partner count live, when a page can show exactly them.
 export function recordsLink(spec: QuerySpec): string | null {
   // Customers and suppliers are two pages, so a count over both has no one page to link to.
-  if (spec.subject !== 'partners' || spec.measure !== 'count' || !spec.filters.domain || spec.groupBy || spec.filters.group || spec.filters.type || spec.filters.risk || spec.filters.status === 'inactive') return null
+  if (spec.subject !== 'partners' || spec.measure !== 'count' || !spec.filters.domain || spec.groupBy || spec.filters.group || spec.filters.partner || spec.filters.type || spec.filters.risk || spec.filters.status === 'inactive') return null
   const q = new URLSearchParams()
   // `in`, not `region`: the top bar's search already sends `region` (its home region) with every search.
   if (spec.filters.region?.length === 1) q.set('in', spec.filters.region[0])
   if (spec.filters.status === 'hold') q.set('status', 'hold')
   if (spec.filters.erp) q.set('erp', spec.filters.erp)
   return `/${spec.filters.domain === 'supplier' ? 'suppliers' : 'customers'}${q.size ? `?${q}` : ''}`
+}
+
+// A company the person named that lies outside what they may see: its name and region, never a figure. The same
+// disclosure as the presence lookup (view.ts), so asking for a number reveals nothing more than asking whether it exists.
+export function outsideNote(name: string, regions: string[], what: 'regions' | 'amounts'): string {
+  const where = regions.join(', ')
+  return what === 'regions' ? `${name} is a partner in ${where}, outside the regions you can see.` : `${name} is a partner in ${where}; you are not entitled to amounts there.`
 }
 
 // The window each time value covers, as a SQL interval start; null is all time.

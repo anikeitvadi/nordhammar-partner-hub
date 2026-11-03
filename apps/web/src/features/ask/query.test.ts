@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { chartKind, describeSpec, QuerySpecSchema, recordsLink, timeStart, validateSpec } from './query'
+import { chartKind, describeSpec, outsideNote, QuerySpecSchema, recordsLink, timeStart, validateSpec } from './query'
 
 const spec = (s: unknown) => QuerySpecSchema.parse(s)
 
@@ -56,5 +56,20 @@ describe('the picture and the link', () => {
     expect(timeStart('this_month', now)?.toISOString()).toBe('2026-11-01T00:00:00.000Z')
     expect(timeStart('this_year', now)?.toISOString()).toBe('2026-01-01T00:00:00.000Z')
     expect(timeStart('all_time', now)).toBeNull()
+  })
+})
+
+describe('one company is not a group', () => {
+  it('partner is a partners filter, and says which company it counted', () => {
+    const s = spec({ subject: 'partners', measure: 'credit_limit', filters: { partner: 'Aurora Nordic AB' } })
+    expect(validateSpec(s)).toEqual({ ok: true })
+    expect(validateSpec(spec({ subject: 'requests', measure: 'count', filters: { partner: 'Aurora Nordic AB' } })).ok).toBe(false)
+    expect(describeSpec(s, { regions: ['EU'], moneyRegions: ['EU'], partners: ['Aurora Nordic AB'] })).toBe('Credit limits of customers, Aurora Nordic AB only, amounts in EU (your amount regions).')
+    expect(describeSpec(s, { regions: ['BR'], moneyRegions: ['BR'], partners: [] })).toContain('for "Aurora Nordic AB" (no company found)')
+    expect(recordsLink(spec({ subject: 'partners', measure: 'count', filters: { domain: 'customer', partner: 'Aurora' } }))).toBeNull()
+  })
+  it('a company outside what the person may see gets its name and region, never a figure', () => {
+    expect(outsideNote('Aurora Nordic AB', ['EU'], 'regions')).toBe('Aurora Nordic AB is a partner in EU, outside the regions you can see.')
+    expect(outsideNote('Aurora Nordic AB', ['EU'], 'amounts')).toBe('Aurora Nordic AB is a partner in EU; you are not entitled to amounts there.')
   })
 })

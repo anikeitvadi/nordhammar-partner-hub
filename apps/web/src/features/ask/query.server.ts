@@ -1,11 +1,12 @@
 import 'server-only'
 import { sql } from '@/lib/db'
+import type { Region } from '@intake/contracts'
 import { visibleRegions, type Principal } from '@/features/auth/scope'
 import { cycle } from '@/features/home/outcomes'
-import { chartKind, describeSpec, isMoney, recordsLink, timeStart, validateSpec, type QueryResult, type QueryRow, type QuerySpec } from './query'
+import { chartKind, describeSpec, isMoney, outsideNote, recordsLink, timeStart, validateSpec, type QueryResult, type QueryRow, type QuerySpec } from './query'
 
 // Runs a validated query spec (docs/QUERY-SPEC-CONTRACT.md §2). The SQL is assembled only from the fixed fragments below;
-// the one string that came from the model, a group name, is a bound parameter. Regions are always the intersection of
+// the two strings that came from the model, a group name and a company name, are bound parameters. Regions are always the intersection of
 // what the spec asks and what the person may see; amounts, of what they ask and their money regions.
 
 
@@ -36,6 +37,7 @@ export async function runQuery(principal: Principal, spec: QuerySpec, now = new 
   const f = spec.filters
   let text: string
   let groups: string[] | undefined
+  let partners: string[] | undefined
 
   if (spec.subject === 'partners') {
     let join = 'from parties p left join parties up on up.golden_id = p.ultimate_parent_golden_id left join groups g on g.group_id = p.group_id'
@@ -49,9 +51,23 @@ export async function runQuery(principal: Principal, spec: QuerySpec, now = new 
     if (f.risk) where.push(`p.risk_rating = ${p(f.risk)}`)
     if (f.group) {
       const like = p(`%${f.group.trim()}%`)
-      where.push(`(g.name ilike ${like} or up.legal_name ilike ${like} or p.legal_name ilike ${like})`)
-      const matched = await sql().query(`select distinct case when g.name ilike $2 or up.legal_name ilike $2 then coalesce(g.name, up.legal_name) else p.legal_name end as name from parties p left join parties up on up.golden_id = p.ultimate_parent_golden_id left join groups g on g.group_id = p.group_id where p.region = any($1) and (g.name ilike $2 or up.legal_name ilike $2 or p.legal_name ilike $2) order by 1 limit 5`, [regions, `%${f.group.trim()}%`])
+      where.push(`(g.name ilike ${like} or up.legal_name ilike ${like})`)
+      // Echo what actually matched: a group by its name, a parent as the companies under it (not the whole group).
+      const matched = await sql().query(`select distinct case when g.name ilike $2 then g.name else 'companies under ' || up.legal_name end as name from parties p left join parties up on up.golden_id = p.ultimate_parent_golden_id left join groups g on g.group_id = p.group_id where p.region = any($1) and (g.name ilike $2 or up.legal_name ilike $2) order by 1 limit 5`, [regions, `%${f.group.trim()}%`])
       groups = matched.map((r) => r.name as string).filter(Boolean)
+    }
+    if (f.partner) {
+      // One company's own record, never the companies under it (that is `group`).
+      const name = `%${f.partner.trim()}%`
+      const like = p(name)
+      where.push(`(p.legal_name ilike ${like} or p.local_name ilike ${like})`)
+      const all = await sql().query(`select legal_name, region from parties where (legal_name ilike $1 or local_name ilike $1) order by legal_name limit 10`, [name])
+      const seen = all.filter((r) => regions.includes(r.region as Region))
+      partners = [...new Set(seen.map((r) => r.legal_name as string))].slice(0, 5)
+      // Named, but only where this person cannot look, or cannot see amounts: say where it is and stop.
+      const outside = (rows: Record<string, unknown>[]) => [...new Set(rows.map((r) => r.region as string))]
+      if (seen.length === 0 && all.length > 0) return { ok: true, ...base, words: describeSpec(spec, { regions, moneyRegions, partners: [all[0].legal_name as string] }), kind: 'number', unit: '', rows: [], note: outsideNote(all[0].legal_name as string, outside(all), 'regions') }
+      if (isMoney(spec.measure) && seen.length > 0 && !seen.some((r) => moneyRegions.includes(r.region as Region))) return { ok: true, ...base, words: describeSpec(spec, { regions, moneyRegions, partners }), kind: 'number', unit: '', rows: [], note: outsideNote(seen[0].legal_name as string, outside(seen), 'amounts') }
     }
     if (from) where.push(`p.inception_at >= ${p(from.toISOString().slice(0, 10))}`)
     let value = 'count(*)'
@@ -100,7 +116,7 @@ export async function runQuery(principal: Principal, spec: QuerySpec, now = new 
   return finish(out, isMoney(spec.measure) ? 'amount' : spec.measure === 'median_hours_to_number' ? 'hours' : spec.subject)
 
   function finish(out: QueryRow[], unit: string): QueryResult {
-    return { ok: true, ...base, words: describeSpec(spec, { regions, moneyRegions, groups }), kind: chartKind(spec, out.length), unit, rows: out, note: out.length === 0 ? 'Nothing matches.' : null }
+    return { ok: true, ...base, words: describeSpec(spec, { regions, moneyRegions, groups, partners }), kind: chartKind(spec, out.length), unit, rows: out, note: out.length === 0 ? 'Nothing matches.' : null }
   }
 }
 

@@ -4,7 +4,7 @@ What changes: Ask today has six tools. Three are lookups of one record (does a g
 
 ## 1. The spec
 
-Every value is from a closed list except one: `group`, a name the code matches against the groups table.
+Every value is from a closed list except two names the code matches: `group` (a group or ultimate parent) and `partner` (one company).
 
 | Part | Values | Why it exists |
 |---|---|---|
@@ -20,7 +20,8 @@ Every value is from a closed list except one: `group`, a name the code matches a
 | `filters.source` | requests: hub form, service desk | Which way in |
 | `filters.approval` | requests: automatic, central team | Since the service desk |
 | `filters.route` | checks: exact match here, exact match elsewhere, same company, name match, clear | |
-| `filters.group` | a group, ultimate-parent or company name, as typed | Matched by code (case-insensitive, contains) against the group, the ultimate parent and the company's own legal name; the matched names are echoed back. A company name matches only in regions the person can see. (Widened on 2026-11-03: "the credit limit of Aurora Nordic AB" names a company, not a group, and matched nothing.) |
+| `filters.group` | a group or ultimate-parent name, as typed | Matched by code (case-insensitive, contains) against group names and ultimate parents; the group's members are counted or summed. The matched names are echoed back |
+| `filters.partner` | one company's legal name, as typed (added 2026-11-03, approved by Ani) | Matched by code (case-insensitive, contains) against the company's own legal and local name; only that company's own record is counted or summed, never the companies under it. Echoed back by name |
 | `time` | `this_month`, `last_30_days`, `last_90_days`, `this_year`, `all_time` | Partners by when they joined, requests by when they were submitted, checks by when they ran |
 | `groupBy` | partners: region, erp, status, type, domain, ultimate_parent, currency. requests: region, state, domain, source, approval, month. checks: region, route, month | At most one dimension, so every answer is a number, a bar chart or a line |
 | `limit` | 1 to 20, default 10 | |
@@ -32,8 +33,9 @@ Every value is from a closed list except one: `group`, a name the code matches a
    - Region filters are intersected with the person's visible regions.
    - Amounts are intersected with their money regions. With none, the answer is the existing note ("not entitled to amounts"), not a number.
    - Grouping by ultimate parent shows a group only if it has a member in a visible region, and sums only visible rows.
-   - Partner names other than a group's never appear in an aggregate answer, except a company the person named themselves, echoed back from a visible region; listing records is what search is for.
-3. **Runs it.** One parameterised query is built from fixed fragments, one per allowed part. No string from the model reaches SQL except the group name, as a bound parameter.
+   - Partner names other than a group's never appear in an aggregate answer, except a company the person named themselves (`partner`); listing records is what search is for.
+   - A named company that exists only in regions the person cannot see gets its name and region and no figure, the same as the presence lookup: "Aurora Nordic AB is a partner in EU, outside the regions you can see." One that is visible but outside the person's amount regions gets the same sentence for amounts.
+3. **Runs it.** One parameterised query is built from fixed fragments, one per allowed part. No string from the model reaches SQL except the two names, as bound parameters.
 4. **Says what ran.** Code, not the model, writes the query in words under the answer: "Partners on hold, by region, all time, in BR, EU (your regions)". A wrong reading by the model shows up there.
 
 ## 3. How an answer looks
@@ -98,3 +100,11 @@ None. No tables or columns change. The tool list changes from 6 to 4. The eval f
 1. **OK on the spec (§1) and the refusal rule (§2.1).** The lists are deliberately short; each value exists because a question in the review log or the brief asks for it.
 2. **Plain HTML charts** (my recommendation), not a chart library, for four shapes.
 3. **The name.** The review log has "Ask the hub" as open: "Ask", "Insights", or folded into the ⌘K bar. I lean **"Ask"**: short, says what you do, and the page title can carry the rest.
+
+## Change, 2026-11-03: one company is not a group
+
+Found on the step 11 canary. "What is the credit limit of Aurora Nordic AB?" had only `group` to say "Aurora Nordic AB", and Aurora Nordic AB is the ultimate parent of two Brazilian companies. The answer was their total (R$650,000) under Nordic's name; Ana, who may not see EU, was told it was Nordic's limit. Nordic's own limit is SEK 900,000, in EU.
+
+- `partner` is one company's own record. `group` is a group or a parent and everything under it, as approved.
+- The model is told: a company's legal name ("the limit of Aurora Nordic AB") is `partner`; a group, a parent "and its subsidiaries", or "exposure to the X group" is `group`.
+- A07 now grades the returned figure, not only the spec, and a new case asks it as Ana.
