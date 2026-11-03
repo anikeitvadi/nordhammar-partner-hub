@@ -68,6 +68,6 @@ export async function readExposure(principal: Principal, group?: string) {
   const rows = await reportExposure(principal)
   const want = group?.trim().toLowerCase()
   const filtered = want ? rows.filter((r) => r.parent.toLowerCase().includes(want)) : rows
-  if (principal.moneyRegions.length === 0) return { group: want ?? 'all', rows: [], note: 'Your role is not entitled to amounts in any region; exposure is shown to finance roles only.' }
+  if (principal.moneyRegions.length === 0) return { group: want ?? 'all', rows: [], note: 'You are not entitled to amounts in any region; amounts are granted per person and region.' }
   return { group: want ?? 'all', rows: filtered, note: `Credit limits summed per currency over the regions you are entitled to see amounts for (${principal.moneyRegions.join(', ')}).` }
 }

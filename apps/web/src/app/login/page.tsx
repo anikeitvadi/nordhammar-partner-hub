@@ -18,10 +18,9 @@ const ERRORS: Record<string, string> = {
 // The front door is a grid of five tiles: one hero (the product line and a real result row), the sign-in card,
 // one big number, the three demo roles, and three things to try. Passwords travel in the submission email, never here.
 const ROLES = [
-  { who: 'Ana Silva', role: 'Requester · Brazil', email: 'ana.requester@example.com', tone: 'a', can: 'searches BR, requests customers and suppliers' },
-  { who: 'Jonas Weber', role: 'Requester · Europe', email: 'jonas.requester@example.com', tone: 'b', can: 'the same, in the EU region' },
-  { who: 'Priya Nair', role: 'Reviewer · all regions', email: 'priya.reviewer@example.com', tone: 'c', can: 'approves, declines, sends back' },
-  { who: 'Sam Okafor', role: 'Operator · all regions', email: 'sam.operator@example.com', tone: 'd', can: 'runs the hub load, checks with the ERP' },
+  { who: 'Ana Silva', role: 'Regional user · Brazil', email: 'ana.requester@example.com', tone: 'a', can: 'searches and requests in Brazil, sees Brazil amounts, cannot approve' },
+  { who: 'Jonas Weber', role: 'Regional user · Europe', email: 'jonas.requester@example.com', tone: 'b', can: 'the same, in Europe' },
+  { who: 'Priya Nair', role: 'Central master data team · all regions', email: 'priya.reviewer@example.com', tone: 'c', can: 'decides requests, fixes stopped ERP calls, runs the hub load, sees every amount' },
 ]
 const TRY = [
   { text: <>Search <code>aurora</code> as Ana: one group, three establishments, two ERPs.</>, copy: 'aurora' },
@@ -84,7 +83,7 @@ export default function LoginPage({ searchParams }: { searchParams: Params }) {
           <div className="tile-body"><div className="stat">5<small>regions</small></div><p className="stat-label">Brazil, the US, India, China and Europe; two ERPs; one record per legal entity, checked on the tax ID before a request can continue.</p></div>
         </div>
         <div className="tile">
-          <p className="runin"><strong>Four people, three roles.</strong> Sign in as any of them.</p>
+          <p className="runin"><strong>Three people, two roles.</strong> Sign in as any of them.</p>
           <ul className="rows tile-body">
             {ROLES.map((r) => <li key={r.email}><span className={`avatar ${r.tone}`}>{r.who.split(' ').map((w) => w[0]).join('')}</span><span><span className="t">{r.who}</span><span className="s">{r.role}</span><span className="s">{r.email}</span></span><CopyButton text={r.email} /></li>)}
           </ul>

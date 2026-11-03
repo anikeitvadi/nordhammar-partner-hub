@@ -117,11 +117,11 @@ const spend: { id: string; region: Region; ytd: number; currency: string; open: 
 ]
 
 // Test users. Created in the identity provider with the same emails; passwords are handed over privately.
+// Two roles: regional users (requester) and the central master data team (steward), who sees amounts everywhere.
 const entitlements = [
   { email: 'ana.requester@example.com', name: 'Ana Silva', role: 'requester', regions: ['BR'], global: false, money: ['BR'] },
   { email: 'jonas.requester@example.com', name: 'Jonas Weber', role: 'requester', regions: ['EU'], global: false, money: ['EU'] },
-  { email: 'priya.reviewer@example.com', name: 'Priya Nair', role: 'reviewer', regions: ['BR', 'EU', 'US', 'IN', 'CN'], global: true, money: [] },
-  { email: 'sam.operator@example.com', name: 'Sam Okafor', role: 'operator', regions: ['BR', 'EU', 'US', 'IN', 'CN'], global: true, money: [] },
+  { email: 'priya.reviewer@example.com', name: 'Priya Nair', role: 'steward', regions: ['BR', 'EU', 'US', 'IN', 'CN'], global: true, money: ['BR', 'EU', 'US', 'IN', 'CN'] },
   { email: 'noregion@example.com', name: 'No Region Yet', role: 'requester', regions: [], global: false, money: [] },
 ]
 

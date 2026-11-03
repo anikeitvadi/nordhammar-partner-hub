@@ -29,7 +29,7 @@ export default async function ReportsPage() {
           <tbody>{intake.map((r) => <tr key={r.state}><td>{STATE_LABEL[r.state as RequestState['kind']] ?? r.state.replace(/_/g, ' ')}</td><td className="num">{r.customers}</td><td className="num">{r.suppliers}</td><td className="num">{r.medianHours ?? '—'}</td></tr>)}</tbody></table>
       )}
       <h2>Credit exposure by ultimate parent</h2>
-      {exposure.length === 0 ? <p className="muted">No money regions on your entitlement. Finance roles see this; reviewers do not, by design.</p> : (
+      {exposure.length === 0 ? <p className="muted">You are not entitled to amounts in any region. Amounts are granted per person and region.</p> : (
         <table className="results"><thead><tr><th>Ultimate parent</th><th className="num">Companies</th><th>Regions</th><th className="num">Credit limits (per currency)</th></tr></thead>
           <tbody>{exposure.map((r) => <tr key={r.parent}><td>{r.parent}</td><td className="num">{r.companies}</td><td>{r.regions.join(', ')}</td><td className="num">{r.limits.map((l) => money(l.currency, l.total)).join(' · ')}</td></tr>)}</tbody></table>
       )}
