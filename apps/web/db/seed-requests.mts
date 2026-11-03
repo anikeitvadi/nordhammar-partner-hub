@@ -156,7 +156,6 @@ async function build(row: Row): Promise<Built> {
   const payload = b.payload
   const hash = await payloadHash(payload)
   const o = row.outcome
-  const submittedAt = iso(row.daysAgo)
   const events: Built['events'] = []
   const ev = (minutes: number, kind: string, actor: string, detail: unknown = null) => events.push({ at: iso(row.daysAgo, minutes), kind, actor, detail })
 
