@@ -1,4 +1,6 @@
-# Run trace and live model switch (step 7, for Ani's OK before anything is built)
+# Run trace and live model switch (step 7)
+
+> As built: written before step 7 was built and agreed then; where it and the code differ, the code and DECISIONS.md are current. References to “log §n” point to the review log kept privately during the build; what it decided is in DECISIONS.md.
 
 What changes: every request page gets a **Run** panel that answers the brief's two questions, "what did this cost" and "where was the time spent", from the Workflow's own record of the run. A demo control switches the model the hub uses, live, and a fallback shows up in that panel as it happens. Decided in review log §15.
 

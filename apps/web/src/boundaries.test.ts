@@ -5,7 +5,7 @@ import path from 'node:path'
 // A wall is a test that fails, not a comment that asks nicely.
 // This builds the import graph of src/ and asserts three policies that path-pattern lint cannot:
 // 1. no client module ("use client") transitively reaches the DB client, server-only, or any *.server.ts
-// 2. erp.server createCustomer is reachable only from features/execution
+// 2. erp.server createParty is reachable only from features/execution
 // 3. packages/contracts imports nothing from the app
 const SRC = path.resolve(__dirname)
 const ROOT = path.resolve(__dirname, '..', '..', '..')

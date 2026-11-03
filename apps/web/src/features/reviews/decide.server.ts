@@ -12,15 +12,17 @@ import { isCentral, type Principal } from '@/features/auth/scope'
 
 export type Decision = 'approve' | 'decline' | 'send_back'
 export type DecideInput = { requestId: string; revision: number; payloadHash: string; decision: Decision; reason?: string }
-export type DecideResult = { ok: true; next: RequestState; decisionId: string } | { ok: false; reason: 'not_reviewer' | 'not_found' | 'stale' | 'already_decided' | 'reason_required' | 'invalid_transition' }
+export type DecideResult = { ok: true; next: RequestState; decisionId: string } | { ok: false; reason: 'not_reviewer' | 'own_request' | 'not_found' | 'stale' | 'already_decided' | 'reason_required' | 'invalid_transition' }
 
 export async function decide(principal: Principal, input: DecideInput): Promise<DecideResult> {
   if (!isCentral(principal)) return { ok: false, reason: 'not_reviewer' }
   if ((input.decision === 'decline' || input.decision === 'send_back') && !input.reason?.trim()) return { ok: false, reason: 'reason_required' }
   const db = sql()
-  const rows = await db`select r.state, r.current_revision, v.payload_hash from requests r join request_revisions v on v.request_id = r.request_id and v.revision = r.current_revision where r.request_id = ${input.requestId}`
+  const rows = await db`select r.state, r.current_revision, r.requester_email, v.payload_hash from requests r join request_revisions v on v.request_id = r.request_id and v.revision = r.current_revision where r.request_id = ${input.requestId}`
   const r = rows[0]
   if (!r) return { ok: false, reason: 'not_found' }
+  // Four eyes: nobody decides an exception they raised themselves; another member of the central team does.
+  if (r.requester_email === principal.email) return { ok: false, reason: 'own_request' }
   if ((r.current_revision as number) !== input.revision || (r.payload_hash as string) !== input.payloadHash) return { ok: false, reason: 'stale' }
   const state = r.state as RequestState
   const decisionId = `D-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`.toUpperCase()

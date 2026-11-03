@@ -1,4 +1,6 @@
-# Ask: a typed query spec instead of three fixed reports (step 11, for Ani's OK before anything is built)
+# Ask: a typed query spec instead of three fixed reports (step 11)
+
+> As built: written before step 11 was built and agreed then; where it and the code differ, the code and DECISIONS.md are current; the `partner` filter was added after (noted below). References to “log §n” point to the review log kept privately during the build; what it decided is in DECISIONS.md.
 
 What changes: Ask today has six tools. Three are lookups of one record (does a group exist, where is a request, why was it flagged) and stay. Three are fixed reports (on hold, intake this month, exposure by group) that answer exactly one question each. They become **one tool, `queryHub`, whose argument is a typed query spec**. The model chooses each part from closed lists; code checks the spec against what the hub has and what the person may see, then runs it from fixed SQL fragments. The model never writes SQL. It never sees a row the pages would not show. Review log §9: real NLQ without text-to-SQL.
 

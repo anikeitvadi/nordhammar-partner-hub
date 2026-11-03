@@ -9,6 +9,7 @@ import { getRequest } from '@/features/requests/store.server'
 import { readGroupExposure } from '@/features/customers/reports.server'
 import { decideAction, openReviewAction } from '@/features/reviews/actions'
 import { StatusBadge, reasonText } from '@/features/requests/status'
+import { NotYours } from '@/features/reviews/not-yours'
 import { SubmitButton } from '@/features/ui/submit-button.client'
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
@@ -22,15 +23,23 @@ const money = (n: number, c: string) => new Intl.NumberFormat('en', { style: 'cu
 // WF-06: the form as submitted, the duplicate-check outcome and the requester's reason, side by side. One decision.
 // Approve is not optimistic and has no undo: it unlocks an ERP write that cannot be undone, so it asks once, in
 // words that say what will be written, and then the status timeline takes over.
-export default async function ReviewPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
+const ERRORS: Record<string, string> = {
+  own_request: 'You raised this request, so another member of the central team decides it.',
+  stale: 'The request changed after you opened it. Read it again before deciding.',
+  already_decided: 'Someone else decided this request first.',
+  reason_required: 'Sending back or declining needs a reason the requester can read.',
+}
+
+export default async function ReviewPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ error?: string }> }) {
+  const [{ id }, { error }] = await Promise.all([params, searchParams])
   const principal = await requirePrincipal()
-  if (!isCentral(principal)) return <section className="narrow"><h1>Exceptions</h1><p>Exceptions are decided by the central master-data team.</p></section>
+  if (!isCentral(principal)) return <NotYours />
   const r = await getRequest(principal, id)
   if (!r) notFound()
   const s = r.state
   const p = r.payload
-  const decidable = s.kind === 'under_review' || s.kind === 'exception'
+  const own = r.requesterEmail === principal.email
+  const decidable = (s.kind === 'under_review' || s.kind === 'exception') && !own
   // A new company in an existing group: what the group already holds, so the credit check happens before approval.
   const exposure = r.dupChoice === 'new_in_group' && r.linkedGoldenId && r.domain === 'customer' ? await readGroupExposure(principal, r.linkedGoldenId) : null
   const thing = r.domain === 'customer' ? 'customer' : 'supplier'
@@ -39,6 +48,8 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
     <section className="narrow-wide">
       <h1>{r.legalName}</h1>
       <p className="muted"><code>{r.requestId}</code> · <StatusBadge state={s} /> · {r.domain === 'customer' ? 'Customer' : 'Supplier'} · {r.region} · requested by {r.requesterEmail}{r.revision > 1 ? ` · version ${r.revision}` : ''}</p>
+      {error ? <p role="alert" className="panel error">{ERRORS[error] ?? 'That decision could not be recorded. Try again.'}</p> : null}
+      {own && (s.kind === 'under_review' || s.kind === 'exception') ? <p className="panel">{ERRORS.own_request}</p> : null}
       <h2>Identity</h2>
       <dl className="facts">
         <dt>Legal name</dt><dd>{p.legalName}{p.localName ? <span className="muted"> · {p.localName}</span> : null}</dd>

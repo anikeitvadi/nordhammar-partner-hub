@@ -10,6 +10,7 @@ import { autoApproveSetting } from '@/features/settings/settings.server'
 import { loadStatus } from '@/features/customers/load.server'
 import { demoControls, erpLostResponse } from '@/features/flags/flags'
 import { StatusBadge, reasonText } from '@/features/requests/status'
+import { NotYours } from '@/features/reviews/not-yours'
 import { LocalTime } from '@/features/ui/time.client'
 import { SubmitButton } from '@/features/ui/submit-button.client'
 
@@ -21,7 +22,7 @@ export const metadata: Metadata = { title: 'Exceptions' }
 // because they are the team's controls, not pages of their own; the demo fault is a drawer, shown only with the flag.
 export default async function CentralTeamPage({ searchParams }: { searchParams: Promise<{ tab?: string; msg?: string }> }) {
   const principal = await requirePrincipal()
-  if (!isCentral(principal)) return <section className="narrow"><h1>Exceptions</h1><p>This page belongs to the central master-data team.</p></section>
+  if (!isCentral(principal)) return <NotYours />
   const { tab, msg } = await searchParams
   const stoppedTab = tab === 'stopped'
   const [queue, attention, load, auto, demo, lost] = await Promise.all([listQueue(principal), listAttention(principal), loadStatus(), autoApproveSetting(), demoControls(), erpLostResponse()])

@@ -1,4 +1,6 @@
-# Service desk, finance approval and auto-approve (step 6, for Ani's OK before anything is built)
+# Service desk, finance approval and auto-approve (step 6)
+
+> As built: written before step 6 was built and agreed then; it shipped as written with one change: the automatic-approval switch is a stored setting on the Exceptions page, not a Toolbar flag, because the webhook that triggers a create carries no flag override (DECISIONS.md §3). References to “log §n” point to the review log kept privately during the build; what it decided is in DECISIONS.md.
 
 What changes: finance approves a new partner where it already does, in the customer's service desk. The hub stops asking a person to approve clean requests. A webhook from the desk tells the hub finance said yes. The hub then re-runs its checks, and either creates the partner on its own or puts it in front of the central master-data team as an exception. Decided in review log §5: no Finance role in the app; both ways in, one pipeline.
 

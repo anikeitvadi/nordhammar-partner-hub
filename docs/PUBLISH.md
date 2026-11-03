@@ -4,11 +4,16 @@ Status: DONE, 2026-11-03. Published at https://github.com/anikeitvadi/nordhammar
 
 ## History stays as it is
 
-The prompt asks for the full commit history to be preserved, so nothing here rewrites it. Commit `d442afc` added
-Workflow local-world run state from the in-process test (`apps/web/.workflow-data/`, `apps/web/.workflow-vitest/`)
-and `apps/erp-stub/tsconfig.tsbuildinfo`; commit `1c2bf0c` removed them from the index and ignored them. They remain
-in history. They were read before this decision: test run events and a hook token of the form `smoke:<timestamp>`,
-no credentials, no customer data. A reader who finds them sees a mistake and its fix, which is what the history is for.
+The prompt asks for the full commit history to be preserved. One change was made to it, before the first push: on
+2 November the co-author trailer on the earlier commits was normalised with `git filter-branch` (the name of the AI
+model in the trailer). Contents, authors, dates and order are unchanged; no commit was added, removed, squashed or
+reordered. Hashes from before that date (in old notes) no longer resolve; the hashes below are the current ones.
+
+Commit `7de364b` added Workflow local-world run state from the in-process test (`apps/web/.workflow-data/`,
+`apps/web/.workflow-vitest/`) and `apps/erp-stub/tsconfig.tsbuildinfo`; commit `2201fa5` removed them from the index
+and ignored them. They remain in history. They were read before this decision: test run events and a hook token of
+the form `smoke:<timestamp>`, no credentials, no customer data. A reader who finds them sees a mistake and its fix,
+which is what the history is for.
 
 ## 1. Checks
 

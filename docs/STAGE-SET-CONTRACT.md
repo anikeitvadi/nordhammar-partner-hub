@@ -1,4 +1,6 @@
-# Stage set: the integration contract (step 3, for Ani's OK before anything is built)
+# Stage set: the integration contract (step 3)
+
+> As built: written before step 3 was built and agreed then; where it and the code differ, the code and DECISIONS.md are current. References to “log §n” point to the review log kept privately during the build; what it decided is in DECISIONS.md.
 
 What changes: the hub stops calling "an ERP". It calls one door, the customer's integration platform, which already owns the ERP connectors (log §16b). Behind that door are three ERP instances, each with its own number series and its own record shape, so the mapping is real. The golden records move to the integration platform's side, and the hub reads them through the same door.
 

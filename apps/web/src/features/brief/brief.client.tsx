@@ -231,13 +231,13 @@ function Demo({ f }: { f: BriefFigures | null }) {
         <a href={REPO}><span>Repository</span><b>github.com/anikeitvadi/nordhammar-partner-hub</b></a>
         <a href={DESK}><span>Nordhammar&rsquo;s systems, played by a stand-in</span><b>customer-intake-erp-stub.vercel.app</b></a>
       </div>
-      <p>Start as Priya (central master-data team); Ana (Brazil) and Jonas (Europe) show what a regional user can and cannot see. Finance approves in the service desk, which opens straight from the request; the hub&rsquo;s passwords are in the email that sent you here.</p>
+      <p>Three people: Ana requests (sales operations, Brazil), finance approves in the service desk, which opens straight from the request, and Priya (central master-data team) takes what the checks cannot decide. Jonas does the same as Ana for suppliers in Europe. The request form has one-click examples for each case; the hub&rsquo;s passwords are in the email that sent you here.</p>
       <ol className="brief-steps">
-        <li><b>Start as Priya</b><span>The central team sees the whole hub: search <code>aurora</code> and find one group, three companies, two regions, two ERPs.</span></li>
-        <li><b>Stopped at entry</b><span>Request a customer whose tax ID already exists. The hub stops it before the form goes further.</span></li>
-        <li><b>A clean one</b><span>Use the fresh example on the sign-in page, submit, open its ticket and approve it as finance. Seconds later the ERP number is on the request and on the ticket.</span></li>
-        <li><b>The credit check</b><span>In Exceptions, open a request that adds a company to the Aurora group: what the group already holds, per currency, in every region.</span></li>
-        <li><b>Then as Ana</b><span>A regional user: she searches every region, but Europe&rsquo;s terms and credit stay with Europe, and Ask gives her no figure for them.</span></li>
+        <li><b>Search first</b><span>As Ana, search <code>aurora</code>: one group, three companies in two regions on two ERPs. She sees the Swedish company exists, not its terms or credit.</span></li>
+        <li><b>Stopped at entry</b><span>As Ana, New Request, then the form&rsquo;s <em>Already exists</em> example: the hub stops the duplicate before anything is sent.</span></li>
+        <li><b>A clean one</b><span>The <em>New customer</em> example: submit, press Open Ticket, approve it as finance (no sign-in), come back. Seconds later the ERP number is on the request and on the ticket.</span></li>
+        <li><b>The credit check</b><span>The <em>New branch of a group</em> example, approved the same way, waits for Priya. As Priya, open Exceptions: what the Aurora group already holds, per currency, in every region, before she says yes.</span></li>
+        <li><b>Who sees what</b><span>As Priya, Ask &ldquo;What is the credit limit of Aurora Nordic AB?&rdquo; and get the figure. As Ana, ask the same: no figure, it belongs to the EU team.</span></li>
       </ol>
       {f ? <p className="note">Live in the demo now: {f.partners} partners in {f.regions} regions on {f.erps} ERPs.</p> : null}
     </>
@@ -286,8 +286,8 @@ function Measures({ f }: { f: BriefFigures | null }) {
         <div><dt>Group credit checked before a new company joins</dt><dd>Every time; the central team sees the group&rsquo;s exposure in every region on the request</dd></div>
         <div><dt>Duplicate ERP records from retries</dt><dd>Zero: every create is keyed, and a lost response was replayed with the same number</dd></div>
         <div><dt>Search and the duplicate check</dt><dd>Under one second</dd></div>
-        <div><dt>AI behaviour</dt><dd>Every evaluation case passes three runs of three before a model or prompt change ships; every call&rsquo;s cost is recorded ($0.00038 a suggestion)</dd></div>
-        <div><dt>Release safety</dt><dd>Every release staged; rollback in under a minute</dd></div>
+        <div><dt>AI behaviour</dt><dd>Every evaluation case passes on all three of three runs before a model or prompt change ships; every call&rsquo;s cost is recorded ($0.00038 a suggestion)</dd></div>
+        <div><dt>Release safety</dt><dd>Every release staged; rollback in one step, to a deployment that is still running</dd></div>
       </dl>
     </>
   )
@@ -296,7 +296,7 @@ function Measures({ f }: { f: BriefFigures | null }) {
 const RISKS = [
   { t: 'The demo uses stand-ins', d: 'The integration platform’s real API, rate limits and per-ERP behaviour are first-week discovery.' },
   { t: 'Search is as fresh as the last load', d: 'A partner created today is searchable after the next load, or after the central team runs it. Until then a reservation on the tax ID stops a second request.' },
-  { t: 'Automatic approval trusts the checks', d: 'They are deterministic and listed on each approval, and the AI never makes a request clean. It can be switched off. Production also stops a person approving an exception they raised.' },
+  { t: 'Automatic approval trusts the checks', d: 'They are deterministic and listed on each approval, and the AI never makes a request clean. It can be switched off, and nobody decides an exception they raised themselves. Automatic approval is a data-quality check after finance has approved in the desk: the commercial approval and its evidence stay on the ticket.' },
   { t: 'Data residency', d: 'EU-only processing is possible: an EU function region, an EU database, EU model inference. Some workflow metadata is stored in the US by default; the DPO reviews that before kickoff.' },
   { t: 'Who sees what', d: 'Everyone reads every region\u2019s partners (names, tax IDs, groups); work and amounts stay in each person\u2019s own regions. If a region may not see another, one flag per person turns cross-region reading off, with no release.' },
   { t: 'Credit limits', d: 'Finance approves the partner; credit limits and terms are set in the ERP by regional finance, as today. Bringing the limit into the approval is a phase-two option.' },
@@ -320,7 +320,7 @@ function Risks() {
 function Tooling() {
   return (
     <>
-      <p>Claude Code, in the Claude desktop app, wrote the code under my direction. A separate agent on Factory, set up only to review, checked every change against the brief and the running app before I accepted it. Its findings went into a review log and I decided each one. Three of them changed the build: the golden records were seeded into the app instead of arriving through the load; nothing showed a run&rsquo;s cost and where the time went, which became the Run panel; and every change was held to the core story, so the durable workflow still owns the one keyed ERP write.</p>
+      <p>Claude Code, in the Claude desktop app, wrote the code under my direction. A separate agent on Factory, set up only to review, checked every change against the brief and the running app before I accepted it. Its findings went into a review log and I decided each one. Three of them shaped the build. Two changed it: the golden records had been seeded into the app instead of arriving through the load, and nothing showed a run&rsquo;s cost and where the time went, which became the Run panel. The third held it: every change was measured against the core story, so the durable workflow still owns the one keyed ERP write. A final review before submission found two workflow bugs (a request left waiting after the ERP never answered, and a resubmission waiting on a decided ticket); both were fixed and tested.</p>
       <div className="brief-live">
         <div className="nums">
           <div><b>12</b><span>offline cases on every change</span></div>

@@ -26,6 +26,14 @@ export async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname
   // The cron route and the service-desk webhook have no session; each checks its own secret and refuses everything else.
   const isPublic = path.startsWith('/login') || path === '/api/cron/hub-load' || path === '/api/webhooks/service-desk' || path === '/how-it-works' || path === '/brief' || path === '/opengraph-image' || path === '/icon.svg'
+  // Already signed in and at the door: go on in. Not when the door carries an error: "expired" means the server refused
+  // a session whose claims still pass here, and sending it back in would loop.
+  if (data?.claims && path === '/login' && !request.nextUrl.searchParams.has('error')) {
+    const next = request.nextUrl.searchParams.get('next') ?? '/'
+    return NextResponse.redirect(new URL(next.startsWith('/') && !next.startsWith('//') ? next : '/', request.url))
+  }
+  // An API call without a session is answered, not redirected: a client expecting JSON should not get the sign-in page.
+  if (!data?.claims && !isPublic && path.startsWith('/api/')) return NextResponse.json({ reason: 'not signed in' }, { status: 401 })
   if (!data?.claims && !isPublic) {
     // Keep the deep link: after sign-in the user lands where they were going (same-origin path only).
     const url = request.nextUrl.clone(); const wanted = request.nextUrl.pathname + request.nextUrl.search

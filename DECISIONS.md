@@ -9,7 +9,7 @@ Every number is labelled **measured**, **target**, **assumption** or **reported*
 **The flow.**
 1. A regional user (Ana, sales operations in Brazil) searches every region's golden records and, if the company is not there, requests it. The duplicate check runs while she types; an exact tax-ID match stops her.
 2. The hub opens a ticket in the service desk and waits. Regional finance approves there, as it does today, and the desk answers with a signed webhook.
-3. The hub checks the request again, right before the ERP, because the ERP itself has no duplicate check.
+3. The hub checks the request again, right before the ERP: the ERP's own duplicate check, where it has one, sees only its own instance, and the hub's sees every region.
 4. Clean: one keyed create through the integration platform, which routes to the right ERP. Not clean: the central master-data team decides, with the reason and, for a new company in an existing group, the group's credit exposure in every region.
 5. The number goes back on the request and the ticket; the next nightly load makes it searchable.
 
@@ -82,18 +82,19 @@ The integration platform's first load took North American customers from about 7
 
 ## 2. Delivery and rendering
 
-**Cache Components (Next.js 16), all plans.** Every page is a prerendered shell with per-request content streamed behind Suspense. The person is read per request; nothing about who you are is cached.
+**Cache Components (Next.js 16), all plans.** Every page is a prerendered shell with per-request content streamed behind Suspense. The person is read per request; nothing about who you are is cached. Three route groups keep it that way: `(public)` (sign-in, How it works) has a static bar and nothing about the visitor, `(hub)` has the signed-in rail that reads the person, and `/brief` has no frame. Until 3 November one shared layout read the request for every page, so even the public pages painted a skeleton first; the final review caught it in the HTML, and the split put the whole public page in the first response.
 
 | Page | At build | Per request, streamed | Cached, and what clears it |
 |---|---|---|---|
-| Sign-in, the brief, How it works | The page | The sign-in form (reads the query string); the brief's live counts | The brief's counts, `use cache`, `minutes` profile, counts only |
+| Sign-in | The page | The sign-in form (it reads the error and `next` from the query string) | Nothing |
+| The brief, How it works | The whole page, static | Nothing | The brief's counts, `use cache`, `minutes` profile, counts only: the page is regenerated in the background at most once a minute |
 | Customers, Suppliers | Frame | The person, the selected record | Each region's list, tagged `hub:<region>`, `minutes` profile; the load clears the regions it touched with `revalidateTag(tag, { expire: 0 })` |
 | Request status | Frame | State, timeline, How this ran | Nothing. The page polls `/api/requests/{id}/state` every 2 s while the state can change and refreshes the server parts on a change |
 | Home | Frame | The figures and globe for this person's role | Nothing; read live |
 | Ask | Frame, box, suggestions | The answer, streamed as JSON lines: the card, then the checked sentence, then totals | Nothing |
 | Exceptions, Requests | Frame | Everything (per person, per region) | Nothing |
 
-**Why, and the trade-off.** Partner data changes once a night, so the lists are cached and cleared by the load rather than read per keystroke. Rejected: fully dynamic pages for nightly data. Honest limit: the default cache handler is per instance, so the server-side hit rate on serverless is modest; the production option is `use cache: remote` on Runtime Cache, which Next.js 16 keys by build, so each deployment starts cold. At this volume search is under a second either way. Source: https://vercel.com/docs/caching/runtime-cache
+**Why, and the trade-off.** Partner data changes once a night, so the lists are cached and cleared by the load rather than read per keystroke. Rejected: fully dynamic pages for nightly data. Honest limit: the default cache handler is per instance, so the server-side hit rate on serverless is modest, and a tag the load clears on one instance is not cleared on the others (another instance can serve the old list until its `minutes` profile expires); the production option is `use cache: remote` on Runtime Cache, which Next.js 16 keys by build, so each deployment starts cold. At this volume search is under a second either way. Source: https://vercel.com/docs/caching/runtime-cache
 
 **Streaming in Ask.** One `streamText` call. The card (the tool's result) is sent the moment the lookup returns; the sentence follows word by word, and each word is released only after a citation check, so an id or number the tool did not return never reaches the screen.
 
@@ -119,7 +120,7 @@ Surprises worth knowing: `rolling-release abort --deployment` takes the deployme
 |---|---|
 | A load page fails | That page is retried on its own; the cursor moves only after a page is written (by design, not forced) |
 | The model is unavailable | The request goes on with the deterministic result and a flag. Happened for real on 2026-11-01, when the Gateway refused calls for a billing reason |
-| The ERP times out | Retried with the same key, then stopped with effect unknown; reconcile reads the platform's ledger by key |
+| The ERP times out | Retried with the same key (1 s, 2 s, 4 s), then stopped with effect unknown; reconcile reads the platform's ledger by key. *Tested in process* (`tests/workflow/retry.workflow.test.ts` pins the attempt numbering), not run on the deployed stack. Until 3 November the last attempt threw, which failed the run and left the request in creating; the final review found it |
 | The ERP rejects the partner | Stopped with the reason, no retry |
 | A response is lost after the ERP committed | Retried with the same key; the platform replays the number. Measured twice: ERP-1 (2026-10-31) and ERP-2 (2026-11-02), one record each |
 | The request is edited after approval | The approval is void; the platform refuses the changed payload |
@@ -142,7 +143,7 @@ Surprises worth knowing: `rolling-release abort --deployment` takes the deployme
 - **Ask.** One streamed call with four read-only tools, two steps at most. Three look up one record (a group, a request, why it was flagged). The fourth, `queryHub`, takes a typed query spec from closed lists (subject, measure, filters including one company or one group, time window, one grouping). Code refuses unsupported combinations with a fixed sentence, intersects regions and amount regions with the person's, runs one parameterised query from fixed fragments and writes the query in words under the answer (`docs/QUERY-SPEC-CONTRACT.md`). No tool writes.
 - Rejected: rules only (the ticket process already is that) and text-to-SQL, because a prompt is a wish and a region predicate in the query layer is a wall.
 
-**AI Gateway.** Both uses call a virtual model (`vmc/nordhammar-proposal`): a primary, one fallback, zero data retention and no prompt training pinned on the Gateway side, so a model change is a dashboard edit, not a deploy. Today the primary is gpt-4.1-mini with Haiku 4.5 as fallback; the team's free credits admit the former only. The served model, every model tried, tokens, cost and time are recorded with each call. A flag (`ai-model`, from the Toolbar) swaps the model for both uses without a deploy; only a model that passes the live eval is offered (section 8). Zero data retention is requested because the prompt carries a counterparty's identity; a call that cannot be served under it fails and the request continues without the proposal. Rejected: a direct provider SDK (one vendor, no failover, no retention control). Plans: virtual models on all plans; per-request ZDR on **Pro and Enterprise**. Sources: https://vercel.com/docs/ai-gateway/models-and-providers/virtual-models ; https://vercel.com/docs/ai-gateway/security-and-compliance/zdr
+**AI Gateway.** Both uses call a virtual model (`vmc/nordhammar-proposal`): a primary, one fallback, zero data retention and no prompt training pinned on the Gateway side, so a model change is a dashboard edit, not a deploy. Today the virtual model's primary is gpt-4.1-mini and its fallback Haiku 4.5, which the team's free credits refuse: as configured, if gpt-4.1-mini were down the fallback would fail too, and the request would continue without the proposal (handled; nothing waits on the model). The failover that has actually run is the reverse: the `ai-model` flag's "Haiku first" choice sends Haiku, the Gateway is refused, and gpt-4.1-mini serves, recorded in the call's details. With paid credits the configured chain works as drawn, with no code change. The served model, every model tried, tokens, cost and time are recorded with each call. A flag (`ai-model`, from the Toolbar) swaps the model for both uses without a deploy; only a model that passes the live eval is offered (section 8). Zero data retention is requested because the prompt carries a counterparty's identity; a call that cannot be served under it fails and the request continues without the proposal. Rejected: a direct provider SDK (one vendor, no failover, no retention control). Plans: virtual models on all plans; per-request ZDR on **Pro and Enterprise**. Sources: https://vercel.com/docs/ai-gateway/models-and-providers/virtual-models ; https://vercel.com/docs/ai-gateway/security-and-compliance/zdr
 
 ## 5. Compute and connectivity
 
@@ -182,7 +183,7 @@ On the deployed stack unless noted.
 | The grader's path, end to end | Fresh example → no match → submitted → ticket in 3.4 s → finance approved → ERP-1 110211 about 1 s later, number on the ticket | 2026-11-03, R-MW0UT0IG2LQQ |
 | The form | A Brazilian customer went from up to 26 inputs to 13 (`docs/FORM-FIELD-INVENTORY.md`); finance's ticket now shows the reason and contact; ERP-1 keeps the postal code and bairro | 2026-11-03 |
 | Cost per request | An exception: 4 min 56 s, 4 min 51 s waiting on people, 37 events, $0.001108 (model $0.000368 + events $0.000740). A clean ticket-first create with a lost response: 30 events, $0.000600 | 2026-11-03, matches `workflow inspect events` |
-| Duplicate suggestion | 4 of 4 hard cases pass 3 of 3 on gpt-4.1-mini; 1.3 to 1.8 s; $0.00038 a proposal (Gateway's cost field); forced failover served by the fallback | 2026-11-01, `eval/results/live-2026-11-01T03-36-48-784Z.md` |
+| Duplicate suggestion | 4 of 4 hard cases pass 3 of 3 on gpt-4.1-mini; 1.3 to 1.8 s; $0.00038 a proposal (Gateway's cost field); forced failover (a refused primary named in the request) served by the fallback | 2026-11-01, `eval/results/live-2026-11-01T03-36-48-784Z.md` |
 | Other models for the switch | gpt-5-mini 2 of 4, gpt-4.1-nano 2 of 4, Gemini 2.5 Flash Lite 1 of 4, gpt-4.1 0 of 4 (fails only on a field the app never reads); none offered | 2026-11-03, `eval/results/live-2026-11-03T*.md` |
 | Ask | 21 of 21 questions pass 3 of 3, graded on the query the model filled, the figure returned and leakage; about $0.0007 to $0.0008 an answer over both model calls; card at 1.3 to 1.9 s, whole answer 2.2 to 2.7 s | 2026-11-03, `eval/results/ask-2026-11-03T14-07-51-699Z.md` |
 | Durability | A run finished on its own deployment after a plain redeploy and after a rolling release was started and aborted around it | 2026-10-31 |
@@ -194,11 +195,11 @@ Latencies are single observations, not a benchmark. Sign-in on the hosted auth s
 
 - **Stand-ins and synthetic data.** Every name and ID is invented; the shapes are real. The integration platform's real API, its limits and which interface each ERP exposes are week-one discovery, as are the real desk's API, its webhook signing and who in finance approves which region.
 - **Search is as fresh as the last load.** A partner created today is searchable after the next load or "Run now"; until then a reservation on its tax ID stops a second request.
-- **Automatic approval trusts the checks.** They are deterministic and listed on each approval; the model never makes a request clean; it can be switched off. Production also stops a person approving an exception they raised; the demo does not yet.
+- **Automatic approval trusts the checks.** They are deterministic and listed on each approval; the model never makes a request clean; it can be switched off. Nobody decides an exception they raised themselves (`decide.server.ts` refuses it; added 3 November, after the final review found the sentence was true only in production plans).
 - **Credit limits.** Finance approves the partner; limits and terms are set in the ERP by regional finance, as today. Bringing the limit into the approval is a phase-two option.
 - **Data residency.** EU-only is possible: Functions and Workflow runs in an EU region, the database in an EU region, the Gateway with `inferenceRegion: eu` and zero retention. Two things still cross by default: hook records in `iad1` (token and encrypted metadata, not payloads) and run metadata in observability systems. Both go in front of the DPO. Sources: https://vercel.com/docs/workflows#multi-region ; https://vercel.com/docs/workflows/retention
 - **Plan gates.** The design needs Pro (Static IPs, Rolling Releases). SCIM, audit logs, SIEM streaming and Secure Compute are Enterprise; SAML SSO for the Vercel team is a Pro add-on. The customer's governance list decides.
-- **The free Gateway tier allows 5 calls a minute per model**, and an Ask answer takes two; paid credits remove the limit with no code change. Haiku 4.5, the intended primary, is unmeasured until then.
+- **The free Gateway tier allows 5 calls a minute per model**, and an Ask answer takes two; paid credits remove the limit with no code change. Haiku 4.5 has not answered a call yet, so it is unmeasured until then.
 - **Not built.** Emails (each is logged on the timeline, none sent), attachments such as tax certificates, the customer's identity provider, and payload version 3 (six fields every new request leaves empty stay in the shape so older requests' hashes stay valid).
 - **The stand-in desk has no sign-in,** so a grader can approve as finance from the request page. The real desk signs finance in; nothing in the hub depends on the desk's screens, only its signed webhook.
 - **The demo's people are shared.** Everyone signs in as the same people; a session ended elsewhere lands on sign-in with its page kept.
@@ -215,7 +216,8 @@ Latencies are single observations, not a benchmark. Sign-in on the hosted auth s
 - Four overlapping roles became two, matching how a central master-data team works; identity became global and work and amounts regional.
 - The agent's text-to-SQL suggestion was rejected for a typed query spec the code checks.
 - An auth platform holding database, row-level rules and auth was cut to auth only; authorization lives in the hub.
-- Two claims that were not true ("every stop is recorded", "the served model is recorded") were made true in code before the sentences stayed.
+- Two claims that were not true ("every stop is recorded", "the served model is recorded") were made true in code before the sentences stayed. A third, "nobody approves an exception they raised", was made true on 3 November.
+- A final review before submission (four review agents in parallel: the brief against the prompt, every screen at five widths, the business case, every claim against the code) found two workflow bugs, a rendering claim the HTML did not bear out, and docs that had drifted. Each was fixed or the sentence changed; the list and what was decided are in the commit history for 3 November.
 
 **The gate every change passed.** Tests green on Node 24; a local production build clicked through against the real hub; promotion through a rolling release with the rollback target written down; the canary clicked through as each role; the runtime logs read. The click-through caught what tests did not: a prerender fix that silently broke every Server Action, an approval that recorded the decision but moved nothing (`230d3fd`), and the canary's wrong credit answer above.
 
@@ -228,7 +230,7 @@ Latencies are single observations, not a benchmark. Sign-in on the hosted auth s
 
 ## 9. Demo reference
 
-- **App:** https://nordhammar-partner-hub.vercel.app (start at sign-in, as Priya). The brief: `/brief`.
+- **App:** https://nordhammar-partner-hub.vercel.app (start at sign-in, as Ana; the sign-in page lists five things to try, the same five as the brief). The brief: `/brief`.
 - **Stand-in:** https://customer-intake-erp-stub.vercel.app, with the service desk at `/desk`.
 - **People** (passwords in the submission email, never in the repository): `priya.reviewer@example.com` (central master-data team), `ana.requester@example.com` (sales operations, Brazil), `jonas.requester@example.com` (procurement, Europe), `noregion@example.com` (no region yet). Finance in the desk: Marta Lindqvist; the stand-in desk has no sign-in, so anyone with the demo can act as finance (the hub trusts only the desk's signed webhook).
 

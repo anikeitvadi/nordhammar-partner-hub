@@ -91,14 +91,24 @@ function specProblem(want: Spec, got: Record<string, unknown> | null): string | 
   return null
 }
 
+// Cost (the Gateway's cost field, both model calls) and whole-answer time across the answered runs, so the figures in
+// DECISIONS §6 trace to a file like the proposal's do.
+function spread(rows: { cost: number | null; ms: number; tool: string | null }[]): string {
+  const answered = rows.filter((r) => r.ms > 0)
+  const costs = answered.map((r) => r.cost).filter((c): c is number => c != null).sort((a, b) => a - b)
+  const ms = answered.map((r) => r.ms).sort((a, b) => a - b)
+  const range = (xs: number[], f: (n: number) => string) => (xs.length ? `${f(xs[0])} to ${f(xs[xs.length - 1])} (median ${f(xs[Math.floor(xs.length / 2)])})` : 'n/a')
+  return `Cost per answer: ${range(costs, (n) => `$${n.toFixed(5)}`)}. Time per answer: ${range(ms, (n) => `${(n / 1000).toFixed(1)} s`)}. ${answered.length} answers.`
+}
+
 describe.skipIf(!key)('ask, live', () => {
   it(`pass^${REPS} per case`, async () => {
-    const out: { id: string; rep: number; pass: boolean; tool: string | null; answer: string | null; model: string; why?: string }[] = []
+    const out: { id: string; rep: number; pass: boolean; tool: string | null; answer: string | null; model: string; cost: number | null; ms: number; why?: string }[] = []
     for (const c of CASES.filter((x) => !only || only.includes(x.id))) {
       for (let rep = 1; rep <= REPS; rep++) {
         if (PACE_MS) await sleep(PACE_MS)
         const r = await askHub(c.who ?? ana, c.q, readers)
-        if (r.ai === 'unavailable') { out.push({ id: c.id, rep, pass: false, tool: null, answer: null, model: '', why: r.reason }); continue }
+        if (r.ai === 'unavailable') { out.push({ id: c.id, rep, pass: false, tool: null, answer: null, model: '', cost: null, ms: 0, why: r.reason }); continue }
         const text = `${r.answer ?? ''} ${JSON.stringify(r.result ?? '')}`
         let why: string | undefined
         const refused = (r.result as { ok?: boolean } | null)?.ok === false
@@ -108,14 +118,14 @@ describe.skipIf(!key)('ask, live', () => {
         if (!why && c.arg && !c.refuse && !JSON.stringify(r.input).toLowerCase().includes(c.arg.toLowerCase())) why = `arg ${JSON.stringify(r.input)} wanted ${c.arg}`
         if (!why && c.mustNotContain?.some((t) => text.includes(t))) why = `leaked ${c.mustNotContain.find((t) => text.includes(t))}`
         if (!why && c.mustContain?.some((t) => !text.includes(t))) why = `missing ${c.mustContain.find((t) => !text.includes(t))}`
-        out.push({ id: c.id, rep, pass: !why, tool: r.tool, answer: r.answer, model: r.model, why })
+        out.push({ id: c.id, rep, pass: !why, tool: r.tool, answer: r.answer, model: r.model, cost: r.cost, ms: r.ms, why })
       }
     }
     const dir = path.resolve(__dirname, '../../../eval/results'); mkdirSync(dir, { recursive: true })
     const stamp = new Date().toISOString().replace(/[:.]/g, '-')
     const byCase = CASES.filter((x) => !only || only.includes(x.id)).map((c) => ({ id: c.id, q: c.q, passes: out.filter((o) => o.id === c.id && o.pass).length, of: REPS, fails: out.filter((o) => o.id === c.id && !o.pass).map((o) => o.why) }))
     writeFileSync(path.join(dir, `ask-${stamp}.json`), JSON.stringify({ model: out[0]?.model, byCase, out }, null, 2))
-    writeFileSync(path.join(dir, `ask-${stamp}.md`), `# Ask, live eval ${stamp}\n\nModel: ${out[0]?.model}\n\n| Case | Question | pass^${REPS} | Fails |\n|---|---|---|---|\n${byCase.map((b) => `| ${b.id} | ${b.q} | ${b.passes}/${b.of} | ${b.fails.join('; ') || ''} |`).join('\n')}\n`)
+    writeFileSync(path.join(dir, `ask-${stamp}.md`), `# Ask, live eval ${stamp}\n\nModel: ${out[0]?.model}\n\n${spread(out)}\n\n| Case | Question | pass^${REPS} | Fails |\n|---|---|---|---|\n${byCase.map((b) => `| ${b.id} | ${b.q} | ${b.passes}/${b.of} | ${b.fails.join('; ') || ''} |`).join('\n')}\n`)
     const failed = byCase.filter((b) => b.passes < b.of)
     expect(failed, JSON.stringify(failed, null, 2)).toEqual([])
   }, 1_800_000)
