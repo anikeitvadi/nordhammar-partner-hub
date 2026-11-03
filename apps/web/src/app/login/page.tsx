@@ -84,7 +84,7 @@ export default function LoginPage({ searchParams }: { searchParams: Params }) {
           </ol>
         </div>
       </div>
-      <p className="door-foot">Built on Next.js Cache Components, a durable workflow for the ERP write, OIDC to the ERP boundary, and one AI suggestion behind a validator. Every decision and its reason is in DECISIONS.md. <a href="/how-it-works">How it works</a></p>
+      <p className="door-foot">Built on Next.js Cache Components, a durable workflow for the ERP write, OIDC to the ERP boundary, and one AI suggestion behind a validator. Every decision and its reason is in DECISIONS.md. <a href="/brief">The brief</a> · <a href="/how-it-works">How it works</a></p>
     </section>
   )
 }

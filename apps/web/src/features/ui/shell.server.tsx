@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { headers } from 'next/headers'
 import { getPrincipal } from '@/features/auth/principal.server'
 import { visibleRegions } from '@/features/auth/scope'
 import { signOut } from '@/features/auth/actions'
@@ -8,6 +9,8 @@ import { TopBar } from './topbar.client'
 // Signed in: a rail with the sections and the person, a content column with its header. Signed out: a bar with
 // the brand and the page (the door, how it works). The principal is read fresh per request; the rest is static.
 export async function Shell({ children }: { children: React.ReactNode }) {
+  // The brief is a document for the customer, not a screen of the hub: no rail, no bar, signed in or not.
+  if (((await headers()).get('x-hub-path') ?? '').startsWith('/brief')) return <>{children}</>
   const principal = await getPrincipal()
   const version = process.env.APP_VERSION_LABEL ? <em className="version">{process.env.APP_VERSION_LABEL}</em> : null
   if (!principal) {

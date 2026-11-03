@@ -22,10 +22,10 @@ export async function proxy(request: NextRequest) {
     },
   })
   const { data } = await supabase.auth.getClaims()
-  // Public: the sign-in door, the link-preview image and the icon. Everything else needs a session.
+  // Public: the sign-in door, How it works, the brief, the link-preview image and the icon. Everything else needs a session.
   const path = request.nextUrl.pathname
   // The cron route and the service-desk webhook have no session; each checks its own secret and refuses everything else.
-  const isPublic = path.startsWith('/login') || path === '/api/cron/hub-load' || path === '/api/webhooks/service-desk' || path === '/how-it-works' || path === '/opengraph-image' || path === '/icon.svg'
+  const isPublic = path.startsWith('/login') || path === '/api/cron/hub-load' || path === '/api/webhooks/service-desk' || path === '/how-it-works' || path === '/brief' || path === '/opengraph-image' || path === '/icon.svg'
   if (!data?.claims && !isPublic) {
     // Keep the deep link: after sign-in the user lands where they were going (same-origin path only).
     const url = request.nextUrl.clone(); const wanted = request.nextUrl.pathname + request.nextUrl.search
