@@ -4,8 +4,6 @@ import { signIn } from '@/features/auth/actions'
 import { SubmitButton } from '@/features/ui/submit-button.client'
 import { CopyButton } from '@/features/ui/copy-button.client'
 import { FreshExample } from '@/features/ui/fresh-example.client'
-import { AsciiLedger } from '@/features/ui/ascii-ledger.client'
-import { recentLedger } from '@/features/requests/ledger.server'
 
 export const metadata: Metadata = { title: 'Sign in' }
 
@@ -21,9 +19,9 @@ const ERRORS: Record<string, string> = {
 // Priya first: the central team sees the whole hub, so that is where a grader starts. Ana and Jonas are there to show
 // what a regional user can and cannot see.
 const ROLES = [
-  { who: 'Priya Nair', role: 'Central master data team · all regions', email: 'priya.reviewer@example.com', can: 'start here: every region, every amount, the final check on duplicates and group credit' },
-  { who: 'Ana Silva', role: 'Sales operations · Brazil', email: 'ana.requester@example.com', can: 'sets up the customers Brazil sells to: searches every region first, requests in Brazil, sees Brazil amounts only, cannot approve' },
-  { who: 'Jonas Weber', role: 'Procurement · Europe', email: 'jonas.requester@example.com', can: 'sets up the suppliers Europe buys from, the same way' },
+  { who: 'Priya Nair', role: 'Central master data team · all regions', email: 'priya.reviewer@example.com', can: 'Start here: every region, every amount, the final check on duplicates and group credit' },
+  { who: 'Ana Silva', role: 'Sales operations · Brazil', email: 'ana.requester@example.com', can: 'Sets up the customers Brazil sells to: searches every region first, requests in Brazil, sees Brazil amounts only, cannot approve' },
+  { who: 'Jonas Weber', role: 'Procurement · Europe', email: 'jonas.requester@example.com', can: 'Sets up the suppliers Europe buys from, the same way' },
 ]
 const TRY: { text: React.ReactNode; copy?: string }[] = [
   { text: <>As Priya, search <code>aurora</code>: one group, three companies in two regions on two ERPs; open one to see its credit.</>, copy: 'aurora' },
@@ -52,45 +50,34 @@ async function SignInForm({ searchParams }: { searchParams: Params }) {
   )
 }
 
-async function Ledger() {
-  const lines = await recentLedger()
-  return <AsciiLedger lines={lines} />
-}
-
+// One grid, two columns that answer two questions. Left: what this is and what to do in it. Right: who you can be,
+// and the door. Both columns share one top and one left edge with the wordmark and the foot, at every width.
 export default function LoginPage({ searchParams }: { searchParams: Params }) {
   return (
     <section className="door">
-      <div>
+      <div className="door-intro">
         <h1 className="door-title">One record for every partner, in every region.</h1>
-        <p className="door-lede">Search before you request. Every customer and supplier we already have, in five regions and three ERPs, behind one search box. Finance approves, the ERP assigns the number, and the hub shows it.</p>
+        <p className="door-lede">Search before you request. Every customer and supplier, in five regions and three ERPs, behind one search box. Finance approves in its service desk, the ERP assigns the number, and the hub shows it.</p>
         <p className="door-brief"><a href="/brief">Read the brief</a>: the problem, the architecture, the Vercel choices and the rollout, on one page.</p>
-        <Suspense fallback={<div className="ledger" aria-hidden="true" />}>
-          <Ledger />
-        </Suspense>
       </div>
-      <div className="door-side">
+      <div className="door-try">
+        <h2>Five things to try</h2>
+        <ol className="try">
+          {TRY.map((t, i) => <li key={i}><span>{t.text}</span>{t.copy ? <CopyButton text={t.copy} /> : <span />}</li>)}
+        </ol>
+      </div>
+      <aside className="door-side">
         <h2>Sign in</h2>
-        <p className="muted small">Access is by region.</p>
         <Suspense fallback={<form className="door-form" aria-busy="true"><label>Email<input type="email" disabled /></label><label>Password<input type="password" disabled /></label><button type="button" disabled>Sign In</button></form>}>
           <SignInForm searchParams={searchParams} />
         </Suspense>
-        <p className="muted small">No account? Ask IT to add you to a region group. Demo passwords are in the email that sent you here.</p>
-      </div>
-      <div className="door-more">
-        <div>
-          <h2>Three people, two roles</h2>
-          <ul className="people">
-            {ROLES.map((r) => <li key={r.email}><span><span className="who">{r.who}</span> <span className="muted">· {r.role}</span><span className="what">{r.email}: {r.can}</span></span><CopyButton text={r.email} /></li>)}
-          </ul>
-        </div>
-        <div>
-          <h2>Five things to try</h2>
-          <ol className="try">
-            {TRY.map((t, i) => <li key={i}><span>{t.text}</span>{t.copy ? <CopyButton text={t.copy} /> : <span />}</li>)}
-          </ol>
-        </div>
-      </div>
-      <p className="door-foot">Built on Next.js Cache Components, a durable workflow for the ERP write, OIDC to the ERP boundary, and one AI suggestion behind a validator. Every decision and its reason is in DECISIONS.md. <a href="/how-it-works">How it works</a></p>
+        <p className="muted small">Demo passwords are in the email that sent you here. No account? Ask IT to add you to a region group.</p>
+        <h2>Three people, two roles</h2>
+        <ul className="people">
+          {ROLES.map((r) => <li key={r.email}><span><span className="who">{r.who}</span><span className="role">{r.role}</span><span className="what">{r.can}</span><code className="email">{r.email}</code></span><CopyButton text={r.email} /></li>)}
+        </ul>
+      </aside>
+      <p className="door-foot">Built on Next.js Cache Components, Vercel Workflows for the wait on finance and the one ERP write, OIDC to the integration platform, and AI Gateway behind every model call. <a href="/how-it-works">How it works</a></p>
     </section>
   )
 }
