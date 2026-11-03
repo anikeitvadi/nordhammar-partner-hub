@@ -2,14 +2,16 @@
 
 ## Start here
 
-Nordhammar Partner Hub is the front door to a master data hub for a fictional manufacturer with five regions and three ERPs. You search before you request, the hub checks the tax ID as you type it, the central master-data team approves, and a durable workflow writes the new partner to the right ERP.
+Nordhammar Partner Hub is the front door to a master data hub for a fictional manufacturer with five regions and three ERPs. You search every region before you request, the hub checks the tax ID as you type it, regional finance approves in its own service desk, the central master-data team is the final check on duplicates and group credit, and a durable workflow writes the new partner to the right ERP once.
 
-- **Live app:** https://staging-nordhammar.vercel.app
-- **Demo logins:** provided in the submission email. The sign-in page lists the four people and what each can do.
+- **The brief:** https://nordhammar-partner-hub.vercel.app/brief, the customer-facing summary on one page (problem, architecture, Vercel choices, demo, rollout, measures, risks, tooling).
+- **Live app:** https://nordhammar-partner-hub.vercel.app (start at sign-in, as Priya).
+- **Demo logins:** in the submission email. The sign-in page lists the three people and what each can see, and five things to try; the clean example there is made fresh for each visitor.
 - **Reading order:**
-  1. `DECISIONS.md`, the write-up the exercise asks for.
-  2. The app, starting with the three things to try on the sign-in page.
-  3. `/how-it-works` in the app, the request path with the names used in the code.
+  1. The brief.
+  2. The app, starting with the five things to try on the sign-in page.
+  3. `DECISIONS.md`, every decision with its alternatives and its measured evidence.
+  4. `/how-it-works` in the app, the request path with the names used in the code.
   4. The three boundary files listed under Layout below.
 
 A small, defensible partner-intake application for a fictional European manufacturer whose customers and suppliers are scattered across three regional ERPs and five regions.
@@ -20,7 +22,7 @@ The app holds a copy of the customer's golden records for search at the moment o
 
 ## Try it in two minutes
 
-App: https://staging-nordhammar.vercel.app · integration platform stand-in: https://customer-intake-erp-stub.vercel.app · test users and canned inputs: `DECISIONS.md` §4 (passwords arrive by email, never here).
+App: https://nordhammar-partner-hub.vercel.app · integration platform stand-in: https://customer-intake-erp-stub.vercel.app · test users and canned inputs: `DECISIONS.md` §4 (passwords arrive by email, never here).
 
 The short version: sign in as `ana.requester@example.com`, search `aurora`, open a record, then "New Request" → Customer with `Vela Processos do Brasil` and CNPJ `61.000.103/0002-27` to see the one case the rules cannot decide and the model's proposal. Approve its ticket as finance in the service desk (`/desk` on the stand-in; the finance password is in the submission email); a name match is never approved automatically, so it lands on the Exceptions page for `priya.reviewer@example.com` (the central team), who approves it and watches the status page go to created. On the Exceptions page, "Demo controls" sets up the lost-response replay, and "Run the Hub Load Now" makes a new partner searchable. "Ask" in the sidebar looks up a group or a request, and answers counts and totals (on hold by region, requests per month, exposure to a group, duplicates stopped) as a number or a chart, from a typed query the model fills and the code checks, over what the signed-in person may see. `/how-it-works` is the diagram, public.
 

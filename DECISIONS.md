@@ -168,7 +168,7 @@ Alternatives, each with the one reason it did not win:
 
 ## 4. Working demo
 
-- **App:** https://staging-nordhammar.vercel.app (the production deployment, behind a public project domain).
+- **App:** https://nordhammar-partner-hub.vercel.app (the production deployment, behind a public project domain; the earlier `staging-nordhammar.vercel.app` still works). The brief is at `/brief`.
 - **Integration platform stand-in:** https://customer-intake-erp-stub.vercel.app. A separate Vercel project: `/integration/v1` in front of three ERP masters, a ledger, the golden-record feed and a demo fault switch. It accepts only the app's deployment identity in production.
 - **Repository:** a public GitHub repository with full commit history, decisions in the messages. Published on submission; see `docs/PUBLISH.md`.
 - **Test users** (passwords in the submission email, never in the repository):
@@ -178,7 +178,7 @@ Alternatives, each with the one reason it did not win:
   - `noregion@example.com`, no region yet: shows the locked-out screen
 - **Service desk** (the stand-in's `/desk`, its own sign-in, password in the submission email): Marta Lindqvist, finance
 
-**Try it in two minutes.** Sign in as Ana unless noted. Every tax ID below passes its check digits.
+**Try it in two minutes.** Start as Priya; rows that say Ana show what a regional user sees. Every tax ID below passes its check digits.
 
 | Moment | Where | Type | What you see |
 |---|---|---|---|
@@ -189,7 +189,7 @@ Alternatives, each with the one reason it did not win:
 | Same company, new branch | Request a new customer | `Aurora Industrial Filial Centro`, CNPJ `61.000.101/0005-80` | "Same company, different establishment": pre-selects "new company in this group" |
 | Name match, the AI proposal | Request a new customer | `Vela Processos do Brasil`, CNPJ `61.000.103/0002-27` | A legacy record with no tax ID; the model's evidence rows; a human decides. After submit, the timeline names the model's reading, the model and the cost |
 | Invalid tax ID | Request a new customer | CNPJ `61.000.103/0001-47` | Fails its check digits; nothing is searched |
-| Clean create, end to end | Request a new customer, then the desk as finance | `Estrela Brasil Indústria`, CNPJ `61.000.104/0001-90`, a type, a bill-to with its CEP, a reason | The hub is checked as you type; step 2 opens on its own. Submit; the status page shows the ticket, and the ticket shows finance the reason and the contact. Approve the ticket in the desk. Within seconds the status page reads approved automatically, with the checks that passed, then an ERP-1 number in the 110xxx series; the ticket gets the number as a comment |
+| Clean create, end to end | Request a new customer, then the desk as finance | The fresh example on the sign-in page (a new name and CNPJ for every visitor, so the path works for every grader), a type, a bill-to with its CEP, a reason | The hub is checked as you type; step 2 opens on its own. Submit; the status page shows the ticket, and the ticket shows finance the reason and the contact. Approve the ticket in the desk. Within seconds the status page reads approved automatically, with the checks that passed, then an ERP-1 number in the 110xxx series; the ticket gets the number as a comment |
 | An exception | The same-company case above, submitted, then the desk, then Exceptions as Priya | `Aurora Industrial Filial Centro` | Finance approves; the hub stops it as an exception (same company as another establishment; the requester chose new company in this group). Priya sees the reasons and approves; the number lands and goes back to the ticket |
 | Ticket first | The desk: New partner ticket, then approve | A new name and a valid CNPJ, requester `ana.requester@example.com`, region BR | The ticket becomes a hub request when finance approves, is checked, and is created; no duplicate check ran at entry, so the hub's checks are the only ones. Leave the CEP blank and it becomes an exception, "missing: CEP", instead |
 | Finance rejects | Any request's ticket in the desk: Reject, with a reason | | The request reads declined by finance, with finance's reason; a reject without a reason is refused |
