@@ -1,6 +1,5 @@
-import { notFound, redirect } from 'next/navigation'
+import { notFound } from 'next/navigation'
 import { getTicket } from '@/features/desk/store'
-import { signedIn } from '@/features/desk/session'
 import { decideAction, resendAction } from '@/features/desk/actions'
 import { HUB_ORIGIN } from '@/features/desk/send'
 
@@ -8,14 +7,25 @@ const fmt = (iso: string) => new Date(iso).toLocaleString('en-GB', { timeZone: '
 
 export default async function DeskTicket({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ error?: string }> }) {
   const [{ id }, { error }] = await Promise.all([params, searchParams])
-  if (!(await signedIn())) redirect(`/desk/login?next=${encodeURIComponent(`/desk/tickets/${id}`)}`)
   const t = await getTicket(id)
   if (!t) notFound()
   const { ticket, comments, outbox } = t
   const undelivered = outbox.filter((o) => !o.deliveredAt)
+  // After finance decides, the ticket leads with where the request went and links back to it. Until the hub's outcome
+  // comment arrives (a second or two), the page refreshes itself, so the number shows up without anyone reloading.
+  const hubSays = [...comments].reverse().find((c) => c.author === 'Nordhammar Partner Hub' && /Created|stopped|declined|central/i.test(c.body))
+  const waitingOnHub = ticket.status !== 'open' && ticket.hubRequestId && !hubSays
   return (
     <>
+      {waitingOnHub ? <meta httpEquiv="refresh" content="2" /> : null}
       <h1>{ticket.id}: {ticket.summary.legalName}</h1>
+      {ticket.status !== 'open' && ticket.hubRequestId ? (
+        <div className="box next">
+          <strong>{ticket.status === 'finance_approved' ? 'Approved. The Partner Hub has it now.' : 'Rejected. The Partner Hub has been told.'}</strong>{' '}
+          {hubSays ? hubSays.body : ticket.status === 'finance_approved' ? 'It is checking the request again; the outcome appears here in a moment.' : null}
+          <p style={{ margin: '8px 0 0' }}><a href={`${HUB_ORIGIN}/requests/${ticket.hubRequestId}`}>Back to request {ticket.hubRequestId} in the Partner Hub →</a></p>
+        </div>
+      ) : null}
       <div className="box">
         <div className="grid">
           <div><label>Status</label>{ticket.status.replace('_', ' ')}</div>

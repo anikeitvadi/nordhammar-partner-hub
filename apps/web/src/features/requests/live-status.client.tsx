@@ -15,7 +15,7 @@ type Snapshot = { state: RequestState; revision: number; updatedAt: string; even
 // change, then stops. When the state kind changes, the server-rendered parts (How this ran, the stop reason) refresh. Nothing here is trusted: it is
 // the same scoped read the page did, repeated. Only the status sentence is a live region; the timeline is not, so a
 // screen reader hears one sentence per change, not the whole list every 2 s.
-export function LiveStatus({ requestId, domain, erp, initial }: { requestId: string; domain: Domain; erp: string; initial: Snapshot }) {
+export function LiveStatus({ requestId, domain, erp, deskUrl, demo, initial }: { requestId: string; domain: Domain; erp: string; deskUrl: string; demo: boolean; initial: Snapshot }) {
   const router = useRouter()
   const [snap, setSnap] = useState<Snapshot>(initial)
   const [failures, setFailures] = useState(0)
@@ -59,6 +59,16 @@ export function LiveStatus({ requestId, domain, erp, initial }: { requestId: str
       ) : (
         <p aria-live="polite" role="status" className="status-sentence answer-line">{creating ? <span className="arc" aria-hidden="true" /> : null}<span key={snap.state.kind} className="arrive-fast">{describeState(snap.state, domain)}</span></p>
       )}
+      {/* The one hop out of the hub: finance's ticket. Said plainly, as the next step, with a button; in the demo the
+          grader is finance too, so it says so. The page keeps watching and turns to the number on its own. */}
+      {snap.state.kind === 'awaiting_finance' ? (
+        <div className="next-step">
+          {snap.state.ticketId
+            ? <a className="button" href={`${deskUrl}/desk/tickets/${snap.state.ticketId}`} target="_blank" rel="noreferrer">Open Ticket {snap.state.ticketId} in the Service Desk</a>
+            : <p className="muted"><span className="arc" aria-hidden="true" />Opening the ticket for finance…</p>}
+          <p className="muted small">{demo ? 'In this demo you are finance too: approve it there, no sign-in needed. Keep this page open; it turns to the ERP number by itself.' : 'Finance approves it there. This page updates by itself.'}</p>
+        </div>
+      ) : null}
       <h2>Timeline</h2>
       <ol className="timeline">
         {snap.events.filter(businessEvent).map((e, i) => <li key={i} className={i >= initialEvents ? 'new' : undefined}><LocalTime iso={e.at} /><span>{describeEvent(e)}</span></li>)}

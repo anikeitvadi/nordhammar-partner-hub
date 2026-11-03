@@ -17,6 +17,7 @@ const css = `
 .desk button.reject{background:#fff;color:#a3332f;border-color:#a3332f}
 .desk .grid{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}
 .desk .tag{display:inline-block;padding:1px 6px;border:1px solid #9aa4ae;font-size:12px}
+.desk .box.next{border-left:4px solid #2f6aa3;background:#f7fafc}
 .desk .muted{color:#6b7280}.desk .err{color:#a3332f}
 @media (max-width:640px){.desk .grid{grid-template-columns:1fr}}
 `

@@ -9,6 +9,7 @@ import { RunPanel } from '@/features/execution/run-panel'
 import { isCentral } from '@/features/auth/scope'
 import { technicalEvent } from '@/features/requests/status'
 import { Blueprint, stageFor } from '@/features/ui/blueprint'
+import { demoControls } from '@/features/flags/flags'
 
 // The service desk is the customer's system; the ticket link opens it in their tool, where finance works.
 const DESK_URL = (process.env.ERP_BASE_URL ?? 'https://customer-intake-erp-stub.vercel.app').replace(/\/$/, '')
@@ -30,13 +31,14 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
   const s = r.state
   const main = r.payload.addresses[0]
   const central = isCentral(principal)
+  const demo = await demoControls()
   const technical = r.events.map((e) => ({ e, t: technicalEvent(e) })).filter((x) => x.t)
   const emails = r.events.some((e) => e.kind === 'email_queued')
   return (
     <section>
       <h1>{r.legalName}</h1>
       <p className="muted"><code>{r.requestId}</code> · {r.domain === 'customer' ? 'Customer' : 'Supplier'} · {r.region} · requested by {r.requesterEmail}{r.ticketId ? <> · finance ticket <a href={`${DESK_URL}/desk/tickets/${r.ticketId}`} target="_blank" rel="noreferrer">{r.ticketId}</a></> : null}</p>
-      <LiveStatus requestId={r.requestId} domain={r.domain} erp={r.payload.destination.erp} initial={{ state: s, revision: r.revision, updatedAt: r.updatedAt, events: r.events }} />
+      <LiveStatus requestId={r.requestId} domain={r.domain} erp={r.payload.destination.erp} deskUrl={DESK_URL} demo={demo} initial={{ state: s, revision: r.revision, updatedAt: r.updatedAt, events: r.events }} />
       {s.kind === 'stopped' ? <p className="panel error"><strong>Stopped.</strong> {s.effect === 'unknown' ? 'The ERP did not answer, so we do not yet know whether it was created. An operator checks with the ERP before anything is retried; no duplicate can be made.' : `${s.reason}. An operator will return this to you to fix.`}</p> : null}
       {s.kind === 'draft' ? <p className="panel">{s.returnedReason ? <><strong>Sent back:</strong> {s.returnedReason} </> : <><strong>Draft.</strong> Only you can see it. </>}{r.requesterEmail === principal.email ? <Link href={`/requests/${r.requestId}/edit`}>{s.returnedReason ? 'Fix and Submit Again' : 'Open and Submit'}</Link> : null}</p> : null}
       <h2>What was submitted</h2>

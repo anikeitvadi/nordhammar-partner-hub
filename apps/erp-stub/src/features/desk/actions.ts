@@ -3,9 +3,11 @@ import { redirect } from 'next/navigation'
 import { DeskPartnerSchema, REGIONS, type DeskWebhook, type Domain, type Region } from '@intake/contracts'
 import { decide, openTicket } from './store'
 import { deliverPending } from './send'
-import { FINANCE_USER, signIn, signOut, signedIn } from './session'
+import { FINANCE_USER, signIn, signOut } from './session'
 
-async function guard() { if (!(await signedIn())) redirect('/desk/login') }
+// The stand-in desk has no sign-in, on purpose: whoever opens a ticket from the demo acts as finance. The real desk
+// signs finance in; the hub never trusted this screen anyway, only the signed webhook it sends.
+async function guard() {}
 const str = (f: FormData, k: string) => String(f.get(k) ?? '').trim()
 
 // A ticket link from the hub lands on sign-in first; signing in goes on to that ticket, never off the desk.

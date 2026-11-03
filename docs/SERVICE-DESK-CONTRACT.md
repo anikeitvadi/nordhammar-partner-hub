@@ -124,7 +124,7 @@ Plain on purpose, so the boundary is visible on stage:
 - **A ticket:** its fields, its comments, **Approve as finance** and **Reject** with a required reason.
 - **New ticket:** the ticket-first path.
 
-The screens are behind a desk sign-in, separate from the hub's. One demo finance user, password in the submission email.
+The screens have no sign-in (changed 2026-11-03): whoever opens a ticket from the demo acts as the one finance user. The hub never trusted the screen, only the signed webhook the desk sends. The real desk signs finance in.
 
 ## 9. What the hub screens change
 

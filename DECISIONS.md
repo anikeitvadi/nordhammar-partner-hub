@@ -200,6 +200,7 @@ Latencies are single observations, not a benchmark. Sign-in on the hosted auth s
 - **Plan gates.** The design needs Pro (Static IPs, Rolling Releases). SCIM, audit logs, SIEM streaming and Secure Compute are Enterprise; SAML SSO for the Vercel team is a Pro add-on. The customer's governance list decides.
 - **The free Gateway tier allows 5 calls a minute per model**, and an Ask answer takes two; paid credits remove the limit with no code change. Haiku 4.5, the intended primary, is unmeasured until then.
 - **Not built.** Emails (each is logged on the timeline, none sent), attachments such as tax certificates, the customer's identity provider, and payload version 3 (six fields every new request leaves empty stay in the shape so older requests' hashes stay valid).
+- **The stand-in desk has no sign-in,** so a grader can approve as finance from the request page. The real desk signs finance in; nothing in the hub depends on the desk's screens, only its signed webhook.
 - **The demo's people are shared.** Everyone signs in as the same people; a session ended elsewhere lands on sign-in with its page kept.
 - **Web Analytics** is in the layout but not switched on in the dashboard; Speed Insights is.
 
@@ -229,7 +230,7 @@ Latencies are single observations, not a benchmark. Sign-in on the hosted auth s
 
 - **App:** https://nordhammar-partner-hub.vercel.app (start at sign-in, as Priya). The brief: `/brief`.
 - **Stand-in:** https://customer-intake-erp-stub.vercel.app, with the service desk at `/desk`.
-- **People** (passwords in the submission email, never in the repository): `priya.reviewer@example.com` (central master-data team), `ana.requester@example.com` (sales operations, Brazil), `jonas.requester@example.com` (procurement, Europe), `noregion@example.com` (no region yet). Finance in the desk: Marta Lindqvist.
+- **People** (passwords in the submission email, never in the repository): `priya.reviewer@example.com` (central master-data team), `ana.requester@example.com` (sales operations, Brazil), `jonas.requester@example.com` (procurement, Europe), `noregion@example.com` (no region yet). Finance in the desk: Marta Lindqvist; the stand-in desk has no sign-in, so anyone with the demo can act as finance (the hub trusts only the desk's signed webhook).
 
 | Moment | How | What you see |
 |---|---|---|

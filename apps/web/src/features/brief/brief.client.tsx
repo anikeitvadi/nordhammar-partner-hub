@@ -231,7 +231,7 @@ function Demo({ f }: { f: BriefFigures | null }) {
         <a href={REPO}><span>Repository</span><b>github.com/anikeitvadi/nordhammar-partner-hub</b></a>
         <a href={DESK}><span>Nordhammar&rsquo;s systems, played by a stand-in</span><b>customer-intake-erp-stub.vercel.app</b></a>
       </div>
-      <p>Start as Priya (central master-data team); Ana (Brazil) and Jonas (Europe) show what a regional user can and cannot see. Finance signs in to the service desk. The passwords are in the email that sent you here.</p>
+      <p>Start as Priya (central master-data team); Ana (Brazil) and Jonas (Europe) show what a regional user can and cannot see. Finance approves in the service desk, which opens straight from the request; the hub's passwords are in the email that sent you here.</p>
       <ol className="brief-steps">
         <li><b>Start as Priya</b><span>The central team sees the whole hub: search <code>aurora</code> and find one group, three companies, two regions, two ERPs.</span></li>
         <li><b>Stopped at entry</b><span>Request a customer whose tax ID already exists. The hub stops it before the form goes further.</span></li>
