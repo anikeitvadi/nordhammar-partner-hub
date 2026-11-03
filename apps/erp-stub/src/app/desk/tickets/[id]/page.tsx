@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation'
+import { connection } from 'next/server'
 import { getTicket } from '@/features/desk/store'
 import { decideAction, resendAction } from '@/features/desk/actions'
 import { HUB_ORIGIN } from '@/features/desk/send'
@@ -6,6 +7,7 @@ import { HUB_ORIGIN } from '@/features/desk/send'
 const fmt = (iso: string) => new Date(iso).toLocaleString('en-GB', { timeZone: 'UTC', dateStyle: 'medium', timeStyle: 'short' }) + ' UTC'
 
 export default async function DeskTicket({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ error?: string }> }) {
+  await connection() // live data on every view, now that no sign-in makes the page dynamic
   const [{ id }, { error }] = await Promise.all([params, searchParams])
   const t = await getTicket(id)
   if (!t) notFound()

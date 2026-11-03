@@ -1,9 +1,12 @@
 import Link from 'next/link'
+import { connection } from 'next/server'
 import { listTickets } from '@/features/desk/store'
 
 const STATUS: Record<string, string> = { open: 'Open', finance_approved: 'Finance approved', finance_rejected: 'Finance rejected', done: 'Done' }
 
 export default async function DeskQueue() {
+  // Read per request: the queue is live data, and with no sign-in nothing else marks this page dynamic.
+  await connection()
   const tickets = await listTickets()
   return (
     <>
