@@ -2,11 +2,9 @@ import { notFound, redirect } from 'next/navigation'
 import { getTicket } from '@/features/desk/store'
 import { signedIn } from '@/features/desk/session'
 import { decideAction, resendAction } from '@/features/desk/actions'
+import { HUB_ORIGIN } from '@/features/desk/send'
 
 const fmt = (iso: string) => new Date(iso).toLocaleString('en-GB', { timeZone: 'UTC', dateStyle: 'medium', timeStyle: 'short' }) + ' UTC'
-
-// Where the hub lives, from the webhook it already posts to, so a ticket can link back to its request.
-const HUB = (() => { try { return new URL(process.env.DESK_WEBHOOK_URL ?? '').origin } catch { return null } })()
 
 export default async function DeskTicket({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ error?: string }> }) {
   const [{ id }, { error }] = await Promise.all([params, searchParams])
@@ -21,7 +19,7 @@ export default async function DeskTicket({ params, searchParams }: { params: Pro
       <div className="box">
         <div className="grid">
           <div><label>Status</label>{ticket.status.replace('_', ' ')}</div>
-          <div><label>Raised from</label>{ticket.source === 'hub' ? 'Partner Hub, request ' : `Desk${ticket.hubRequestId ? ', now hub request ' : ''}`}{ticket.hubRequestId ? (HUB ? <a href={`${HUB}/requests/${ticket.hubRequestId}`}>{ticket.hubRequestId}</a> : ticket.hubRequestId) : null}</div>
+          <div><label>Raised from</label>{ticket.source === 'hub' ? 'Partner Hub, request ' : `Desk${ticket.hubRequestId ? ', now hub request ' : ''}`}{ticket.hubRequestId ? <a href={`${HUB_ORIGIN}/requests/${ticket.hubRequestId}`}>{ticket.hubRequestId}</a> : null}</div>
           <div><label>Requester</label>{ticket.requesterEmail}</div>
           <div><label>Region, type</label>{ticket.region} · {ticket.domain}</div>
           <div><label>Tax ID</label>{ticket.summary.taxId} ({ticket.summary.country})</div>
