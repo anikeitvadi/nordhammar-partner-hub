@@ -18,7 +18,7 @@ const PARTS: Part[] = [
   { id: 'architecture', title: 'Architecture', line: 'Role: Connect. The hub uses your platform, desk and identity provider; it replaces a manual process, not a system.', Body: Architecture },
   { id: 'vercel', title: 'Vercel choices', line: 'Five primitives, each doing one job, each with its trade-off.', Body: Choices },
   { id: 'demo', title: 'The demo', line: 'Live and public, with Nordhammar’s systems played by a stand-in.', Body: Demo },
-  { id: 'rollout', title: 'Rollout', line: 'Preview, a Brazil pilot, a 10, 50, 100 canary, then region by region.', Body: Rollout },
+  { id: 'rollout', title: 'Rollout', line: 'From this demo to live: connect, try it in Brazil, pilot, then region by region.', Body: Rollout },
   { id: 'measures', title: 'Success measures', line: 'Fewer merges at 2 a.m.; a number a day after finance says yes; each with an owner.', Body: Measures },
   { id: 'risks', title: 'Limits and risks', line: 'What you should know before kickoff, plainly.', Body: Risks },
   { id: 'tooling', title: 'How it was built', line: 'Claude Code builds, a Factory agent reviews, evals gate the AI.', Body: Tooling },
@@ -251,12 +251,14 @@ function Demo({ f }: { f: BriefFigures | null }) {
   )
 }
 
+// From this demo to live at Nordhammar, in the five steps the plan is judged on. Plain on purpose: what happens, who
+// does it, and how anyone can step back. The release mechanics (10, 50, 100) are one line inside, not the plan.
 const ROLLOUT = [
-  { t: 'Preview', d: 'Every change gets its own URL against the same integration API. Stewards and finance click the next version before it ships; previews sit behind Password Protection, so finance needs no Vercel account.' },
-  { t: 'Validation', d: 'Tests, the AI evaluation sets and a scripted click-through must pass. Brazil runs on real golden records, read-only, for a week. Then Brazil goes live with automatic approval off: the central team approves every request and the hub records where it agreed with the checks. When the central team agrees with the checks on 95 of 100 consecutive clean requests, or after four weeks, whichever is later, the central master-data lead turns automatic approval on.' },
-  { t: 'Canary', d: 'A Rolling Release sends 10%, then 50%, then 100% of traffic, with logs read at each stage. Requests in flight finish on the version that started them. In a small pilot the central team checks the canary with a force-canary link; the preview and the pilot switch are the real safety, and the stages earn their keep once several regions are live.' },
-  { t: 'Cutover', d: 'Region by region: Brazil, then Europe, then the rest. Each region’s ticket form for new partners is switched off once its hub requests run clean.' },
-  { t: 'Rollback', d: 'Instant Rollback moves traffic back in one step. Any region can return to tickets the same day, and automatic approval has an off switch that sends every request to a person.' },
+  { t: 'Preview', w: 'Weeks 1 to 2', d: 'Connect it to your systems, in a copy nobody uses yet. The stand-ins in this demo are swapped for the real thing: your integration team opens its API to the hub and trusts the hub\u2019s sign-in, your desk sends finance\u2019s decisions to it, and your identity provider signs people in, with each person\u2019s regions coming from the groups they are already in. The first load brings in your golden records. From here, every change gets its own preview link for stewards and finance to click.' },
+  { t: 'Validation', w: 'Weeks 3 to 4', d: 'Brazil uses it read-only for a week: people search your real records and try the form, and nothing is created. We measure the starting point: requests a month, days to a number, merges a month and the hours they take. Finance signs off the ticket it will see, and the central team signs off the checks.' },
+  { t: 'Canary', w: 'Pilot, Brazil', d: 'Brazil goes live for a few requesters first, then all of them, with automatic approval off: the central team approves every request, and we count where it agrees with the checks. When it agrees on 95 of 100, automatic approval goes on. Every software release reaches 10% of people, then 50%, then everyone.' },
+  { t: 'Cutover', w: 'Region by region', d: 'Brazil, then Europe, then the United States, India and China. When a region\u2019s requests run clean, its old ticket form for new partners is switched off, and its finance team keeps approving exactly where it does today.' },
+  { t: 'Rollback', w: 'At any point', d: 'Any region can go back to tickets the same day. Automatic approval has an off switch that sends every request to a person. A bad release is undone in one step, because the previous version is still running.' },
 ]
 function Rollout() {
   const [at, setAt] = useState(2)
@@ -265,7 +267,8 @@ function Rollout() {
       <ol className="track" style={{ ['--at' as string]: at }}>
         {ROLLOUT.map((r, i) => <li key={r.t} className={i <= at ? 'past' : undefined}><button type="button" aria-pressed={i === at} onClick={() => setAt(i)}>{r.t}</button></li>)}
       </ol>
-      <p className="track-d" key={at}>{ROLLOUT[at].d}</p>
+      <p className="track-d" key={at}><span className="track-w">{ROLLOUT[at].w}.</span> {ROLLOUT[at].d}</p>
+      <p className="note">What we need from you: your integration team for the API and the sign-in trust, your desk administrator for the webhook, IT for the identity-provider groups, and the finance and master-data leads to sign off in week four.</p>
       <h3>It already happened once</h3>
       <p>On 3 November the first canary of a release answered one company&rsquo;s credit limit with its group&rsquo;s total. It was held at 10%, aborted back to the previous version in one step, fixed, checked again, and released. A request started on one version and approved from the next also finished on the first and kept its ERP number after an abort.</p>
     </>
