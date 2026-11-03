@@ -24,7 +24,7 @@ export default async function ReportsPage() {
           <tbody>{hold.map((r) => <tr key={r.region}><td>{r.region}</td><td className="num">{r.customers}</td><td className="num">{r.suppliers}</td><td>{r.oldestActivity ?? '—'}</td></tr>)}</tbody></table>
       )}
       <h2>Duplicates stopped at entry this month</h2>
-      <p><strong className="stat-inline">{stopped.stopped}</strong> {stopped.stopped === 1 ? 'request' : 'requests'} stopped before they were raised, because the tax ID already exists: {stopped.sameRegion} in the requester&apos;s own region, {stopped.otherRegion} in a region they cannot see. Out of {stopped.checks} {stopped.checks === 1 ? 'check' : 'checks'} run.</p>
+      <p><strong className="stat-inline">{stopped.stopped}</strong> {stopped.stopped === 1 ? 'request was' : 'requests were'} stopped before {stopped.stopped === 1 ? 'it was' : 'they were'} raised, because the tax ID already exists: {stopped.sameRegion} in the requester&apos;s own region, {stopped.otherRegion} in a region they cannot see. Out of {stopped.checks} {stopped.checks === 1 ? 'check' : 'checks'} run.</p>
       <h2>Intake this month</h2>
       {intake.length === 0 ? <p className="muted">No requests this month yet.</p> : (
         <table className="results"><thead><tr><th>State</th><th className="num">Customers</th><th className="num">Suppliers</th><th className="num">Median hours, submitted to created</th></tr></thead>
