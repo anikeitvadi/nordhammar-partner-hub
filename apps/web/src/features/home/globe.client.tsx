@@ -39,12 +39,14 @@ export function Globe({ data }: { data: GlobeData }) {
       return { a, i, len, geo: Array.from({ length: SAMPLES + 1 }, (_, k) => f(k / SAMPLES)) }
     })
 
+    // Room around the disc for arcs that lift off it near the limb, and for the event rings.
+    const pad = () => Math.max(8, Math.round(S * 0.07))
     const size = () => {
       const dpr = Math.min(window.devicePixelRatio || 1, 3)
       S = wrap.clientWidth
       el.width = Math.round(S * dpr); el.height = Math.round(S * dpr); el.style.width = `${S}px`; el.style.height = `${S}px`
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-      proj.scale(S / 2 - 8).translate([S / 2, S / 2])
+      proj.scale(S / 2 - pad()).translate([S / 2, S / 2])
     }
     // An arc on screen: its great-circle samples, bowed sideways off the chord by a share of the chord's length, so a
     // short arc in the middle of the disc parts from its neighbours as clearly as a long one at the limb. Arcs alternate
@@ -53,14 +55,20 @@ export function Globe({ data }: { data: GlobeData }) {
       const a = proj(arc.a.from)!, b = proj(arc.a.to)!
       const dx = b[0] - a[0], dy = b[1] - a[1], chord = Math.hypot(dx, dy) || 1
       const nx = -dy / chord, ny = dx / chord
-      // Arcs alternate sides, except that an arc whose bow would carry it off the disc bends inward instead: near the
-      // limb an outward bow leaves the canvas and is cut off at its edge.
-      const mag = (0.22 + (arc.i % 3) * 0.05) * chord, R = S / 2 - 8
-      const peak = (side: number) => Math.hypot((a[0] + b[0]) / 2 + nx * mag * side - S / 2, (a[1] + b[1]) / 2 + ny * mag * side - S / 2)
+      // Arcs alternate sides, so neighbours part. Near the limb a bow can carry an arc off the disc: it may lift into
+      // the margin around the globe, never past the canvas edge. The side that stays closer wins; if neither fits, the
+      // bow shrinks until it does.
+      const R = S / 2 - pad(), limit = S / 2 - 6
+      // Every sample of the whole arc, not just its middle: near the limb the great circle itself runs close to the edge.
+      const base = arc.geo.map((g) => proj(g)!)
+      const reach = (bow: number) => Math.max(...base.map((xy, k) => { const o = Math.sin(Math.PI * (k / SAMPLES)) * bow; return Math.hypot(xy[0] + nx * o - S / 2, xy[1] + ny * o - S / 2) }))
       const preferred = arc.i % 2 ? 1 : -1
-      const bow = mag * (peak(preferred) > R ? -preferred : preferred)
+      let mag = (0.22 + (arc.i % 3) * 0.05) * chord
+      const side = reach(mag * preferred) <= R ? preferred : reach(mag * -preferred) < reach(mag * preferred) ? -preferred : preferred
+      for (let n = 0; n < 12 && reach(mag * side) > limit; n++) mag *= 0.8
+      const bow = mag * side
       return arc.geo.slice(0, upto).map((g, k) => {
-        const xy = proj(g)!, s = Math.sin(Math.PI * (k / SAMPLES)) * bow
+        const xy = base[k], s = Math.sin(Math.PI * (k / SAMPLES)) * bow
         return { x: xy[0] + nx * s, y: xy[1] + ny * s, vis: geoDistance(g, center) < Math.PI / 2 }
       })
     }

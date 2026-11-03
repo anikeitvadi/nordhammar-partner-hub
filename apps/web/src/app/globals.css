@@ -373,9 +373,9 @@ details.tech dd { margin: 0; font-family: var(--mono); font-size: 13px; color: v
 .fig-link { transition: color var(--t-feedback) ease; }
 .fig-link:hover { color: var(--ink); }
 .fig-link:hover .fig-go, .fig-link:focus-visible .fig-go { opacity: 1; transform: none; color: var(--ink); }
-.globe-figure { margin: 0; justify-self: end; width: 100%; max-width: 560px; }
+.globe-figure { margin: 0; justify-self: end; width: 100%; max-width: 600px; }
 .globe-figure figcaption { margin-top: 4px; text-align: center; font-size: 13px; color: var(--ink-3); }
-.globe { position: relative; width: 100%; aspect-ratio: 1 / 1; max-width: 560px; cursor: grab; touch-action: none; animation: fade-in 1200ms var(--ease-arrive) both; }
+.globe { position: relative; width: 100%; aspect-ratio: 1 / 1; max-width: 600px; cursor: grab; touch-action: none; animation: fade-in 1200ms var(--ease-arrive) both; }
 .globe:active { cursor: grabbing; }
 .globe canvas { display: block; }
 .globe-tip { position: absolute; transform: translate(12px, -50%); pointer-events: none; background: var(--ink); color: #fff; font: 13px var(--sans); padding: 6px 10px; border-radius: var(--radius); white-space: nowrap; z-index: 2; }
