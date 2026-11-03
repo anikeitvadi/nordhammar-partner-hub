@@ -3,7 +3,7 @@
 export const metadata = { title: 'Service Desk' }
 const css = `
 .desk{font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;color:#222;background:#f3f4f6;min-height:100vh;margin:0}
-.desk header{background:#3b4a5a;color:#fff;padding:10px 20px;display:flex;justify-content:space-between;align-items:center}
+.desk header{background:#3b4a5a;color:#fff;padding:10px 20px;display:flex;flex-wrap:wrap;gap:4px 16px;justify-content:space-between;align-items:center}
 .desk header a{color:#dfe6ee;margin-left:16px;text-decoration:none}
 .desk main{max-width:980px;margin:20px auto;padding:0 16px}
 .desk h1{font-size:18px;margin:0 0 12px}

@@ -5,7 +5,7 @@ import { newTicketAction } from '@/features/desk/actions'
 // Ticket first: a new partner raised in the desk. The desk cannot see the hub, so there is no duplicate check here;
 // the hub runs every check when finance approves.
 export default async function DeskNew({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
-  if (!(await signedIn())) redirect('/desk/login')
+  if (!(await signedIn())) redirect('/desk/login?next=/desk/new')
   const { error } = await searchParams
   const f = (name: string, label: string, opts: { required?: boolean; placeholder?: string } = {}) => <div><label htmlFor={name}>{label}{opts.required ? ' *' : ''}</label><input id={name} name={name} required={opts.required} placeholder={opts.placeholder} /></div>
   return (

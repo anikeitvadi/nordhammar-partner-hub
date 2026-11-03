@@ -8,9 +8,12 @@ import { FINANCE_USER, signIn, signOut, signedIn } from './session'
 async function guard() { if (!(await signedIn())) redirect('/desk/login') }
 const str = (f: FormData, k: string) => String(f.get(k) ?? '').trim()
 
+// A ticket link from the hub lands on sign-in first; signing in goes on to that ticket, never off the desk.
 export async function loginAction(formData: FormData): Promise<void> {
-  if (!(await signIn(str(formData, 'password')))) redirect('/desk/login?error=1')
-  redirect('/desk')
+  const next = str(formData, 'next')
+  const back = /^\/desk(\/[\w-]+)*$/.test(next) ? next : '/desk'
+  if (!(await signIn(str(formData, 'password')))) redirect(`/desk/login?error=1${back !== '/desk' ? `&next=${encodeURIComponent(back)}` : ''}`)
+  redirect(back)
 }
 export async function logoutAction(): Promise<void> { await signOut(); redirect('/desk/login') }
 
