@@ -421,7 +421,7 @@ The deployed click-through caught two regressions the tests and the build did no
   - a motion library, because the motion is a handful of CSS transitions and one canvas
   - decorative ASCII anywhere but the sign-in page, the one screen that is not a working screen
   - a one-click demo sign-in (§7)
-- **Verified** locally on a production build at 1440 and 390 px as Ana and Priya, every screen; on staging after the step 11 release (BRIEF-TRACE step 11).
+- **Verified** locally on a production build at 1440 and 390 px as Ana and Priya, every screen; then on the staging canary of the step 11 release, as Ana and Priya, before it was completed.
 - **Sign-in LCP** (**measured**, warm cache, 1 Nov pass): 164 ms before, 188 ms after, 636 ms on the first request after a deploy (`docs/evidence/lcp-login.txt`).
 
 ### Feedback on the exercise

@@ -13,7 +13,7 @@ no credentials, no customer data. A reader who finds them sees a mistake and its
 ## 1. Checks
 
 ```bash
-cd /Users/anikeit/customer-intake-demo
+cd customer-intake-demo
 git status --porcelain                                       # must be empty
 git ls-files | grep -cE "workflow-data|workflow-vitest|tsbuildinfo"   # expect 0
 git ls-files | grep -E "\.env"                               # expect only .env.example
