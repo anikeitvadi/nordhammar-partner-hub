@@ -7,6 +7,12 @@ export function StatusBadge({ state }: { state: RequestState }) {
   return <span className={`badge badge-${state.kind}`}>{STATE_LABEL[state.kind]}</span>
 }
 
+// The checks' reasons as sentences: each starts with a capital, quotes are typographic. Older requests stored them
+// lower-case with straight quotes, so this is done on display, not only at the source.
+export function reasonText(reasons: string[]): string {
+  return reasons.map((r) => r.charAt(0).toUpperCase() + r.slice(1).replace(/"([^"]*)"/g, '\u201c$1\u201d')).join('. ') + '.'
+}
+
 // The one sentence that says where the request is and what happens next, for the person who raised it.
 export function describeState(s: RequestState, domain: Domain = 'customer'): string {
   const thing = domain === 'customer' ? 'customer' : 'supplier'
@@ -14,7 +20,7 @@ export function describeState(s: RequestState, domain: Domain = 'customer'): str
     case 'draft': return s.returnedReason ? 'Returned to you with a note. Fix it and submit again; it goes back to finance.' : 'Saved as a draft. Only you can see it until you submit.'
     case 'awaiting_finance': return `With finance in the service desk${s.ticketId ? ` (ticket ${s.ticketId})` : ''}. When finance approves, the hub checks it again; if every check passes, the ERP number is assigned automatically.`
     case 'checking': return `Finance approved. The hub is checking it again now.`
-    case 'exception': return `Waiting for the central master-data team: ${s.reasons.join('; ')}.`
+    case 'exception': return `Waiting for the central master-data team. ${reasonText(s.reasons)}`
     case 'submitted': return 'In the central team\'s queue.'
     case 'under_review': return 'The central team has it open.'
     case 'approved': return `Approved. Creating the ${thing} in the ERP now.`
@@ -49,7 +55,7 @@ export function describeEvent(e: TimelineEvent): string {
     case 'finance_approved': return `Approved by finance${by ? ` (${by})` : ''} in the service desk`
     case 'finance_rejected': return `Rejected by finance${by ? ` (${by})` : ''}${d.reason ? `: ${String(d.reason)}` : ''}`
     case 'checks_clean': return `Every check passed after finance approved, so it was approved automatically: ${(d.checks as string[] | undefined)?.join(', ') ?? ''}`
-    case 'exception': return `Not approved automatically. For the central team: ${(d.reasons as string[] | undefined)?.join('; ') ?? ''}`
+    case 'exception': return `Not approved automatically. For the central team: ${reasonText((d.reasons as string[] | undefined) ?? [])}`
     case 'submitted': return d.via === 'service desk' ? `Raised in the service desk (ticket ${String(d.ticketId ?? '')}) by ${by ?? 'the requester'}` : `Submitted${by ? ` by ${by}` : ''}${d.dupChoice === 'not_related' ? ', marked not related to the suggested match' : d.dupChoice === 'new_in_group' ? ', as a new company in an existing group' : ''}`
     case 'resubmitted': return `Submitted again${by ? ` by ${by}` : ''} (version ${String(d.revision ?? '')})`
     case 'opened_for_review': return `Opened for review${by ? ` by ${by}` : ''}`

@@ -1,7 +1,7 @@
 import 'server-only'
 import { payloadHash, transition, type CanonicalPayload, type Domain, type Region, type RequestState } from '@intake/contracts'
 import { sql } from '@/lib/db'
-import { canWorkIn, isCentral, type Principal } from '@/features/auth/scope'
+import { canWorkIn, identityRegions, isCentral, type Principal } from '@/features/auth/scope'
 import { linkLatestCheck } from '@/features/intake/checks.server'
 
 // Owns every write to the request tables except the review decision (decide.server.ts) and the execution steps.
@@ -10,7 +10,7 @@ import { linkLatestCheck } from '@/features/intake/checks.server'
 export type DupChoice = 'new' | 'new_in_group' | 'not_related'
 export type RequestSummary = { requestId: string; domain: Domain; region: Region; requesterEmail: string; revision: number; state: RequestState; createdAt: string; updatedAt: string; legalName: string }
 export type RequestDetail = RequestSummary & {
-  payload: CanonicalPayload; payloadHash: string; dupChoice: DupChoice | null; dupReason: string | null; linkedGoldenId: string | null; workflowRunId: string | null; ticketId: string | null
+  payload: CanonicalPayload; payloadHash: string; dupChoice: DupChoice | null; dupReason: string | null; linkedGoldenId: string | null; linkedName: string | null; workflowRunId: string | null; ticketId: string | null
   events: { at: string; kind: string; actor: string | null; detail: unknown }[]
 }
 
@@ -64,6 +64,7 @@ export async function saveDraft(principal: Principal, input: { domain: Domain; r
 }
 
 // Resubmission of a draft that was sent back, or submission of a parked draft: a new immutable revision, same request, same reservation.
+// A new revision needs finance again, so the earlier ticket (already decided) is let go; the run opens a fresh one.
 export async function resubmitRequest(principal: Principal, requestId: string, payload: CanonicalPayload): Promise<void> {
   const current = await loadState(requestId)
   if (!current || current.requesterEmail !== principal.email) throw new ConflictError('not your request')
@@ -74,7 +75,7 @@ export async function resubmitRequest(principal: Principal, requestId: string, p
   const firstSubmission = current.state.revision === 0
   try {
     await db.transaction([
-      db`update requests set current_revision = ${t.next.revision}, state_kind = ${t.next.kind}, state = ${JSON.stringify(t.next)}::jsonb, updated_at = now() where request_id = ${requestId} and current_revision = ${current.state.revision}`,
+      db`update requests set current_revision = ${t.next.revision}, ticket_id = null, state_kind = ${t.next.kind}, state = ${JSON.stringify(t.next)}::jsonb, updated_at = now() where request_id = ${requestId} and current_revision = ${current.state.revision}`,
       db`insert into request_revisions (request_id, revision, payload, payload_hash) values (${requestId}, ${t.next.revision}, ${JSON.stringify(payload)}::jsonb, ${hash})`,
       ...(firstSubmission ? [db`insert into identity_reservations (domain, tax_canonical, request_id) values (${current.domain}, ${payload.identity.canonical}, ${requestId})`] : []),
       db`insert into request_events (request_id, kind, actor, detail) values (${requestId}, ${firstSubmission ? 'submitted' : 'resubmitted'}, ${principal.email}, ${JSON.stringify({ revision: t.next.revision })}::jsonb)`,
@@ -100,7 +101,7 @@ function visible(principal: Principal, requesterEmail: string, region: Region): 
 }
 
 export async function getRequest(principal: Principal, requestId: string): Promise<RequestDetail | null> {
-  const rows = await sql()`select r.*, v.payload, v.payload_hash from requests r join request_revisions v on v.request_id = r.request_id and v.revision = r.current_revision where r.request_id = ${requestId}`
+  const rows = await sql()`select r.*, v.payload, v.payload_hash, lp.legal_name as linked_name, lp.region as linked_region from requests r join request_revisions v on v.request_id = r.request_id and v.revision = r.current_revision left join parties lp on lp.golden_id = r.linked_golden_id where r.request_id = ${requestId}`
   const r = rows[0]
   if (!r) return null
   if (!visible(principal, r.requester_email as string, r.region as Region)) return null
@@ -110,7 +111,10 @@ export async function getRequest(principal: Principal, requestId: string): Promi
     requestId, domain: r.domain as Domain, region: r.region as Region, requesterEmail: r.requester_email as string, revision: r.current_revision as number, state: r.state as RequestState,
     createdAt: new Date(r.created_at as string).toISOString(), updatedAt: new Date(r.updated_at as string).toISOString(), legalName: payload.legalName,
     payload, payloadHash: r.payload_hash as string, dupChoice: (r.dup_choice as DupChoice | null) ?? null, dupReason: (r.dup_reason as string | null) ?? null,
-    linkedGoldenId: (r.linked_golden_id as string | null) ?? null, workflowRunId: (r.workflow_run_id as string | null) ?? null, ticketId: (r.ticket_id as string | null) ?? null,
+    linkedGoldenId: (r.linked_golden_id as string | null) ?? null,
+    // The matched record's name, for people who may read identity in its region; anyone else sees the code only.
+    linkedName: r.linked_name && identityRegions(principal).includes(r.linked_region as Region) ? (r.linked_name as string) : null,
+    workflowRunId: (r.workflow_run_id as string | null) ?? null, ticketId: (r.ticket_id as string | null) ?? null,
     events: events.map((e) => ({ at: new Date(e.at as string).toISOString(), kind: e.kind as string, actor: (e.actor as string | null) ?? null, detail: e.detail })),
   }
 }

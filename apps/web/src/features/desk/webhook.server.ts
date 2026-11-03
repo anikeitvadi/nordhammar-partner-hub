@@ -11,19 +11,21 @@ import { financeToken, type FinancePayload } from '@/features/execution/desk.ste
 // The service-desk webhook, handled: finance decided in the customer's service desk (docs/SERVICE-DESK-CONTRACT.md
 // §5). The route only reads the raw body and calls this.
 // Order matters: the signature over the raw body and the timestamp window first (no secret configured refuses all),
-// then the event id (a repeat is answered 200 and not acted on), then the body. The event id is recorded only after
+// then the body, then the repeat check (answered 200 and not acted on). The event id is recorded only after
 // the hub acted, so a delivery that failed halfway is retried by the desk and acted on then.
 export async function handleDeskWebhook(raw: string, headers: Headers): Promise<Response> {
   const v = await verifyDeskWebhook(process.env.DESK_WEBHOOK_SECRET, headers.get('x-desk-timestamp'), headers.get('x-desk-signature'), raw, Math.floor(Date.now() / 1000))
   if (!v.ok) return Response.json({ reason: v.reason }, { status: 401 })
   const eventId = headers.get('x-desk-event-id')
   if (!eventId || eventId.length > 100) return Response.json({ reason: 'missing event id' }, { status: 400 })
-  const db = sql()
-  const seen = await db`select request_id from desk_events where event_id = ${eventId}`
-  if (seen[0]) return Response.json({ duplicate: true, requestId: seen[0].request_id ?? null })
   const parsed = DeskWebhookSchema.safeParse(JSON.parse(raw || 'null'))
   if (!parsed.success) return Response.json({ reason: 'malformed event' }, { status: 400 })
   const e = parsed.data
+  // A repeat is the same event id, or any event for a ticket already acted on: finance decides a ticket once, so the
+  // ticket (inside the signed body) is the key. The id header is not signed; a replay under a fresh id is still a repeat.
+  const db = sql()
+  const seen = await db`select request_id from desk_events where event_id = ${eventId} or ticket_id = ${e.ticket.id} limit 1`
+  if (seen[0]) return Response.json({ duplicate: true, requestId: seen[0].request_id ?? null })
   const f: FinancePayload = { decision: e.type === 'ticket.finance_approved' ? 'approve' : 'reject', by: e.decision.by, reason: e.decision.reason, ticketId: e.ticket.id }
   let requestId: string | null = null
 
@@ -50,6 +52,9 @@ export async function handleDeskWebhook(raw: string, headers: Headers): Promise<
     // Built leniently: a gap is the clean check's to name, as an exception for the central team (missingFields).
     const built = buildPayload(e.ticket.domain, e.ticket.region as Region, n.taxId, values, { complete: false })
     if (!built.ok) return Response.json({ reason: `incomplete: ${built.problems.map((x) => x.message).join(' ')}` }, { status: 400 })
+    // Two deliveries racing past the check above: the ticket already has its request, so the second is a repeat.
+    const existing = await db`select request_id from requests where ticket_id = ${e.ticket.id} limit 1`
+    if (existing[0]) return Response.json({ duplicate: true, requestId: existing[0].request_id })
     const created = await createFromTicket({ requesterEmail: e.ticket.requesterEmail, domain: e.ticket.domain, region: e.ticket.region as Region, payload: built.payload, ticketId: e.ticket.id, submittedAt: e.occurredAt })
     const run = await start(requestWorkflow, [created.requestId, created.revision, f])
     await db`update requests set workflow_run_id = ${run.runId} where request_id = ${created.requestId}`

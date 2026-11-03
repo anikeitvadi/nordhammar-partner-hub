@@ -46,7 +46,7 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
         <dt>{r.payload.identity.scheme}</dt><dd>{r.payload.identity.canonical}</dd>
         <dt>{r.domain === 'customer' ? 'Bill-to' : 'Remit-to'}</dt><dd>{[main?.street, main?.number].filter(Boolean).join(' ')}, {main?.city}{main?.regionCode ? ` ${main.regionCode}` : ''}</dd>
         <dt>Reason</dt><dd>{r.payload.reason.text}{r.payload.reason.reference ? ` · ${r.payload.reason.reference}` : ''}</dd>
-        <dt>Duplicate check</dt><dd>{r.dupChoice === 'new' ? 'No match found in the hub' : r.dupChoice === 'new_in_group' ? `New company in the same group as ${r.linkedGoldenId}` : `Marked not related to ${r.linkedGoldenId}: "${r.dupReason}"`}</dd>
+        <dt>Duplicate check</dt><dd>{dupLine(r)}</dd>
       </dl>
       <details className="how" open={central}>
         <summary><h2>How this ran</h2><span className="muted small">where it is in the pipeline, where the time went, what it cost</span></summary>
@@ -70,4 +70,13 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
       </details>
     </section>
   )
+}
+
+// The requester's duplicate-check choice in words, naming the matched record (its code only when the name is not theirs to read).
+function dupLine(r: { dupChoice: string | null; linkedGoldenId: string | null; linkedName: string | null; dupReason: string | null }): string {
+  const match = r.linkedName ?? r.linkedGoldenId
+  if (r.dupChoice === 'new') return 'No match found in the hub'
+  if (r.dupChoice === 'new_in_group' && match) return `A new company in the same group as ${match}`
+  if (r.dupChoice === 'not_related' && match) return `Marked not related to ${match}${r.dupReason ? `: \u201c${r.dupReason}\u201d` : ''}`
+  return 'Not checked yet (draft)'
 }

@@ -36,4 +36,5 @@ export async function proxy(request: NextRequest) {
 }
 
 // .well-known/workflow is the SDK's own queue/webhook surface; the proxy must not touch it (local runs fail otherwise).
-export const config = { matcher: ['/((?!_next/static|_next/image|favicon.ico|\\.well-known/workflow|\\.well-known/vercel).*)'] }
+// _vercel is the platform's own (Speed Insights); a sign-in redirect there would hand the browser HTML as a script.
+export const config = { matcher: ['/((?!_next/static|_next/image|favicon.ico|\\.well-known/workflow|\\.well-known/vercel|_vercel).*)'] }

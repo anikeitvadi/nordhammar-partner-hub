@@ -40,7 +40,7 @@ describe('what clean means', () => {
     ['exact match anywhere', { exactMatches: [{ goldenId: 'G-EU-05', legalName: 'Aurora Nordic AB', region: 'EU' }] }, /possible duplicate: Aurora Nordic AB \(EU\)/],
     ['another open request', { openRequestsSameTax: ['R-2'] }, /another open request/],
     ['same company key', { relatedMatches: [{ goldenId: 'G-BR-09', legalName: 'Aurora Industrial Filial Sul', region: 'BR' }] }, /same company as/],
-    ['name match, even when the model says different', { nameMatches: [{ goldenId: 'G-LEGACY', legalName: 'Vela Processos' }], aiReading: 'different' }, /name match with Vela Processos.*"different"/],
+    ['name match, even when the model says different', { nameMatches: [{ goldenId: 'G-LEGACY', legalName: 'Vela Processos' }], aiReading: 'different' }, /name match with Vela Processos.*\u201cdifferent\u201d/],
     ['requester override, group', { dupChoice: 'new_in_group' }, /new company in this group/],
     ['requester override, not related', { dupChoice: 'not_related' }, /not related/],
     ['missing fields', { missingFields: ['bill-to address'] }, /missing: bill-to address/],

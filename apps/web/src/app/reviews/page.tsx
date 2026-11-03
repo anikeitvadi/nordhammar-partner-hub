@@ -9,7 +9,7 @@ import { message, STOP } from '@/features/execution/messages'
 import { autoApproveSetting } from '@/features/settings/settings.server'
 import { loadStatus } from '@/features/customers/load.server'
 import { demoControls, erpLostResponse } from '@/features/flags/flags'
-import { StatusBadge } from '@/features/requests/status'
+import { StatusBadge, reasonText } from '@/features/requests/status'
 import { LocalTime } from '@/features/ui/time.client'
 import { SubmitButton } from '@/features/ui/submit-button.client'
 
@@ -54,7 +54,7 @@ export default async function CentralTeamPage({ searchParams }: { searchParams: 
           <p className="muted count" role="status">{queue.length === 0 ? 'Nothing waiting. Finance-approved requests that pass every check are created without you.' : `${queue.length} waiting, oldest first, every region. Each says why it was not approved automatically.`}</p>
           {queue.length === 0 ? null : (
             <table className="results"><thead><tr><th className="col-secondary">Request</th><th>Name</th><th className="col-secondary">Type</th><th className="col-secondary">Region</th><th>Why it is here</th><th className="col-secondary">Waiting since</th></tr></thead>
-              <tbody>{queue.map((r) => <tr key={r.requestId}><td className="col-secondary"><Link href={`/reviews/${r.requestId}`}><code>{r.requestId}</code></Link></td><td><Link href={`/reviews/${r.requestId}`}>{r.legalName}</Link></td><td className="col-secondary">{r.domain === 'customer' ? 'Customer' : 'Supplier'}</td><td className="col-secondary">{r.region}</td><td>{r.state.kind === 'exception' ? <span className="small">{r.state.reasons.join('; ')}</span> : <><StatusBadge state={r.state} /><div className="muted small">raised before the service desk; reviewed as before</div></>}</td><td className="col-secondary"><LocalTime iso={r.createdAt} relative /></td></tr>)}</tbody></table>
+              <tbody>{queue.map((r) => <tr key={r.requestId}><td className="col-secondary"><Link href={`/reviews/${r.requestId}`}><code>{r.requestId}</code></Link></td><td><Link href={`/reviews/${r.requestId}`}>{r.legalName}</Link></td><td className="col-secondary">{r.domain === 'customer' ? 'Customer' : 'Supplier'}</td><td className="col-secondary">{r.region}</td><td>{r.state.kind === 'exception' ? <span className="small">{reasonText(r.state.reasons)}</span> : <><StatusBadge state={r.state} /><div className="muted small">raised before the service desk; reviewed as before</div></>}</td><td className="col-secondary"><LocalTime iso={r.createdAt} relative /></td></tr>)}</tbody></table>
           )}
         </>
       ) : (

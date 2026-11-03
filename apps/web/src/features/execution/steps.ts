@@ -40,9 +40,10 @@ export async function startCreatingStep(requestId: string, revision: number, wor
   return { operationKey: key, payloadHash: hash, payload }
 }
 
-// The only caller of createCustomer. Transient outcomes throw RetryableError so the SDK retries this step with the
-// SAME key and hash; everything else returns and the workflow moves on. Bounded: after the retries the step fails
-// and the run stops with effect unknown, which the operator reconciles through lookupOperation.
+// The only caller of createParty. Transient outcomes throw RetryableError so the SDK retries this step with the
+// SAME key and hash; everything else returns and the workflow moves on. Bounded: the last attempt returns the
+// transient result instead of throwing (a thrown error there would fail the whole run and leave the request in
+// "creating"), so finishStep records it as stopped with effect unknown, which the operator reconciles by key.
 export async function erpWriteStep(command: ErpCreateCommand): Promise<ErpResult> {
   'use step'
   const { attempt } = getStepMetadata()
@@ -51,7 +52,9 @@ export async function erpWriteStep(command: ErpCreateCommand): Promise<ErpResult
   if (result.outcome === 'transient') {
     // The SDK retries immediately by default and has no built-in backoff; attempt-based delays: 1s, 2s, 4s.
     const retryAfterMs = 1000 * 2 ** Math.max(0, attempt - 1)
-    await recordAttempt(command.operationKey, { attempt, phase: 'transient', reason: result.reason, retryAfterMs: attempt <= erpWriteStep.maxRetries ? retryAfterMs : null })
+    const last = attempt > erpWriteStep.maxRetries
+    await recordAttempt(command.operationKey, { attempt, phase: 'transient', reason: result.reason, retryAfterMs: last ? null : retryAfterMs })
+    if (last) return result
     throw new RetryableError(result.reason, { retryAfter: retryAfterMs })
   }
   await recordAttempt(command.operationKey, { attempt, phase: result.outcome, erpNumber: 'erpNumber' in result ? result.erpNumber : null, reason: 'reason' in result ? result.reason : null })
@@ -67,7 +70,7 @@ async function recordAttempt(key: string, detail: Record<string, unknown>) {
     await sql()`insert into request_events (request_id, kind, actor, detail) values (${parsed.requestId}, 'erp_attempt', 'workflow', ${JSON.stringify({ ...detail, operationKey: key })}::jsonb)`
   } catch { /* progress only */ }
 }
-// Bound the retries: the initial call plus three retries, then the step fails and the run stops with effect unknown.
+// Bound the retries: the initial call plus three retries; the fourth attempt hands its transient result to finishStep.
 erpWriteStep.maxRetries = 3
 
 export async function finishStep(requestId: string, revision: number, result: ErpResult) {

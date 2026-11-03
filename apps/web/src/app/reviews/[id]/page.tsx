@@ -8,7 +8,7 @@ import { isCentral } from '@/features/auth/scope'
 import { getRequest } from '@/features/requests/store.server'
 import { readGroupExposure } from '@/features/customers/reports.server'
 import { decideAction, openReviewAction } from '@/features/reviews/actions'
-import { StatusBadge } from '@/features/requests/status'
+import { StatusBadge, reasonText } from '@/features/requests/status'
 import { SubmitButton } from '@/features/ui/submit-button.client'
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
@@ -48,9 +48,9 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
         {p.duns ? <><dt>DUNS</dt><dd>{p.duns}</dd></> : null}
         <dt>Will be created in</dt><dd>{p.destination.erp} · {r.region} · {r.domain === 'customer' ? 'customer master' : 'vendor master'}</dd>
       </dl>
-      {s.kind === 'exception' ? <p className="panel hint"><strong>Why this was not approved automatically.</strong> {s.reasons.join('; ')}. Finance approved it in the service desk{s.ticketId ? ` (ticket ${s.ticketId})` : ''}.</p> : null}
+      {s.kind === 'exception' ? <p className="panel hint"><strong>Why this was not approved automatically.</strong> {reasonText(s.reasons)} Finance approved it in the service desk{s.ticketId ? ` (ticket ${s.ticketId})` : ''}.</p> : null}
       <h2>Duplicate check</h2>
-      <p className="panel">{r.dupChoice === 'new' ? 'No match found in the hub at submission.' : r.dupChoice === 'new_in_group' ? <>Requester chose <strong>new company in the same group</strong> as {r.linkedGoldenId}.</> : <>Requester chose <strong>not related</strong> to {r.linkedGoldenId}. Reason: “{r.dupReason}”</>}</p>
+      <p className="panel">{r.dupChoice === 'new' ? 'No match found in the hub at submission.' : r.dupChoice === 'new_in_group' ? <>Requester chose <strong>new company in the same group</strong> as {r.linkedName ?? r.linkedGoldenId} <code>{r.linkedGoldenId}</code>.</> : <>Requester chose <strong>not related</strong> to {r.linkedName ?? r.linkedGoldenId} <code>{r.linkedGoldenId}</code>. Reason: “{r.dupReason}”</>}</p>
       {exposure ? (
         <>
           <h2>Group exposure</h2>

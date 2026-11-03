@@ -383,8 +383,8 @@ export function cleanCheck(f: CleanFacts): CleanResult {
   const rel = f.relatedMatches[0]
   check('no other establishment of the same company', rel ? `same company as ${rel.legalName} (${rel.region}), a different establishment` : null)
   const nm = f.nameMatches[0]
-  check('no name match on a record without a tax ID', nm ? `name match with ${nm.legalName}, which has no tax ID on file${f.aiReading ? `; the AI reading is "${f.aiReading}"` : ''}` : null)
-  check('no override by the requester', f.dupChoice === 'new_in_group' ? 'the requester chose "new company in this group"' : f.dupChoice === 'not_related' ? 'the requester marked a suggested match as not related' : null)
+  check('no name match on a record without a tax ID', nm ? `name match with ${nm.legalName}, which has no tax ID on file${f.aiReading ? `; the AI reading is \u201c${f.aiReading}\u201d` : ''}` : null)
+  check('no override by the requester', f.dupChoice === 'new_in_group' ? 'the requester chose \u201cnew company in this group\u201d' : f.dupChoice === 'not_related' ? 'the requester marked a suggested match as not related' : null)
   check('every field the ERP needs', f.missingFields.length ? `missing: ${f.missingFields.join(', ')}` : null)
   if (reasons.length === 0 && !f.autoApproveOn) reasons.push('automatic approval is switched off; every request goes to the central team')
   return reasons.length === 0 ? { clean: true, passed } : { clean: false, passed, reasons }

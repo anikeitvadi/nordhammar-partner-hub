@@ -3,7 +3,6 @@ import { GeistSans } from 'geist/font/sans'
 import { GeistMono } from 'geist/font/mono'
 import { GeistSerif } from 'geist/font/serif'
 import { Suspense } from 'react'
-import { Analytics } from '@vercel/analytics/next'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import { VercelToolbar } from '@vercel/toolbar/next'
 import './globals.css'
@@ -27,7 +26,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </Suspense>
         {/* Real Core Web Vitals and page views for DECISIONS §6: measured, not claimed. Both are first-party scripts; no cookies. */}
         <SpeedInsights />
-        <Analytics />
         {/* The toolbar is where the demo flags are flipped during a walkthrough. It renders only for Vercel team members. */}
         {process.env.TOOLBAR_ENABLED === 'true' ? <VercelToolbar /> : null}
       </body>

@@ -4,6 +4,9 @@ import { getTicket } from '@/features/desk/store'
 import { decideAction, resendAction } from '@/features/desk/actions'
 import { HUB_ORIGIN } from '@/features/desk/send'
 
+const EVENT: Record<string, string> = { 'ticket.finance_approved': 'Finance approved', 'ticket.finance_rejected': 'Finance rejected' }
+// The page is dynamic (connection() above), so reading the clock per request is the intent.
+const decidedWithin = (iso: string | null, ms: number) => (iso ? Date.now() - new Date(iso).getTime() < ms : false)
 const fmt = (iso: string) => new Date(iso).toLocaleString('en-GB', { timeZone: 'UTC', dateStyle: 'medium', timeStyle: 'short' }) + ' UTC'
 
 export default async function DeskTicket({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ error?: string }> }) {
@@ -16,7 +19,9 @@ export default async function DeskTicket({ params, searchParams }: { params: Pro
   // After finance decides, the ticket leads with where the request went and links back to it. Until the hub's outcome
   // comment arrives (a second or two), the page refreshes itself, so the number shows up without anyone reloading.
   const hubSays = [...comments].reverse().find((c) => c.author === 'Nordhammar Partner Hub' && /Created|stopped|declined|central/i.test(c.body))
-  const waitingOnHub = ticket.status !== 'open' && ticket.hubRequestId && !hubSays
+  // Only an approval gets an outcome back (a rejection is final here), and never for more than two minutes.
+  const recent = decidedWithin(ticket.decidedAt, 120_000)
+  const waitingOnHub = ticket.status === 'finance_approved' && ticket.hubRequestId && !hubSays && recent
   return (
     <>
       {waitingOnHub ? <meta httpEquiv="refresh" content="2" /> : null}
@@ -59,7 +64,7 @@ export default async function DeskTicket({ params, searchParams }: { params: Pro
       {outbox.length ? (
         <div className="box">
           <strong>Sent to the Partner Hub</strong>
-          <table style={{ marginTop: 8 }}><tbody>{outbox.map((o) => <tr key={o.eventId}><td>{o.type}</td><td>{o.deliveredAt ? `delivered ${fmt(o.deliveredAt)}` : <span className="err">not delivered{o.lastError ? `: ${o.lastError}` : ''}</span>}</td><td className="muted">{o.attempts} {o.attempts === 1 ? 'attempt' : 'attempts'}</td></tr>)}</tbody></table>
+          <table style={{ marginTop: 8 }}><tbody>{outbox.map((o) => <tr key={o.eventId}><td>{EVENT[o.type] ?? o.type}</td><td>{o.deliveredAt ? `delivered ${fmt(o.deliveredAt)}` : <span className="err">not delivered{o.lastError ? `: ${o.lastError}` : ''}</span>}</td><td className="muted">{o.attempts} {o.attempts === 1 ? 'attempt' : 'attempts'}</td></tr>)}</tbody></table>
           {undelivered.length ? <form action={resendAction} style={{ marginTop: 8 }}><input type="hidden" name="ticketId" value={ticket.id} /><button type="submit">Resend</button></form> : null}
         </div>
       ) : null}

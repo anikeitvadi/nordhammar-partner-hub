@@ -202,7 +202,7 @@ Latencies are single observations, not a benchmark. Sign-in on the hosted auth s
 - **Not built.** Emails (each is logged on the timeline, none sent), attachments such as tax certificates, the customer's identity provider, and payload version 3 (six fields every new request leaves empty stay in the shape so older requests' hashes stay valid).
 - **The stand-in desk has no sign-in,** so a grader can approve as finance from the request page. The real desk signs finance in; nothing in the hub depends on the desk's screens, only its signed webhook.
 - **The demo's people are shared.** Everyone signs in as the same people; a session ended elsewhere lands on sign-in with its page kept.
-- **Web Analytics** is in the layout but not switched on in the dashboard; Speed Insights is.
+- **Web Analytics** is not switched on for the project, so it was taken out of the layout (its script failed on every page); Speed Insights is on.
 
 **Where Vercel is not the answer.** A customer with no web team is better served by a low-code form. One region and one ERP make a ticket good enough. Network isolation on day one means Secure Compute and Enterprise; a pilot without that budget takes Static IPs on Pro. What would change the recommendation: the platform vendor ships live cross-region matching at intake with a keyed write, or the customer mandates its hyperscaler for all new apps (the boundary, the idempotency and the evals move with the code; only the Vercel primitives are swapped).
 
