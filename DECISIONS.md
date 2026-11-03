@@ -206,7 +206,9 @@ Alternatives, each with the one reason it did not win:
 
 ## 5. Rollout and rollback
 
-**The path.** Every change is a preview deployment with its own URL. The app reaches the integration platform the same way from a preview as from production, so an approver can click the next version before it is the version. Promotion to production goes through Rolling Releases (Pro and Enterprise; Pro allows one project, which is this one): staged, advanced by hand. Rollback is Instant Rollback (all plans): the previous deployment is still live and the alias moves back. Rollback of a partner number born in an ERP does not exist, which is why the write is gated by a human and keyed, and why reconciliation reads the platform's own ledger. Source: https://vercel.com/docs/rolling-releases
+**The path.** Every change is a preview deployment with its own URL. The app reaches the integration platform the same way from a preview as from production, so an approver can click the next version before it is the version. Promotion to production goes through Rolling Releases (Pro and Enterprise; Pro allows one project, which is this one): staged, advanced by hand. Rollback is Instant Rollback (all plans): the previous deployment is still live and the alias moves back. Rollback of a partner number born in an ERP does not exist, which is why the write is gated (finance's approval, then the checks or the central team) and keyed, and why reconciliation reads the platform's own ledger. Source: https://vercel.com/docs/rolling-releases
+
+**The pilot dial.** Brazil goes first with automatic approval off: the central team approves every request before it reaches the ERP, and the hub records where it agreed with the checks. When it stops disagreeing, automatic approval goes on and the central team's queue shrinks to what the checks cannot decide. The switch is on the Exceptions page and takes effect on the next request, so it is also the first step back if a check misbehaves.
 
 **What an incident looks like mid-rollout, from doing it (2026-10-31, measured).**
 1. A request was submitted and left waiting in review on the current production deployment (v1).

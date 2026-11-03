@@ -246,7 +246,7 @@ function Demo({ f }: { f: BriefFigures | null }) {
 
 const ROLLOUT = [
   { t: 'Preview', d: 'Every change gets its own URL against the same integration API. Stewards and finance click the next version before it ships.' },
-  { t: 'Validation', d: 'Tests, the AI evaluation sets and a scripted click-through must pass. Brazil runs on real golden records, read-only, for a week.' },
+  { t: 'Validation', d: 'Tests, the AI evaluation sets and a scripted click-through must pass. Brazil runs on real golden records, read-only, for a week. Then Brazil goes live with automatic approval off: the central team approves every request and the hub records where it agreed with the checks. When it stops disagreeing, automatic approval goes on.' },
   { t: 'Canary', d: 'A Rolling Release sends 10%, then 50%, then 100% of traffic, with logs read at each stage. Requests in flight finish on the version that started them.' },
   { t: 'Cutover', d: 'Region by region: Brazil, then Europe, then the rest. Each region’s ticket form for new partners is switched off once its hub requests run clean.' },
   { t: 'Rollback', d: 'Instant Rollback moves traffic back in one step. Any region can return to tickets the same day, and automatic approval has an off switch that sends every request to a person.' },
