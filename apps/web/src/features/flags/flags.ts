@@ -9,7 +9,7 @@ const onOff = [{ value: false, label: 'Off' }, { value: true, label: 'On' }]
 
 export const demoControls = flag<boolean>({
   key: 'demo-controls',
-  description: 'Show the demo controls on Operations and allow arming the ERP fault. Default: DEMO_CONTROLS_ENABLED.',
+  description: 'Show the demo controls drawer on the Exceptions page and allow arming the ERP fault. Default: DEMO_CONTROLS_ENABLED.',
   defaultValue: false,
   options: onOff,
   decide: () => process.env.DEMO_CONTROLS_ENABLED === 'true',

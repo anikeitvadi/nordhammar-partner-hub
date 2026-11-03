@@ -21,8 +21,9 @@ export async function Shell({ children }: { children: React.ReactNode }) {
   const regions = visibleRegions(principal)
   const region = regions[0] ?? 'BR'
   const items: NavItem[] = [
-    { href: '/', label: 'Home', icon: 'home' }, { href: '/customers', label: 'Customers', icon: 'customers' }, { href: '/suppliers', label: 'Suppliers', icon: 'suppliers' }, { href: '/requests', label: 'My requests', icon: 'requests' }, { href: '/ask', label: 'Ask the hub', icon: 'ask' },
-    ...(principal.globalIdentity ? [{ href: '/reviews', label: 'Reviews', icon: 'reviews' } as NavItem, { href: '/operations', label: 'Operations', icon: 'operations' } as NavItem, { href: '/reports', label: 'Reports', icon: 'reports' } as NavItem] : []),
+    { href: '/', label: 'Home', icon: 'home' }, { href: '/customers', label: 'Customers', icon: 'customers' }, { href: '/suppliers', label: 'Suppliers', icon: 'suppliers' }, { href: '/requests', label: 'Requests', icon: 'requests' }, { href: '/ask', label: 'Ask the hub', icon: 'ask' },
+    // The central team's one page: exceptions and stopped creates (Operations and Reports are gone, review log §11, §12).
+    ...(principal.globalIdentity ? [{ href: '/reviews', label: 'Exceptions', icon: 'reviews' } as NavItem] : []),
   ]
   return (
     <div className="app">

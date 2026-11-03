@@ -120,6 +120,18 @@ export async function listMyRequests(principal: Principal): Promise<RequestSumma
   return rows.map(toSummary)
 }
 
+// The Requests page (review log §7): a regional user's own requests; the central team's, every request. Each row says
+// which way it came in (the hub form, or a ticket raised in the service desk first) and its ERP number once assigned.
+export type RequestListRow = RequestSummary & { ticketId: string | null; source: 'hub' | 'desk'; erpNumber: string | null }
+export async function listRequests(principal: Principal): Promise<RequestListRow[]> {
+  const all = isCentral(principal)
+  const rows = await sql()`select r.*, v.payload,
+      exists (select 1 from request_events e where e.request_id = r.request_id and e.kind = 'submitted' and e.detail->>'via' = 'service desk') as from_desk
+    from requests r join request_revisions v on v.request_id = r.request_id and v.revision = r.current_revision
+    where (${all} or r.requester_email = ${principal.email}) order by r.updated_at desc limit 100`
+  return rows.map((r) => ({ ...toSummary(r), ticketId: (r.ticket_id as string | null) ?? null, source: r.from_desk ? 'desk' : 'hub', erpNumber: ((r.state as { erpNumber?: string }).erpNumber) ?? null }))
+}
+
 // The central team's queue: requests from before the finance step, and exceptions, oldest first.
 export async function listQueue(principal: Principal): Promise<RequestSummary[]> {
   if (!isCentral(principal)) return []

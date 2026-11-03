@@ -1,21 +1,39 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { requirePrincipal } from '@/features/auth/principal.server'
-import { listMyRequests } from '@/features/requests/store.server'
+import { isCentral, visibleRegions } from '@/features/auth/scope'
+import { listRequests } from '@/features/requests/store.server'
 import { StatusBadge } from '@/features/requests/status'
 import { LocalTime } from '@/features/ui/time.client'
 
-export const metadata: Metadata = { title: 'My requests' }
+export const metadata: Metadata = { title: 'Requests' }
 
-export default async function MyRequestsPage() {
+// Requests, not "my requests" (review log §7): a regional user sees their own; the central team sees every one, most
+// recently moved first. The row says where it came from and, once the ERP answered, its number.
+export default async function RequestsPage() {
   const principal = await requirePrincipal()
-  const rows = await listMyRequests(principal)
+  const all = isCentral(principal)
+  const rows = await listRequests(principal)
+  const region = visibleRegions(principal)[0] ?? 'BR'
   return (
     <section>
-      <h1>My requests</h1>
-      {rows.length === 0 ? <p>None yet. <Link href="/intake/new?domain=customer">Request a customer</Link> or <Link href="/intake/new?domain=supplier">a supplier</Link>.</p> : (
-        <table className="results"><thead><tr><th>Request</th><th>Name</th><th className="col-secondary">Type</th><th className="col-secondary">Region</th><th>Status</th><th className="col-secondary">Updated</th></tr></thead>
-          <tbody>{rows.map((r) => <tr key={r.requestId}><td><Link href={`/requests/${r.requestId}`}><code>{r.requestId}</code></Link></td><td>{r.legalName}</td><td className="col-secondary">{r.domain === 'customer' ? 'Customer' : 'Supplier'}</td><td className="col-secondary">{r.region}</td><td><StatusBadge state={r.state} /></td><td className="col-secondary"><LocalTime iso={r.updatedAt} relative /></td></tr>)}</tbody></table>
+      <h1>Requests</h1>
+      <p className="muted count" role="status">{all ? `Every request, every region, most recently moved first (${rows.length}).` : rows.length ? `Your ${rows.length} request${rows.length === 1 ? '' : 's'}, most recently moved first.` : ''}</p>
+      {rows.length === 0 ? (
+        <p className="panel">None yet. A request is a new customer or supplier the hub does not have: you check the hub, fill one form, finance approves it in the service desk, and the ERP number comes back here. <Link href={`/intake/new?domain=customer&region=${region}`}>Request a customer</Link> or <Link href={`/intake/new?domain=supplier&region=${region}`}>a supplier</Link>.</p>
+      ) : (
+        <table className="results"><thead><tr><th>Request</th><th>Name</th><th className="col-secondary">Type</th><th className="col-secondary">Region</th><th className="col-secondary">Came in</th><th>Status</th><th className="col-secondary">ERP number</th>{all ? <th className="col-secondary">Requester</th> : null}<th className="col-secondary">Moved</th></tr></thead>
+          <tbody>{rows.map((r) => (
+            <tr key={r.requestId}>
+              <td><Link href={`/requests/${r.requestId}`}><code>{r.requestId}</code></Link></td><td>{r.legalName}</td>
+              <td className="col-secondary">{r.domain === 'customer' ? 'Customer' : 'Supplier'}</td><td className="col-secondary">{r.region}</td>
+              <td className="col-secondary">{r.source === 'desk' ? `Service desk, ${r.ticketId}` : r.ticketId ? `Hub form, ${r.ticketId}` : 'Hub form'}</td>
+              <td><StatusBadge state={r.state} /></td>
+              <td className="col-secondary">{r.erpNumber ? <code>{r.erpNumber}</code> : null}</td>
+              {all ? <td className="col-secondary">{r.requesterEmail}</td> : null}
+              <td className="col-secondary"><LocalTime iso={r.updatedAt} relative /></td>
+            </tr>
+          ))}</tbody></table>
       )}
     </section>
   )

@@ -8,6 +8,7 @@ import { StatusBadge, isLive } from '@/features/requests/status'
 import { LocalTime } from '@/features/ui/time.client'
 import { Suspense } from 'react'
 import { OutcomeTiles, OutcomeTilesLoading } from '@/features/home/outcome-tiles'
+import { ExposureTile } from '@/features/home/exposure-tile'
 
 export const metadata: Metadata = { title: 'Home' }
 
@@ -57,7 +58,7 @@ export default async function HomePage() {
           </div>
         </div>
         <div className="tile span2">
-          <p className="runin"><strong>{global ? 'The queue.' : 'Your requests.'}</strong> {global ? 'Oldest first.' : 'Where each one is, live.'} <Link href={global ? '/reviews' : '/requests'} className="small">All →</Link></p>
+          <p className="runin"><strong>{global ? 'The queue.' : 'Your requests.'}</strong> {global ? 'Oldest first.' : 'Where each one is, live.'} <Link href={global ? '/reviews' : '/requests'} className="small">{global ? 'Exceptions →' : 'All →'}</Link></p>
           {(global ? queue : mine).length === 0 ? <p className="muted small tile-body">{global ? 'Nothing waiting.' : 'None yet. Your first request shows up here with its status.'}</p> : (
             <ul className="rows tile-body">
               {(global ? queue : mine).slice(0, 4).map((r) => <li key={r.requestId} className="nolead"><Link href={global ? `/reviews/${r.requestId}` : `/requests/${r.requestId}`}><span><span className="t">{r.legalName}</span><span className="s">{r.domain === 'customer' ? 'Customer' : 'Supplier'} · {r.region} · <LocalTime iso={r.updatedAt} relative /></span></span><span className="m"><StatusBadge state={r.state} /></span></Link></li>)}
@@ -71,12 +72,9 @@ export default async function HomePage() {
           <>
             <div className="tile">
               <p className="runin"><strong>Needs attention.</strong></p>
-              <div className="tile-body"><div className="stat">{attention.length}</div><p className="stat-label">{attention.length === 0 ? 'Nothing stopped, nothing pending.' : 'stopped or pending, each with its next step.'} <Link href="/operations">Operations →</Link></p></div>
+              <div className="tile-body"><div className="stat">{attention.length}</div><p className="stat-label">{attention.length === 0 ? 'Nothing stopped, nothing pending.' : 'stopped or pending, each with its next step.'} <Link href="/reviews?tab=stopped">Stopped →</Link></p></div>
             </div>
-            <div className="tile well span2">
-              <p className="runin"><strong>What finance asks.</strong> Partners on hold by region, intake this month, credit exposure by ultimate parent. Answered from the same readers the screens use. <Link href="/reports">Reports →</Link></p>
-              <p className="muted small tile-body" style={{ margin: 0 }}>Money rows appear only for regions a role is entitled to. Reviewers see none, by design.</p>
-            </div>
+            {principal.moneyRegions.length ? <Suspense fallback={null}><ExposureTile principal={principal} /></Suspense> : null}
           </>
         ) : (
           <>
@@ -84,6 +82,7 @@ export default async function HomePage() {
               <p className="runin"><strong>Three steps.</strong> Check the hub, submit, finance approves in the service desk. A clean request gets its number on its own; anything the checks cannot settle goes to the central team.</p>
               <p className="muted small tile-body" style={{ margin: 0 }}>Your region is {regions.join(', ')}; the request form uses its tax ID and address fields. <Link href="/how-it-works">How it works →</Link></p>
             </div>
+            {principal.moneyRegions.length ? <Suspense fallback={null}><ExposureTile principal={principal} /></Suspense> : null}
             <div className="tile span2">
               <p className="runin"><strong>Found a match?</strong> Open the record instead of requesting. If the record is wrong, the change path is the next release; until then, tell the hub team.</p>
               <p className="muted small tile-body" style={{ margin: 0 }}>A tax ID that exists in a region you cannot see shows as one line: which region, and who to contact. Never the record.</p>

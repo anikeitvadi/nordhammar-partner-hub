@@ -23,7 +23,7 @@ const KIND: Record<string, string> = { bill_to: 'Bill-to', ship_to: 'Ship-to', r
 export default async function ReviewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const principal = await requirePrincipal()
-  if (!isCentral(principal)) return <section className="narrow card" style={{ marginTop: 48 }}><h1>Reviews</h1><p>Requests are decided by the central master data team.</p></section>
+  if (!isCentral(principal)) return <section className="narrow card" style={{ marginTop: 48 }}><h1>Exceptions</h1><p>Exceptions are decided by the central master-data team.</p></section>
   const r = await getRequest(principal, id)
   if (!r) notFound()
   const s = r.state

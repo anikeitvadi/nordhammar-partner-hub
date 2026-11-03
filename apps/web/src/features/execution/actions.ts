@@ -11,14 +11,17 @@ import { start } from 'workflow/api'
 import { hubLoadWorkflow } from './load.workflow'
 import { armLostResponseFault } from '@/features/erp/erp.server'
 
-function back(msg: string): never { redirect(`/operations?msg=${encodeURIComponent(msg)}`) }
+// Back to the central team's page with a result code. Fixes to one request (retry, reconcile, return) land on the
+// Stopped tab where that request is listed; switches in the page header land on the default tab.
+const STOPPED_TAB = /^(delivered|reconciled|recovered|noop)/
+function back(msg: string): never { redirect(`/reviews?${STOPPED_TAB.test(msg) ? 'tab=stopped&' : ''}msg=${encodeURIComponent(msg)}`) }
 
 export async function retryDeliveryAction(formData: FormData): Promise<void> {
   const principal = await requirePrincipal()
   if (!isOperator(principal)) back('not_operator')
   const requestId = String(formData.get('requestId'))
   const r = await deliverPending(requestId)
-  revalidatePath('/operations'); revalidatePath(`/requests/${requestId}`)
+  revalidatePath('/reviews'); revalidatePath(`/requests/${requestId}`)
   back(`delivered:${r.delivered}:${r.failed}`)
 }
 
@@ -26,7 +29,7 @@ export async function reconcileAction(formData: FormData): Promise<void> {
   const principal = await requirePrincipal()
   const requestId = String(formData.get('requestId'))
   const r = await reconcile(principal, requestId)
-  revalidatePath('/operations'); revalidatePath(`/requests/${requestId}`)
+  revalidatePath('/reviews'); revalidatePath(`/requests/${requestId}`)
   back(r.ok ? `reconciled:${r.outcome}` : 'noop')
 }
 
@@ -34,7 +37,7 @@ export async function recoverAction(formData: FormData): Promise<void> {
   const principal = await requirePrincipal()
   const requestId = String(formData.get('requestId'))
   const r = await recoverToDraft(principal, requestId)
-  revalidatePath('/operations'); revalidatePath(`/requests/${requestId}`)
+  revalidatePath('/reviews'); revalidatePath(`/requests/${requestId}`)
   back(r.ok ? 'recovered' : 'noop')
 }
 
@@ -46,7 +49,7 @@ export async function runLoadNowAction(): Promise<void> {
   const status = await loadStatus()
   if (status.runningSince) back('load_running')
   await start(hubLoadWorkflow, ['manual'])
-  revalidatePath('/operations')
+  revalidatePath('/reviews')
   back('load_started')
 }
 
@@ -65,6 +68,6 @@ export async function setAutoApproveAction(formData: FormData): Promise<void> {
   const principal = await requirePrincipal()
   const on = String(formData.get('on')) === 'true'
   if (!(await setAutoApprove(principal, on))) back('not_operator')
-  revalidatePath('/operations')
+  revalidatePath('/reviews')
   back(on ? 'auto_on' : 'auto_off')
 }

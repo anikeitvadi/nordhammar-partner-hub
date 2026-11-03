@@ -7,7 +7,7 @@ import type { Region } from '@intake/contracts'
 
 // The content header: where you are, the search (⌘K focuses it from anywhere), and the one primary action for the
 // section. The hub pages keep their own search with the region; this one is the shortcut into it.
-const CRUMBS: [RegExp, string][] = [[/^\/$/, 'Home'], [/^\/customers/, 'Customers'], [/^\/suppliers/, 'Suppliers'], [/^\/requests/, 'My requests'], [/^\/ask/, 'Ask the hub'], [/^\/reviews/, 'Reviews'], [/^\/operations/, 'Operations'], [/^\/reports/, 'Reports'], [/^\/intake/, 'New request'], [/^\/how-it-works/, 'How it works']]
+const CRUMBS: [RegExp, string][] = [[/^\/$/, 'Home'], [/^\/customers/, 'Customers'], [/^\/suppliers/, 'Suppliers'], [/^\/requests/, 'Requests'], [/^\/ask/, 'Ask the hub'], [/^\/reviews/, 'Exceptions'], [/^\/intake/, 'New request'], [/^\/how-it-works/, 'How it works']]
 
 export function TopBar({ region }: { region: Region }) {
   const path = usePathname()
@@ -19,7 +19,9 @@ export function TopBar({ region }: { region: Region }) {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [])
-  const action = path.startsWith('/suppliers') ? { href: `/intake/new?domain=supplier&region=${region}`, label: 'Request a supplier' } : path.startsWith('/intake') || path.startsWith('/how-it-works') ? null : { href: `/intake/new?domain=customer&region=${region}`, label: 'Request a customer' }
+  // One "New request" with both kinds; on the Suppliers page the supplier comes first (review log §7).
+  const kinds = [{ domain: 'customer', label: 'Customer' }, { domain: 'supplier', label: 'Supplier' }]
+  const menu = path.startsWith('/intake') || path.startsWith('/how-it-works') ? null : path.startsWith('/suppliers') ? [...kinds].reverse() : kinds
   return (
     <header className="topbar">
       <p className="crumb"><strong>{section}</strong>{tail ? <> <span className="muted">/</span> <code>{tail}</code></> : null}</p>
@@ -29,7 +31,12 @@ export function TopBar({ region }: { region: Region }) {
         <input ref={input} name="q" placeholder="Search partners" aria-label="Search partners" />
         <kbd className="kbd" aria-hidden="true">⌘K</kbd>
       </form>
-      {action ? <Link href={action.href} className="button small">{action.label}</Link> : null}
+      {menu ? (
+        <details className="new-menu">
+          <summary className="button small">New request</summary>
+          <div className="menu" role="menu">{menu.map((k) => <Link key={k.domain} role="menuitem" href={`/intake/new?domain=${k.domain}&region=${region}`}>{k.label}</Link>)}</div>
+        </details>
+      ) : null}
     </header>
   )
 }
