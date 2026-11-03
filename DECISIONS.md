@@ -354,7 +354,7 @@ All on the deployed stack unless noted; dates 2026-10-31 to 2026-11-02.
 - **Development subject on the allow list,** so a local run can reach the deployed stand-in. Production lists `production` only.
 - **Primary model not yet measured.** Haiku 4.5 needs paid Gateway credits; the fallback carries the demo until then.
 - **The eval grades one field nobody uses.** The proposal's `groupRelation` is in the schema and the pass rule, but the instructions never define it and the app never reads it. gpt-4.1 fails on it alone. Removing it, or defining it, and re-running every model is the next eval change; until then the switch offers only what passed.
-- **A revoked session shows an error page, not the sign-in page.** Signing out revokes every session of that person. A browser still holding the old cookie passes the proxy's local check and then fails the server's verified one. Found during step 7; the fix is to send that case to sign-in.
+- **The demo's people are shared.** Everyone trying the demo signs in as the same four people, so signing out ends only that browser's session. A session ended elsewhere lands on the sign-in page with "Your session ended" and the page it was on kept; until 2026-11-03 it showed an error page, because its cookie still passed the proxy's local check (`06d6d6d`, measured on staging).
 - **Skew Protection off** during the rollout test, by instruction; see §5.
 - **Flags are switches, never permissions.** Who may search, request, decide or operate is the entitlements table on every call.
 - **No one-click demo sign-in.** A sign-in that skips the password is the kind of thing that leaks into a real deployment behind a flag. The sign-in page lists the demo people with copy buttons; the passwords travel in the email.
