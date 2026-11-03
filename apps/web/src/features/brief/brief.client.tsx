@@ -130,6 +130,17 @@ function Architecture() {
         <button type="button" aria-pressed={target} onClick={() => setTarget(true)}>With the hub</button>
       </div>
       {target ? <TargetFlow key="t" /> : <TodayFlow key="d" />}
+      {/* One request told both ways: the switch above changes the picture and the story together. */}
+      <p className="story" key={target ? 'st' : 'sd'}>{target
+        ? <>Monday in São Paulo, with the hub: Ana searches every region first; the buyer is not there. The duplicate check runs as she types. She submits, finance gets the same ticket it always gets, now with her reason on it, and approves it in its desk. Seconds later the customer has its ERP-1 number, on her request and on the ticket. Nobody retyped anything. Had it been a new branch of a group you already sell to, it would have stopped at the central team, with the group&rsquo;s credit in every region in front of them.</>
+        : <>Monday in São Paulo, today: Ana in sales operations has a new buyer ready to order and needs a customer number. She raises a ticket; finance approves it days later; someone retypes it into ERP-1. If the US team already had the buyer under a slightly different name, nobody knows until the 2 a.m. cleanup, after the duplicate has its own number, credit line and invoices.</>}</p>
+      <h3>Who does what</h3>
+      <dl className="brief-facts">
+        <div><dt>Ana, sales operations</dt><dd>Knows the customer. Searches every region, requests in the hub, follows it to its number. Jonas does the same for suppliers, in procurement.</dd></div>
+        <div><dt>Regional finance</dt><dd>Owns the risk. Approves in its own service desk, as today; sets credit limits and terms in the ERP.</dd></div>
+        <div><dt>The central master-data team</dt><dd>Owns the record. Sees only what the checks cannot decide, with the group&rsquo;s exposure across regions.</dd></div>
+        <div><dt>The hub</dt><dd>Does the typing and the checking in between: the search, the check at entry, the ticket, the check after approval, the one create.</dd></div>
+      </dl>
       <h3>What stays outside Vercel, and why</h3>
       <dl className="brief-facts">
         <div><dt>Three ERPs</dt><dd>The partner number is born there. Nothing about creating it changes.</dd></div>
@@ -149,11 +160,13 @@ function Head({ x, y, to, d }: { x: number; y: number; to: 'r' | 'l' | 'd' | 'u'
 }
 
 function TodayFlow() {
+  // Each label placed by its own width (about 6.6 px a character at 12 px), with a 34 px arrow between labels.
   const steps = ['Regional user', 'Service-desk ticket', 'Finance signs off', 'Retyped into an ERP', 'ERP-1, 2 or 3']
+  const xs = steps.reduce<number[]>((acc, _, i) => (i === 0 ? [0] : [...acc, acc[i - 1] + steps[i - 1].length * 6.6 + 44]), [])
   return (
-    <svg className="draw" viewBox="0 0 640 96" role="img" aria-label="Today: user, ticket, finance, retyped into an ERP; the nightly pipeline finds the duplicate the next morning">
-      {steps.map((s, i) => <g key={s}><text x={i * 132} y="34">{s}</text>{i < steps.length - 1 ? <><path pathLength={1} className="w" d={`M${i * 132 + 104} 30 H${i * 132 + 126}`} style={{ ['--d' as string]: `${i * 120}ms` }} /><Head x={i * 132 + 126} y={30} to="r" d={`${i * 120}ms`} /></> : null}</g>)}
-      <text x="396" y="72" className="bad">The nightly pipeline finds the duplicate the next morning.</text>
+    <svg className="draw" viewBox="0 0 720 96" role="img" aria-label="Today: user, ticket, finance, retyped into an ERP; the nightly pipeline finds the duplicate the next morning">
+      {steps.map((s, i) => <g key={s}><text x={xs[i]} y="34">{s}</text>{i < steps.length - 1 ? <><path pathLength={1} className="w" d={`M${xs[i] + s.length * 6.6 + 6} 30 H${xs[i + 1] - 10}`} style={{ ['--d' as string]: `${i * 120}ms` }} /><Head x={xs[i + 1] - 5} y={30} to="r" d={`${i * 120}ms`} /></> : null}</g>)}
+      <text x={716} y="72" textAnchor="end" className="bad">The nightly pipeline finds the duplicate the next morning.</text>
     </svg>
   )
 }
@@ -286,6 +299,7 @@ const RISKS = [
   { t: 'Automatic approval trusts the checks', d: 'They are deterministic and listed on each approval, and the AI never makes a request clean. It can be switched off. Production also stops a person approving an exception they raised.' },
   { t: 'Data residency', d: 'EU-only processing is possible: an EU function region, an EU database, EU model inference. Some workflow metadata is stored in the US by default; the DPO reviews that before kickoff.' },
   { t: 'Who sees what', d: 'Everyone reads every region\u2019s partners (names, tax IDs, groups); work and amounts stay in each person\u2019s own regions. If a region may not see another, one flag per person turns cross-region reading off, with no release.' },
+  { t: 'Credit limits', d: 'Finance approves the partner; credit limits and terms are set in the ERP by regional finance, as today. Bringing the limit into the approval is a phase-two option.' },
   { t: 'Plan', d: 'The design needs Pro. Directory sync for SSO, audit-log streaming and Secure Compute need Enterprise; governance decides which.' },
   { t: 'Not built', d: 'Email notifications (logged, not sent), attachments such as tax certificates, and the real identity provider. Each is a scoped follow-up.' },
 ]

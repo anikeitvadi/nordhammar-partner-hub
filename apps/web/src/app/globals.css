@@ -458,6 +458,7 @@ details.tech dd { margin: 0; font-family: var(--mono); font-size: 13px; color: v
 .brief-part h3 { margin-top: 28px; }
 .brief-part .note, .brief-print .note { font-size: 13px; color: var(--ink-3); margin-top: 18px; }
 .brief-facts { margin: 18px 0 0; }
+.brief-part .story { margin: 18px 0 6px; padding-left: 16px; border-left: 2px solid var(--ink); font: 400 17px/1.5 var(--serif); color: var(--ink); animation: rise 600ms var(--ease-arrive) both; }
 .brief-facts > div { display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 16px; padding: 10px 0; border-top: 1px solid var(--rule); }
 .brief-facts dt { color: var(--ink); font-weight: 500; font-size: 14px; }
 .brief-facts dd { margin: 0; font-size: 14px; }
