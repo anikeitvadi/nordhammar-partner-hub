@@ -16,3 +16,6 @@ apps/web/src/app/.well-known/workflow/
 .workflow-data/
 .workflow-vitest/
 *.tsbuildinfo
+
+# written by `next dev` on every start; not part of the project
+apps/web/AGENTS.md
