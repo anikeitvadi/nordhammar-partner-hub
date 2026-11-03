@@ -61,6 +61,7 @@ pnpm check:slop
 pnpm --filter web eval:mock        # offline: routing, privacy, validator, E01 to E12
 pnpm --filter web eval:live        # AI_GATEWAY_API_KEY or a pulled VERCEL_OIDC_TOKEN: 3 reps per compare case, both models, plus forced failover; writes eval/results/
 pnpm --filter web db:schema && pnpm --filter web db:seed       # DATABASE_URL: hub schema + synthetic seed (add --reset to db:schema to drop first)
+pnpm --filter web db:seed-requests [--reset] [--apply history|recent]   # demo request history; dry run without --apply; see the file header for the order
 pnpm --filter erp-stub db:schema                               # ERP_DATABASE_URL: the stub's ledger and fault switch
 TEST_DATABASE_URL=... pnpm --filter web test                   # also runs the database-gated integration tests
 pnpm --filter web test:workflow                                # the in-process Workflow proof
