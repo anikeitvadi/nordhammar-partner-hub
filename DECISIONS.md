@@ -144,11 +144,16 @@ What tips it to Vercel, in order:
 
 The demo provider is a hosted auth service with email and password and public signup disabled. Sessions are verified in the proxy against its published ES256 key, with no network call (the key type was checked on its published key set on 2026-11-02).
 
-Two roles:
-- **Regional users** search and request inside their regions, see amounts for those regions, and cannot approve.
-- **The central master-data team** decides exceptions, fixes stopped creates, runs the load, switches automatic approval and sees amounts everywhere.
+Three scopes, granted separately in the entitlements table:
+- **Identity** (a company's name, tax ID, city, group, which regions and ERPs hold it) is readable in every region by everyone, with the `global_identity` flag. That is what a golden record is for: a regional user sees that Europe already has the company before creating it again. The flag is per person, so "Brazil may not see European customers" is a data change, not a deploy.
+- **Work** (where you request, whose requests and duplicate checks you see) stays in your own regions. Another region's record opens with its identity, and its commercial section reads "held by the EU team".
+- **Amounts** (credit limits, spend) are a grant per person and region (`money_regions`), never implied by the others.
 
-Finance is not a role in the hub. Finance decides in the service desk, which has its own sign-in.
+Two roles:
+- **Regional users** search every region, request and work inside their own, see amounts for their own regions, and cannot approve. Home shows their region and their own requests.
+- **The central master-data team** is the final check after regional finance: duplicates, and the group's credit exposure across every region, shown on the review page before it approves another company into a group. It also fixes stopped creates, runs the load, switches automatic approval and sees amounts everywhere.
+
+Finance is not a role in the hub. Regional finance decides in the service desk, as today, which has its own sign-in.
 
 Alternatives, each with the one reason it did not win:
 - **The customer's own identity provider over OIDC.** This is the production answer; the swap touches the proxy and one helper.
@@ -177,9 +182,9 @@ Alternatives, each with the one reason it did not win:
 
 | Moment | Where | Type | What you see |
 |---|---|---|---|
-| Everything you may see | Customers | (nothing) | Every Brazil customer in a table, a strip that counts and filters (on hold, no ERP number yet, in a group); narrow by typing |
+| Every partner, every region | Customers | (nothing) | Every customer in all five regions in a table, with filter words that count (region, on hold, no ERP number yet, in a group, ERP); narrow by typing. Open a European record as Ana: identity in full, "Terms, risk and amounts are held by the EU team" |
 | Search by name, DUNS, city, ERP number | Customers | `aurora` · `884983974` · `curitiba` · `110008` | The table narrows each time; open a row for identifiers, group, parent and ultimate parent, addresses, sources and Ana's-region credit |
-| Exists in another region | Customers | `DE123456789` | "A customer with this tax ID exists in EU. Contact the EU team." No name, no details |
+| Exists in another region | Request a new customer as Ana | an EU company's tax ID | The check finds it in Europe and stops the request with the record linked; she sees who and where, not its amounts |
 | Exact match, hard stop | Request a new customer | `Aurora Industrial Ltda`, CNPJ `61.000.101/0001-57` | "This customer already exists"; the request cannot continue, and the stop is recorded |
 | Same company, new branch | Request a new customer | `Aurora Industrial Filial Centro`, CNPJ `61.000.101/0005-80` | "Same company, different establishment": pre-selects "new company in this group" |
 | Name match, the AI proposal | Request a new customer | `Vela Processos do Brasil`, CNPJ `61.000.103/0002-27` | A legacy record with no tax ID; the model's evidence rows; a human decides. After submit, the timeline names the model's reading, the model and the cost |
@@ -196,7 +201,8 @@ Alternatives, each with the one reason it did not win:
 | Stopped creates | Exceptions as Priya, the Stopped tab | | Each stopped create with its next step: check with the ERP, retry the delivery, or return it to the requester |
 | Every request | Requests as Priya | | Every request in every region, where it came in (hub form or service-desk ticket) and its ERP number |
 | Ask | Ask | "What is our credit exposure to the Aurora group?" | The card first, with the amounts the person may see (Ana: Brazil only; Priya: every region), then one sentence that streams in and cites only the card; the details show both model calls' cost |
-| The outcomes | Home | (nothing) | Duplicates stopped at entry, request to ERP number against one business day, and approvals that needed no person, this month, live |
+| Home, by role | Home as Priya, then as Ana | (nothing) | Priya: the hub across five regions and this month. Ana: Brazil (partners, on hold, in groups abroad) and her own requests; her region in ink on the globe, the rest of the company behind it |
+| The credit check | An exception that adds a company to a group, as Priya | `R-MW05N6LBNMBY` | "Group exposure": the group's companies by region and the credit already extended, per currency, before she approves |
 
 ## 5. Rollout and rollback
 
