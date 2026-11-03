@@ -10,7 +10,7 @@ Nordhammar Partner Hub is the front door to a master data hub for a fictional ma
 - **Reading order:**
   1. The brief.
   2. The app, starting with the five things to try on the sign-in page.
-  3. `DECISIONS.md`, every decision with its alternatives and its measured evidence.
+  3. `DECISIONS.md`, the technical companion: each decision, what was rejected, the trade-off and the evidence, by deep-dive area.
   4. `/how-it-works` in the app, the request path with the names used in the code.
   4. The three boundary files listed under Layout below.
 
