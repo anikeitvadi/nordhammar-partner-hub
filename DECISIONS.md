@@ -96,7 +96,7 @@ And one fewer system: intake, the duplicate check, the questions and the reports
 | **Fluid compute** | The runtime the app, the steps and the model calls run on. Active CPU is what is billed, so a function waiting on the Gateway or the integration platform does not pay for the wait. A paused Workflow run costs nothing for a different reason: it is suspended, not running. | n/a | All plans |
 | **Marketplace** | Postgres (two databases: the hub's and the stand-in's) and the identity provider, provisioned from the CLI with environment variables injected per environment. In production the hub database is Marketplace-provisioned in the customer's account. | Rejected: hand-wired connection strings. | All plans |
 
-**Supporting, not architecture.** Demo switches are Vercel Flags read on the server, flipped from the Vercel Toolbar for team members only; a flag never changes who may do what. Automatic approval has an off switch for the central team on Operations, stored in the hub with who changed it and when; off sends every finance-approved request to a person. It is a stored setting and not a flag, because the decision it governs arrives as a server-to-server webhook that carries nobody's Toolbar override. Speed Insights and Web Analytics are in the layout; Speed Insights is switched on in the dashboard, Web Analytics is not yet (§7). The link preview is an `opengraph-image` route. All plans.
+**Supporting, not architecture.** Demo switches are Vercel Flags read on the server, flipped from the Vercel Toolbar for team members only; a flag never changes who may do what. Automatic approval has an off switch for the central team in the header of its Exceptions page, stored in the hub with who changed it and when; off sends every finance-approved request to a person. It is a stored setting and not a flag, because the decision it governs arrives as a server-to-server webhook that carries nobody's Toolbar override. Speed Insights and Web Analytics are in the layout; Speed Insights is switched on in the dashboard, Web Analytics is not yet (§7). The link preview is an `opengraph-image` route. All plans.
 
 ### What renders when
 
@@ -109,7 +109,7 @@ The build marks every page partially prerendered: a static shell at build time, 
 | Request status | Frame | State, timeline | Nothing. The page polls `/api/requests/{id}/state` every 2 seconds and refreshes on a state change, so approving does not need to clear anything |
 | Home | Frame | The person's tiles; the three outcome tiles stream in behind Suspense after them | Nothing; the outcomes are read live |
 | Ask | Frame, box and suggestions | The answer, streamed from `/api/ask` as JSON lines: the card, then the checked sentence, then the totals | Nothing |
-| Reviews, Operations, Reports | Frame | Everything else (per person, per region) | Nothing |
+| Exceptions, Requests | Frame | Everything else (per person, per region) | Nothing |
 | How it works | Frame | Rail for a signed-in person | Nothing |
 
 ### Why Vercel, and where it is not the answer
@@ -181,19 +181,20 @@ Alternatives, each with the one reason it did not win:
 | Search by name, DUNS, city, ERP number | Customers | `aurora` · `884983974` · `curitiba` · `110008` | The table narrows each time; open a row for identifiers, group, parent and ultimate parent, addresses, sources and Ana's-region credit |
 | Exists in another region | Customers | `DE123456789` | "A customer with this tax ID exists in EU. Contact the EU team." No name, no details |
 | Exact match, hard stop | Request a new customer | `Aurora Industrial Ltda`, CNPJ `61.000.101/0001-57` | "This customer already exists"; the request cannot continue, and the stop is recorded |
-| Same company, new branch | Request a new customer | `Aurora Industrial Norte`, CNPJ `61.000.101/0003-19` | "Same company, different establishment": pre-selects "new company in this group" |
+| Same company, new branch | Request a new customer | `Aurora Industrial Filial Centro`, CNPJ `61.000.101/0005-80` | "Same company, different establishment": pre-selects "new company in this group" |
 | Name match, the AI proposal | Request a new customer | `Vela Processos do Brasil`, CNPJ `61.000.103/0002-27` | A legacy record with no tax ID; the model's evidence rows; a human decides. After submit, the timeline names the model's reading, the model and the cost |
 | Invalid tax ID | Request a new customer | CNPJ `61.000.103/0001-47` | Fails its check digits; nothing is searched |
 | Clean create, end to end | Request a new customer, then the desk as finance | `Estrela Brasil Indústria`, CNPJ `61.000.104/0001-90`, any bill-to | Submit; the status page shows the ticket. Approve the ticket in the desk. Within seconds the status page reads approved automatically, with the checks that passed, then an ERP-1 number in the 110xxx series; the ticket gets the number as a comment |
-| An exception | The same-company case above, submitted, then the desk, then Reviews as Priya | `Aurora Industrial Norte` | Finance approves; the hub stops it as an exception (same company as another establishment; the requester chose new company in this group). Priya sees the reasons and approves; the number lands and goes back to the ticket |
+| An exception | The same-company case above, submitted, then the desk, then Exceptions as Priya | `Aurora Industrial Filial Centro` | Finance approves; the hub stops it as an exception (same company as another establishment; the requester chose new company in this group). Priya sees the reasons and approves; the number lands and goes back to the ticket |
 | Ticket first | The desk: New partner ticket, then approve | A new name and a valid CNPJ, requester `ana.requester@example.com`, region BR | The ticket becomes a hub request when finance approves, is checked, and is created; no duplicate check ran at entry, so the hub's checks are the only ones |
 | Finance rejects | Any request's ticket in the desk: Reject, with a reason | | The request reads declined by finance, with finance's reason; a reject without a reason is refused |
-| Lost response | Operations as Priya: "Demo: drop the next ERP response", then any clean create through finance | | Attempt 1 gets no answer; the retry with the same key gets the same number back; one record |
+| Lost response | Exceptions as Priya, "Demo controls": "Drop the next ERP response", then any clean create through finance | | Attempt 1 gets no answer; the retry with the same key gets the same number back; one record |
 | China | Request a new customer as Priya, region CN | Both names and an 18-character unified code | Routed to ERP-3; a 310xxx number |
-| Make it searchable | Operations as Priya: "Run the hub load now" | | The load runs as a Workflow; the line under the button says what it loaded; search finds the new partner |
+| Make it searchable | Exceptions as Priya: "Run the hub load now" in the header | | The load runs as a Workflow; the line under the button says what it loaded; search finds the new partner |
 | Where the time went | Any created request, "How this ran" | | Each Workflow step with its time and retries, each wait on finance or the central team, and the cost of the request: the model's (measured) plus the run's events (at list price) |
 | Switch the model | Vercel Toolbar: `ai-model` to "Haiku 4.5 first", then the name-match case or any Ask question | `Vela Processos do Brasil` | The proposal and Ask still answer; their details say Haiku did not answer and gpt-4.1-mini served. No deploy |
-| Reports | Reports as Priya | | Duplicates stopped at entry this month; on hold by region; intake by state with median hours; exposure by ultimate parent |
+| Stopped creates | Exceptions as Priya, the Stopped tab | | Each stopped create with its next step: check with the ERP, retry the delivery, or return it to the requester |
+| Every request | Requests as Priya | | Every request in every region, where it came in (hub form or service-desk ticket) and its ERP number |
 | Ask the hub | Ask the hub | "What is our credit exposure to the Aurora group?" | The card first, with the amounts the person may see (Ana: Brazil only; Priya: every region), then one sentence that streams in and cites only the card; the details show both model calls' cost |
 | The outcomes | Home | (nothing) | Duplicates stopped at entry, request to ERP number against one business day, and approvals that needed no person, this month, live |
 
@@ -336,7 +337,7 @@ All on the deployed stack unless noted; dates 2026-10-31 to 2026-11-02.
 - **Synthetic data.** Every name, ID and address is invented; the shapes are real. The integration platform is a stand-in on Vercel. The real platform's API, its limits and which interface each ERP exposes behind it are first-week discovery questions.
 - **The hub is a copy, as fresh as the last load.** Golden records arrive nightly, or on "Run now". Between a create and the next load, search cannot see the new partner, and the request page says so. The identity reservation stops a second request for the same tax ID in that gap.
 - **The nightly run needs `CRON_SECRET` on the project.** Without it, the cron route refuses the call by design and the night's load does not run. "Run now" works regardless.
-- **Automatic approval trusts the checks.** A clean request is created after finance approves, with no one in the hub looking at it. The checks are deterministic and listed on the approval; the model never makes a request clean. The central team can switch automatic approval off on Operations. A central-team member can still approve an exception they raised themselves; production adds that rule.
+- **Automatic approval trusts the checks.** A clean request is created after finance approves, with no one in the hub looking at it. The checks are deterministic and listed on the approval; the model never makes a request clean. The central team can switch automatic approval off in the header of the Exceptions page. A central-team member can still approve an exception they raised themselves; production adds that rule.
 - **The service desk is a stand-in.** One finance user, a plain queue and a shared webhook secret. The real desk's API, its webhook signing and who in finance approves which region are first-week discovery.
 - **Requests raised before the desk existed** finish on the old path, a central-team approval, because their runs are pinned to the code that started them.
 - **China is on ERP-3.** Creates work end to end. Real China specifics (name rules, document checks) are discovery.

@@ -130,7 +130,7 @@ The screens are behind a desk sign-in, separate from the hub's. One demo finance
 
 - **Submit copy:** "Goes to finance in the service desk (ticket opens). If every check passes, the ERP number is assigned automatically."
 - **Request timeline:** the ticket number with a link to it in the desk; "finance approved by …"; "checks passed: approved automatically" with the list of checks; or "exception: …".
-- **Reviews:** the queue lists exceptions with their reason, oldest first. Step 9 merges it with Operations into one central-team page.
+- **Reviews:** the queue lists exceptions with their reason, oldest first. Step 9 merges it with Operations into one central-team page. (Done in step 9: the Exceptions page, with Exceptions and Stopped tabs.)
 - **Sign-in page:** "Three things to try" gains the finance step.
 
 ## 10. Tests that prove it
