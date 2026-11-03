@@ -260,17 +260,30 @@ const ROLLOUT = [
   { t: 'Cutover', w: 'Region by region', d: 'Brazil, then Europe, then the United States, India and China. When a region\u2019s requests run clean, its old ticket form for new partners is switched off, and its finance team keeps approving exactly where it does today.' },
   { t: 'Rollback', w: 'At any point', d: 'Any region can go back to tickets the same day. Automatic approval has an off switch that sends every request to a person. A bad release is undone in one step, because the previous version is still running.' },
 ]
+// The customer's side of going live: who, what, by when. Each is small; together they are the critical path.
+const ASKS = [
+  { who: 'Integration team', when: 'Weeks 1 to 2', what: 'Open the platform\u2019s API to the hub and trust its sign-in (one OIDC setting, no keys to manage).' },
+  { who: 'Service-desk administrator', when: 'Weeks 1 to 2', what: 'Send finance\u2019s decisions on new-partner tickets to the hub (one signed webhook).' },
+  { who: 'IT', when: 'Weeks 1 to 2', what: 'Sign people in through your identity provider, with a group per region and one for the central team.' },
+  { who: 'Finance and master-data leads', when: 'Week 4', what: 'Sign off the ticket finance will see and the checks the central team will rely on.' },
+  { who: 'Brazil sales operations', when: 'Week 5', what: 'Name a few requesters to go first in the pilot.' },
+]
 function Rollout() {
-  const [at, setAt] = useState(2)
+  // starts at the beginning, so the steps read in order; Next walks them
+  const [at, setAt] = useState(0)
   return (
     <>
       <ol className="track" style={{ ['--at' as string]: at }}>
-        {ROLLOUT.map((r, i) => <li key={r.t} className={i <= at ? 'past' : undefined}><button type="button" aria-pressed={i === at} onClick={() => setAt(i)}>{r.t}</button></li>)}
+        {ROLLOUT.map((r, i) => <li key={r.t} className={i <= at ? 'past' : undefined}><button type="button" aria-pressed={i === at} onClick={() => setAt(i)}><span className="track-n">{i + 1}</span>{r.t}</button></li>)}
       </ol>
       <p className="track-d" key={at}><span className="track-w">{ROLLOUT[at].w}.</span> {ROLLOUT[at].d}</p>
-      <p className="note">What we need from you: your integration team for the API and the sign-in trust, your desk administrator for the webhook, IT for the identity-provider groups, and the finance and master-data leads to sign off in week four.</p>
+      {at < ROLLOUT.length - 1 ? <button type="button" className="text-button track-next" onClick={() => setAt(at + 1)}>Next: {ROLLOUT[at + 1].t} &rarr;</button> : <button type="button" className="text-button track-next" onClick={() => setAt(0)}>Back to the start</button>}
       <h3>It already happened once</h3>
       <p>On 3 November the first canary of a release answered one company&rsquo;s credit limit with its group&rsquo;s total. It was held at 10%, aborted back to the previous version in one step, fixed, checked again, and released. A request started on one version and approved from the next also finished on the first and kept its ERP number after an abort.</p>
+      <h3>What we need from you</h3>
+      <dl className="brief-facts actions">
+        {ASKS.map((a) => <div key={a.who}><dt>{a.who}<span>{a.when}</span></dt><dd>{a.what}</dd></div>)}
+      </dl>
     </>
   )
 }

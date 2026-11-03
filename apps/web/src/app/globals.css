@@ -529,14 +529,16 @@ details.tech dd { margin: 0; font-family: var(--mono); font-size: 13px; color: v
 .brief-steps b { color: var(--ink); font-weight: 500; }
 /* the rollout track: a line that fills up to the chosen stage */
 .track { position: relative; list-style: none; display: grid; grid-template-columns: repeat(5, 1fr); margin: 8px 0 18px; padding: 22px 0 0; }
-.track::before, .track::after { content: ''; position: absolute; top: 6px; left: 6px; height: 1.5px; }
-.track::before { right: 6px; background: var(--rule); }
-.track::after { width: calc((100% - 12px) * var(--at) / 4); background: var(--ink); transition: width 600ms var(--ease-travel); }
+.track::before, .track::after { content: ''; position: absolute; top: 6px; left: 14px; height: 1.5px; }
+.track::before { right: calc(20% - 14px); background: var(--rule); }
+.track::after { width: calc(20% * var(--at)); background: var(--ink); transition: width 600ms var(--ease-travel); }
 .track li { position: relative; }
-.track li::before { content: ''; position: absolute; top: -21px; left: 0; width: 13px; height: 13px; border-radius: 50%; background: var(--paper); border: 1.5px solid var(--rule); transition: border-color 300ms ease, background 300ms ease; }
+.track li::before { content: ''; position: absolute; top: -21px; left: 8px; pointer-events: none; width: 13px; height: 13px; border-radius: 50%; background: var(--paper); border: 1.5px solid var(--rule); transition: border-color 300ms ease, background 300ms ease; }
 .track li.past::before { border-color: var(--ink); background: var(--ink); }
-.track button { height: auto; padding: 0; background: none; color: var(--ink-3); font-weight: 500; font-size: 14px; }
-.track button:hover { background: none; color: var(--ink); }
+.track button { display: block; width: calc(100% - 8px); height: auto; margin-top: -30px; padding: 30px 8px 10px; border-radius: var(--radius); text-align: left; background: none; color: var(--ink-3); font-weight: 500; font-size: 15px; cursor: pointer; } /* the whole step, dot and label, is the target */
+.track button:hover { background: var(--wash); color: var(--ink); }
+.track-n { display: block; font: 400 12px var(--mono); color: var(--ink-3); margin-bottom: 2px; }
+.track-next { margin: 0 0 22px; }
 .track button[aria-pressed="true"] { color: var(--ink); }
 .track-d { min-height: 66px; animation: rise 500ms var(--ease-arrive) both; }
 /* live figures: big serif numbers, labels under */
@@ -547,6 +549,7 @@ details.tech dd { margin: 0; font-family: var(--mono); font-size: 13px; color: v
 .brief-live b { display: block; font: 400 40px/1 var(--serif); color: var(--ink); font-variant-numeric: tabular-nums; }
 .brief-live span { display: block; margin-top: 8px; font-size: 13px; color: var(--ink-3); }
 .track-w { color: var(--ink); font-weight: 500; }
+.brief-facts.actions dt span { display: block; font: 400 12px var(--sans); color: var(--ink-3); margin-top: 2px; }
 .brief-print { display: none; }
 @media (max-width: 960px) {
   .brief { display: block; height: auto; overflow: visible; }
