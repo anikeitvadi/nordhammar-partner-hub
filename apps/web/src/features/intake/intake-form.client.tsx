@@ -7,6 +7,7 @@ import { resubmitRequestAction, saveDraftAction, submitRequestAction } from '@/f
 import { CUSTOMER_TYPES, SUPPLIER_TYPES, type FormValues } from '@/features/requests/payload'
 import type { CheckResult } from './types'
 import { SubmitButton } from '@/features/ui/submit-button.client'
+import { branchOf, freshExample } from '@/features/ui/fresh-example.client'
 
 // WF-04 + WF-05 as one island. Step 1 is identity: as soon as the legal name and a full-length tax ID are there, the hub
 // is checked on its own (half a second after typing stops, or on leaving the field); no button. A clear result opens
@@ -31,9 +32,21 @@ const ADDRESS: Record<Region, { key: string; label: string; required?: boolean; 
   EU: [{ key: 'street', label: 'Street', required: true }, { key: 'number', label: 'Number', width: 'short' }, { key: 'postalCode', label: 'Postal code', required: true, width: 'short' }, { key: 'city', label: 'City', required: true }],
 }
 
-type Props = { domain: Domain; regions: Region[]; initialRegion: Region; initial: FormValues; mode: 'new' | 'resubmit'; requestId?: string; error?: string }
+// The demo's four cases, one click each (behind the demo-controls flag). A click only types the name and the tax ID; the
+// hub check that follows is the real one. The tax IDs that would be used up by a request (a new company, a new branch,
+// a near-name) are made fresh each time, so every grader meets the same outcome; "already exists" is the seeded record.
+// The details are filled once step 2 opens, so the person only reads them and submits.
+const EXAMPLES: { label: string; make: () => { name: string; tax: string } }[] = [
+  { label: 'New customer', make: freshExample },
+  { label: 'Already exists', make: () => ({ name: 'Aurora Industrial Ltda', tax: '61.000.101/0001-57' }) },
+  { label: 'New branch of a group', make: () => ({ name: 'Aurora Industrial Filial Centro', tax: branchOf('61000101') }) },
+  { label: 'Similar name', make: () => ({ name: 'Vela Processos do Brasil', tax: freshExample().tax }) },
+]
+const EXAMPLE_DETAILS: Record<string, string> = { typeCode: 'end_user', 'main.postalCode': '01310-100', 'main.street': 'Avenida Paulista', 'main.number': '1000', 'main.district': 'Bela Vista', 'main.city': 'São Paulo', 'main.regionCode': 'SP', reasonText: 'First order: quote for heat-exchanger spare parts', contactName: 'Compras', contactEmail: 'compras@example.com' }
 
-export function IntakeForm({ domain, regions, initialRegion, initial, mode, requestId, error }: Props) {
+type Props = { domain: Domain; regions: Region[]; initialRegion: Region; initial: FormValues; mode: 'new' | 'resubmit'; requestId?: string; error?: string; demo?: boolean }
+
+export function IntakeForm({ domain, regions, initialRegion, initial, mode, requestId, error, demo = false }: Props) {
   const [region, setRegion] = useState<Region>(initialRegion)
   const [country, setCountry] = useState(initial.country || COUNTRIES[initialRegion][0].code)
   const [legalName, setLegalName] = useState(initial.legalName ?? '')
@@ -46,6 +59,8 @@ export function IntakeForm({ domain, regions, initialRegion, initial, mode, requ
   const [relocked, setRelocked] = useState(false)
   const lastKey = useRef<string | null>(null)
   const stepTwo = useRef<HTMLDivElement>(null)
+  const form = useRef<HTMLFormElement>(null)
+  const pendingDetails = useRef(false)
   const w = domain === 'customer' ? 'customer' : 'supplier'
 
   const identityKey = () => [region, country, legalName.trim().toLowerCase(), taxId.replace(/[^0-9a-z]/gi, '').toLowerCase()].join('|')
@@ -70,20 +85,37 @@ export function IntakeForm({ domain, regions, initialRegion, initial, mode, requ
   }
   // The automatic check: once the name and a full-length tax ID are typed, half a second after the last keystroke.
   // A shorter tax ID is still being typed, so it is not checked (and not reported as failing its check digits).
+  // It also re-arms when a check finishes, so identity typed while one was in flight is checked too, never left stale.
   useEffect(() => {
     if (mode !== 'new' || !legalName.trim() || taxId.replace(/[^0-9a-z]/gi, '').length < (TAX_LENGTH[country] ?? 8)) return
     const t = setTimeout(() => void runCheck(), 500)
     return () => clearTimeout(t)
     // runCheck reads the same state; listing it would re-arm the timer on every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [legalName, taxId, region, country])
+  }, [legalName, taxId, region, country, checking])
   const choose = (c: Choice) => { setChoice(c); setRelocked(false); setTimeout(() => stepTwo.current?.focus(), 0) }
   const onRegion = (r: Region) => { setRegion(r); setCountry(COUNTRIES[r][0].code); setChoice(null); setResult(null); lastKey.current = null }
   const stepTwoOpen = mode === 'resubmit' || (choice !== null && result !== null && (result.kind === 'clear' || result.kind === 'related' || result.kind === 'compare'))
   const action = mode === 'resubmit' ? resubmitRequestAction : submitRequestAction
+  const showExamples = demo && mode === 'new' && domain === 'customer' && regions.includes('BR')
+  const fillExample = (make: () => { name: string; tax: string }) => {
+    const ex = make()
+    if (region !== 'BR') onRegion('BR')
+    setLegalName(ex.name); setTaxId(ex.tax)
+    pendingDetails.current = true
+  }
+  // Step 2's fields are uncontrolled, so an example's details are written into them once they are enabled.
+  useEffect(() => {
+    if (!stepTwoOpen || !pendingDetails.current || !form.current) return
+    pendingDetails.current = false
+    for (const [name, value] of Object.entries(EXAMPLE_DETAILS)) {
+      const el = form.current.elements.namedItem(name)
+      if (el instanceof HTMLInputElement || el instanceof HTMLSelectElement) el.value = value
+    }
+  }, [stepTwoOpen])
 
   return (
-    <form action={action} className="intake">
+    <form action={action} className="intake" ref={form}>
       <input type="hidden" name="domain" value={domain} />
       <input type="hidden" name="region" value={region} />
       {requestId ? <input type="hidden" name="requestId" value={requestId} /> : null}
@@ -92,6 +124,7 @@ export function IntakeForm({ domain, regions, initialRegion, initial, mode, requ
 
       <fieldset className="card step">
         <div className="step-title">Who it is</div>
+        {showExamples ? <div className="examples"><span className="muted small">Demo examples, Brazil:</span>{EXAMPLES.map((e) => <button key={e.label} type="button" className="text-button" onClick={() => fillExample(e.make)}>{e.label}</button>)}</div> : null}
         <div className="grid2">
           {regions.length > 1 ? <label>Region
             <select value={region} onChange={(e) => onRegion(e.target.value as Region)}>{regions.map((r) => <option key={r} value={r}>{r}</option>)}</select>
@@ -154,6 +187,9 @@ function AddressFields({ prefix, region, country, initial }: { prefix: string; r
 
 type Choice = { dupChoice: 'new' | 'new_in_group' | 'not_related'; linkedGoldenId: string | null }
 
+// The model's field keys, as the form labels them.
+const FIELD: Record<string, string> = { taxId: 'Tax ID', legalName: 'Name', name: 'Name', address: 'Address', city: 'City', group: 'Group', country: 'Country' }
+
 // The reason codes from the agent, in words. The raw reason stays in the server log.
 function unavailable(reason: string): string {
   if (reason === 'disabled') return 'The suggested reading is switched off here.'
@@ -183,7 +219,7 @@ function Matches({ result, domain, choose, chosen }: { result: CheckResult; doma
             <div className="ai-card">
               <div className="ai-label">Suggested reading of the match · AI, a steward decides</div>
               <p className="ai-verdict">{{ same: 'Likely the same legal entity', different: 'Likely a different legal entity', unsure: 'Cannot be confirmed from the hub record' }[result.outcome.proposal.verdict]}{result.outcome.proposal.golden_id ? <span className="muted"> · {result.outcome.proposal.golden_id}</span> : null}</p>
-              <ul className="reasons">{result.outcome.proposal.reasons.map((r, i) => <li key={i}>{r.field}: {r.observation}. {r.explanation}</li>)}</ul>
+              <ul className="reasons">{result.outcome.proposal.reasons.map((r, i) => <li key={i}>{FIELD[r.field] ?? r.field}: {r.observation}. {r.explanation}</li>)}</ul>
               <p className="muted small">Nothing is merged automatically. Your choice below is what the central team sees.</p>
             </div>
           ) : <p className="muted">{unavailable(result.outcome.reason)} The central team will compare these by hand.</p>}

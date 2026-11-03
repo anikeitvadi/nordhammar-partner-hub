@@ -3,7 +3,6 @@ import { Suspense } from 'react'
 import { signIn } from '@/features/auth/actions'
 import { SubmitButton } from '@/features/ui/submit-button.client'
 import { CopyButton } from '@/features/ui/copy-button.client'
-import { FreshExample } from '@/features/ui/fresh-example.client'
 
 export const metadata: Metadata = { title: 'Sign in' }
 
@@ -14,21 +13,21 @@ const ERRORS: Record<string, string> = {
   expired: 'Your session ended. Sign in again.',
 }
 
-// The front door: the statement and the ledger mark on the left, the sign-in form on the right, then the three demo
-// people and three things to try, as plain ruled lists. Passwords travel in the submission email, never here.
-// Priya first: the central team sees the whole hub, so that is where a grader starts. Ana and Jonas are there to show
-// what a regional user can and cannot see.
+// The front door: the statement on the left, the sign-in form on the right, then the three demo people and five
+// things to try, as plain ruled lists. Passwords travel in the submission email, never here. The steps follow the
+// work: Ana in Brazil requests (the form has one-click examples for every case), finance approves on the ticket (no
+// sign-in), and Priya, the central team, takes what the checks cannot decide. The last step shows the scoping.
 const ROLES = [
-  { who: 'Priya Nair', role: 'Central master data team · all regions', email: 'priya.reviewer@example.com', can: 'Start here: every region, every amount, the final check on duplicates and group credit' },
   { who: 'Ana Silva', role: 'Sales operations · Brazil', email: 'ana.requester@example.com', can: 'Sets up the customers Brazil sells to: searches every region first, requests in Brazil, sees Brazil amounts only, cannot approve' },
+  { who: 'Priya Nair', role: 'Central master data team · all regions', email: 'priya.reviewer@example.com', can: 'Every region, every amount; the final check on duplicates and group credit' },
   { who: 'Jonas Weber', role: 'Procurement · Europe', email: 'jonas.requester@example.com', can: 'Sets up the suppliers Europe buys from, the same way' },
 ]
 const TRY: { text: React.ReactNode; copy?: string }[] = [
-  { text: <>As Priya, search <code>aurora</code>: one group, three companies in two regions on two ERPs; open one to see its credit.</>, copy: 'aurora' },
-  { text: <>Request a customer with CNPJ <code>61.000.101/0001-57</code>: the hub stops you, it already exists.</>, copy: '61.000.101/0001-57' },
-  { text: <FreshExample /> },
-  { text: <>Open Exceptions and a request that adds a company to the Aurora group: before approving, Priya sees what the group already holds in every region.</> },
-  { text: <>Sign in as Ana and search <code>aurora</code> again: she sees every company, but not Europe&rsquo;s terms or credit. Ask &ldquo;What is the credit limit of Aurora Nordic AB?&rdquo; and no figure comes back.</> },
+  { text: <>As Ana, search <code>aurora</code>: one group, three companies in two regions on two ERPs. She sees the Swedish company exists, not its terms or credit.</>, copy: 'aurora' },
+  { text: <>As Ana, New Request, then the form&rsquo;s <strong>Already exists</strong> example: the hub stops the duplicate before anything is sent.</> },
+  { text: <>The <strong>New customer</strong> example: submit, press <strong>Open Ticket</strong> on the request page, approve it as finance (no sign-in), come back, and the ERP number is there.</> },
+  { text: <>The <strong>New branch of a group</strong> example, approved the same way, does not go to the ERP: it waits for Priya. Sign in as Priya, open Exceptions: she sees what the Aurora group already holds in every region before saying yes.</> },
+  { text: <>As Priya, Ask &ldquo;What is the credit limit of Aurora Nordic AB?&rdquo; and get the figure. As Ana, ask the same: no figure, it belongs to the EU team.</>, copy: 'What is the credit limit of Aurora Nordic AB?' },
 ]
 
 type Params = Promise<{ error?: string; next?: string }>
@@ -60,12 +59,6 @@ export default function LoginPage({ searchParams }: { searchParams: Params }) {
         <p className="door-lede">Search before you request. Every customer and supplier, in five regions and three ERPs, behind one search box. Finance approves in its service desk, the ERP assigns the number, and the hub shows it.</p>
         <p className="door-brief"><a href="/brief">Read the brief</a>: the problem, the architecture, the Vercel choices and the rollout, on one page.</p>
       </div>
-      <div className="door-try">
-        <h2>Five things to try</h2>
-        <ol className="try">
-          {TRY.map((t, i) => <li key={i}><span>{t.text}</span>{t.copy ? <CopyButton text={t.copy} /> : <span />}</li>)}
-        </ol>
-      </div>
       <aside className="door-side">
         <h2>Sign in</h2>
         <Suspense fallback={<form className="door-form" aria-busy="true"><label>Email<input type="email" disabled /></label><label>Password<input type="password" disabled /></label><button type="button" disabled>Sign In</button></form>}>
@@ -77,6 +70,12 @@ export default function LoginPage({ searchParams }: { searchParams: Params }) {
           {ROLES.map((r) => <li key={r.email}><span><span className="who">{r.who}</span><span className="role">{r.role}</span><span className="what">{r.can}</span><code className="email">{r.email}</code></span><CopyButton text={r.email} /></li>)}
         </ul>
       </aside>
+      <div className="door-try">
+        <h2>Five things to try</h2>
+        <ol className="try">
+          {TRY.map((t, i) => <li key={i}><span>{t.text}</span>{t.copy ? <CopyButton text={t.copy} /> : <span />}</li>)}
+        </ol>
+      </div>
       <p className="door-foot">Built on Next.js Cache Components, Vercel Workflows for the wait on finance and the one ERP write, OIDC to the integration platform, and AI Gateway behind every model call. <a href="/how-it-works">How it works</a></p>
     </section>
   )

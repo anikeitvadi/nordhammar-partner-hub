@@ -235,10 +235,10 @@ Latencies are single observations, not a benchmark. Sign-in on the hosted auth s
 | Moment | How | What you see |
 |---|---|---|
 | Every partner, every region | Customers | Filter words that count by region, status, group and ERP; open a European record as Ana: identity in full, commercial terms held by the EU team |
-| Stopped at entry | Request a customer, CNPJ `61.000.101/0001-57` | "This customer already exists", with the record |
-| Same company, new branch | `Aurora Industrial Filial Centro`, CNPJ `61.000.101/0005-80` | "Same company, different establishment"; it will go to the central team |
-| The AI proposal | `Vela Processos do Brasil`, CNPJ `61.000.103/0002-27` | A legacy record with no tax ID, the model's evidence, a person decides |
-| Clean create, end to end | The fresh example on the sign-in page, then approve its ticket in the desk | The ERP number within seconds, on the request and the ticket |
+| Stopped at entry | The form's "Already exists" example (CNPJ `61.000.101/0001-57`) | "This customer already exists", with the record |
+| Same company, new branch | The form's "New branch of a group" example (Aurora's root, a fresh branch number) | "Same company, different establishment"; after finance it goes to the central team |
+| The AI proposal | The form's "Similar name" example (`Vela Processos do Brasil`, a fresh CNPJ) | A legacy record with no tax ID, the model's evidence, a person decides |
+| Clean create, end to end | The form's "New customer" example, then "Open Ticket" and approve in the desk | The ERP number within seconds, on the request and the ticket |
 | The credit check | Exceptions as Priya, a request adding a company to the Aurora group | The group's companies and credit in every region |
 | Ticket first | The desk: New partner ticket, then approve | It becomes a hub request and is created; leave the CEP blank and it is an exception, "missing: CEP" |
 | A lost response | Exceptions, Demo controls: "Drop the Next ERP Response", then any clean create | Attempt 1 loses its answer; the retry with the same key gets the same number; one record |

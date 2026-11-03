@@ -6,7 +6,7 @@ Nordhammar Partner Hub is the front door to a master data hub for a fictional ma
 
 - **The brief:** https://nordhammar-partner-hub.vercel.app/brief, the customer-facing summary on one page (problem, architecture, Vercel choices, demo, rollout, measures, risks, tooling).
 - **Live app:** https://nordhammar-partner-hub.vercel.app (start at sign-in, as Priya).
-- **Demo logins:** in the submission email. The sign-in page lists the three people and what each can see, and five things to try; the clean example there is made fresh for each visitor.
+- **Demo logins:** in the submission email. The sign-in page lists the three people and what each can see, and five things to try. The request form has one-click demo examples for each case (new, already exists, new branch, similar name); the ones that use up a tax ID are made fresh for each visitor.
 - **Reading order:**
   1. The brief.
   2. The app, starting with the five things to try on the sign-in page.
@@ -24,7 +24,7 @@ The app holds a copy of the customer's golden records for search at the moment o
 
 App: https://nordhammar-partner-hub.vercel.app · integration platform stand-in: https://customer-intake-erp-stub.vercel.app · test users and canned inputs: `DECISIONS.md` §4 (passwords arrive by email, never here).
 
-The short version: sign in as `ana.requester@example.com`, search `aurora`, open a record, then "New Request" → Customer with `Vela Processos do Brasil` and CNPJ `61.000.103/0002-27` to see the one case the rules cannot decide and the model's proposal. Approve its ticket as finance in the service desk (the request page's "Open Ticket" button; the stand-in desk has no sign-in); a name match is never approved automatically, so it lands on the Exceptions page for `priya.reviewer@example.com` (the central team), who approves it and watches the status page go to created. On the Exceptions page, "Demo controls" sets up the lost-response replay, and "Run the Hub Load Now" makes a new partner searchable. "Ask" in the sidebar looks up a group or a request, and answers counts and totals (on hold by region, requests per month, exposure to a group, duplicates stopped) as a number or a chart, from a typed query the model fills and the code checks, over what the signed-in person may see. `/how-it-works` is the diagram, public.
+The short version: sign in as `ana.requester@example.com`, search `aurora`, open a record, then "New Request" → Customer and the form's "Similar name" example (`Vela Processos do Brasil`) to see the one case the rules cannot decide and the model's proposal. Approve its ticket as finance in the service desk (the request page's "Open Ticket" button; the stand-in desk has no sign-in); a name match is never approved automatically, so it lands on the Exceptions page for `priya.reviewer@example.com` (the central team), who approves it and watches the status page go to created. On the Exceptions page, "Demo controls" sets up the lost-response replay, and "Run the Hub Load Now" makes a new partner searchable. "Ask" in the sidebar looks up a group or a request, and answers counts and totals (on hold by region, requests per month, exposure to a group, duplicates stopped) as a number or a chart, from a typed query the model fills and the code checks, over what the signed-in person may see. `/how-it-works` is the diagram, public.
 
 ## Layout
 
