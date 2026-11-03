@@ -3,6 +3,7 @@ import { Suspense } from 'react'
 import { signIn } from '@/features/auth/actions'
 import { SubmitButton } from '@/features/ui/submit-button.client'
 import { CopyButton } from '@/features/ui/copy-button.client'
+import { FocusFirst } from '@/features/ui/focus-first.client'
 
 export const metadata: Metadata = { title: 'Sign in' }
 
@@ -45,6 +46,7 @@ async function SignInForm({ searchParams }: { searchParams: Params }) {
       <label htmlFor="password">Password<input id="password" name="password" type="password" autoComplete="current-password" required /></label>
       {message ? <p role="alert" className="error small">{message}</p> : null}
       <SubmitButton pendingLabel="Signing in…">Sign In</SubmitButton>
+      <FocusFirst id="email" />
     </form>
   )
 }
