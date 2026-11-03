@@ -23,7 +23,7 @@ const COUNTRY: Record<string, [number, number]> = {
 export function where(country: string, city: string | null | undefined): { lonLat: [number, number]; exact: boolean } {
   const c = city ? CITY[`${country}|${city}`] : undefined
   if (c) return { lonLat: c, exact: true }
-  // Seeded "Cidade Exemplo" and unknown towns: the country's centre, with a small deterministic offset so several do
+  // Unknown towns: the country's centre, with a small deterministic offset so several do
   // not stack on one pixel.
   const base = COUNTRY[country] ?? [0, 0]
   let h = 0
