@@ -1,6 +1,6 @@
 # Publishing the repository: checks, then the first push
 
-Status: PREPARED, NOT RUN. The owner authorizes each step. Nothing below has been executed.
+Status: DONE, 2026-11-03. Published at https://github.com/anikeitvadi/nordhammar-partner-hub (`main` only). Before the push every commit was searched for the real values of each secret the project holds (none found), and the CI sequence was run on a fresh clone with no `.env` files (lint, typecheck, tests and both builds pass).
 
 ## History stays as it is
 
@@ -24,7 +24,7 @@ git log -p --all | grep -nE "sb_secret|AI_GATEWAY_API_KEY=.+|postgres(ql)?://[^ 
 ## 2. First push
 
 ```bash
-git remote add origin git@github.com:anikeitvadi/<repo-name>.git   # name decided by the owner
+git remote add origin https://github.com/anikeitvadi/nordhammar-partner-hub.git
 git push -u origin main
 ```
 
