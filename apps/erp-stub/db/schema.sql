@@ -50,3 +50,42 @@ create table if not exists golden_records (
   updated_at timestamptz not null default now()
 );
 create index if not exists golden_records_cursor on golden_records (updated_at, golden_id);
+
+-- The customer's service desk (docs/SERVICE-DESK-CONTRACT.md §7). Finance approves new partners here; a decision is
+-- written with its webhook event in one transaction (the outbox), then delivered to the hub, at least once.
+create sequence if not exists desk_ticket_numbers start 10421;
+create table if not exists desk_tickets (
+  ticket_id text primary key,
+  source text not null check (source in ('hub','desk')),
+  hub_request_id text,
+  hub_revision int,
+  requester_email text not null,
+  region text not null,
+  domain text not null check (domain in ('customer','supplier')),
+  summary jsonb not null,
+  partner jsonb,
+  status text not null default 'open' check (status in ('open','finance_approved','finance_rejected','done')),
+  decided_by text,
+  decision_reason text,
+  decided_at timestamptz,
+  created_at timestamptz not null default now()
+);
+create unique index if not exists desk_tickets_hub_request on desk_tickets (hub_request_id, hub_revision) where hub_request_id is not null;
+create table if not exists desk_comments (
+  id bigserial primary key,
+  ticket_id text not null references desk_tickets(ticket_id),
+  at timestamptz not null default now(),
+  author text not null,
+  body text not null,
+  dedupe_key text unique
+);
+create table if not exists desk_outbox (
+  event_id text primary key,
+  ticket_id text not null references desk_tickets(ticket_id),
+  type text not null,
+  body text not null,
+  attempts int not null default 0,
+  last_error text,
+  delivered_at timestamptz,
+  created_at timestamptz not null default now()
+);
