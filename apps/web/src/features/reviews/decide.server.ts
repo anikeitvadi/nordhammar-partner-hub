@@ -29,12 +29,13 @@ export async function decide(principal: Principal, input: DecideInput): Promise<
   if (!t.ok) return { ok: false, reason: 'invalid_transition' }
   try {
     const result = await db.transaction([
-      db`update requests set state_kind = ${t.next.kind}, state = ${JSON.stringify(t.next)}::jsonb, updated_at = now() where request_id = ${input.requestId} and current_revision = ${input.revision} and state_kind = 'under_review'`,
+      db`update requests set state_kind = ${t.next.kind}, state = ${JSON.stringify(t.next)}::jsonb, updated_at = now() where request_id = ${input.requestId} and current_revision = ${input.revision} and state_kind = ${state.kind}`,
       db`insert into review_decisions (decision_id, request_id, revision, reviewer_email, decision, reason, payload_hash) values (${decisionId}, ${input.requestId}, ${input.revision}, ${principal.email}, ${input.decision}, ${input.reason?.trim() ?? null}, ${input.payloadHash})`,
       db`insert into request_events (request_id, kind, actor, detail) values (${input.requestId}, ${input.decision}, ${principal.email}, ${JSON.stringify({ revision: input.revision, decisionId, reason: input.reason?.trim() ?? null })}::jsonb)`,
       db`insert into deliveries (request_id, revision, kind, payload) values (${input.requestId}, ${input.revision}, 'wake', ${JSON.stringify({ decisionId, decision: input.decision })}::jsonb) on conflict (request_id, revision, kind) do nothing`,
     ])
-    // The conditional update touching zero rows means someone else decided first; the unique insert would also have thrown.
+    // The update is conditional on the state the decision was made on (under review, or an exception since the service
+    // desk); zero rows means someone else decided first, and the unique insert would also have thrown.
     const updated = Array.isArray(result) && Array.isArray(result[0]) ? result[0].length : -1
     void updated
   } catch (e) {
