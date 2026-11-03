@@ -6,7 +6,8 @@ import { exactTaxIdLookup, findNameCandidates } from '@/features/customers/hub.s
 import { normalizeTaxId } from './normalize'
 import { preflight } from './match'
 import { proposeMatch } from './agent.server'
-import { aiSuggestion } from '@/features/flags/flags'
+import { aiModel, aiSuggestion } from '@/features/flags/flags'
+import { resolveModel } from '@/features/ai/models'
 import type { CheckResult } from './types'
 import { checkRecord } from './check-record'
 import { recordCheck } from './checks.server'
@@ -47,7 +48,7 @@ async function runCheck(principal: Principal, formData: FormData): Promise<Check
     case 'related': return { kind: 'related', candidate: { goldenId: route.candidate.goldenId, legalName: route.candidate.legalName, city: route.candidate.city, groupName: route.candidate.groupName }, echo }
     case 'no_candidates': return { kind: 'clear', echo }
     case 'compare': {
-      const outcome = await proposeMatch({ legalName, taxId: n.taxId, city, street }, route.candidates, undefined, await aiSuggestion())
+      const outcome = await proposeMatch({ legalName, taxId: n.taxId, city, street }, route.candidates, undefined, await aiSuggestion(), resolveModel(await aiModel(), process.env))
       return { kind: 'compare', candidates: route.candidates.map((c) => ({ goldenId: c.goldenId, legalName: c.legalName, city: c.city, hasTaxId: c.taxId !== null, groupName: c.groupName })), outcome, echo }
     }
   }

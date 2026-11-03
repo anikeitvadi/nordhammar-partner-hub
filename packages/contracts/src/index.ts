@@ -98,7 +98,7 @@ export const ProposalSchema = z.object({
 export type Proposal = z.infer<typeof ProposalSchema>
 
 export type ProposalOutcome =
-  | { ai: 'available'; proposal: Proposal; model: string; usage?: { inputTokens: number; outputTokens: number } | null; cost?: number | null; generationId?: string | null }
+  | { ai: 'available'; proposal: Proposal; model: string; usage?: { inputTokens: number; outputTokens: number } | null; cost?: number | null; generationId?: string | null; attempts?: { model: string; ok: boolean }[] | null; ms?: number | null }
   | { ai: 'unavailable'; reason: string }
 
 // Three ERP instances behind the customer's integration platform. The region decides which one a partner is born in.

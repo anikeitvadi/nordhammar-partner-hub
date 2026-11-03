@@ -35,7 +35,7 @@ function Answer({ state }: { state: AskState }) {
       {o.tool === null ? <p className="panel">{o.answer ?? "I can't answer that here. Try the search box or the request page."}</p> : <Card tool={o.tool} result={o.result} />}
       {o.tool !== null && o.answer ? <p className="ask-sentence"><span className="ai-label">AI · a reading of the card</span>{o.answer}</p> : null}
       {o.note ? <p className="muted small">{o.note}</p> : null}
-      <details className="tech"><summary>Technical details</summary><dl><dt>Tool</dt><dd>{o.tool ?? 'none'}</dd><dt>Input</dt><dd>{JSON.stringify(o.input)}</dd><dt>Model</dt><dd>{o.model}</dd><dt>Cost</dt><dd>{o.cost == null ? 'n/a' : `$${o.cost.toFixed(6)}`}</dd><dt>Tokens</dt><dd>{o.usage ? `${o.usage.inputTokens} in · ${o.usage.outputTokens} out` : 'n/a'}</dd></dl></details>
+      <details className="tech"><summary>Technical details</summary><dl><dt>Tool</dt><dd>{o.tool ?? 'none'}</dd><dt>Input</dt><dd>{JSON.stringify(o.input)}</dd><dt>Model</dt><dd>{o.model}</dd><dt>Models tried</dt><dd>{o.attempts.length ? o.attempts.map((a) => `${a.model} ${a.ok ? 'answered' : 'did not answer'}`).join(' · ') : 'not reported'}</dd><dt>Time</dt><dd>{(o.ms / 1000).toFixed(1)} s</dd><dt>Cost</dt><dd>{o.cost == null ? 'n/a' : `$${o.cost.toFixed(6)}`}</dd><dt>Tokens</dt><dd>{o.usage ? `${o.usage.inputTokens} in · ${o.usage.outputTokens} out` : 'n/a'}</dd></dl></details>
     </div>
   )
 }

@@ -103,6 +103,9 @@ create table if not exists hub_checks (
   ai_unavailable text,
   request_id text references requests(request_id)
 );
+-- Step 7 (docs/RUN-TRACE-CONTRACT.md §3): every model the Gateway tried, in order, and how long the proposal took.
+alter table hub_checks add column if not exists ai_attempts jsonb;
+alter table hub_checks add column if not exists ai_ms int;
 create index if not exists hub_checks_latest on hub_checks (requester_email, domain, tax_canonical, at desc);
 create index if not exists hub_checks_by_month on hub_checks (at, route);
 

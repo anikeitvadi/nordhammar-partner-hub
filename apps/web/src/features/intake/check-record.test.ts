@@ -12,10 +12,10 @@ describe('what a check leaves behind', () => {
     expect(checkRecord({ kind: 'error', message: 'x' })).toBeNull()
     expect(checkRecord({ kind: 'invalid', reason: 'invalid_checksum' })).toBeNull()
   })
-  it('the compare route carries the verdict, the served model, tokens and cost', () => {
+  it('the compare route carries the verdict, the served model, every model tried, tokens, cost and time', () => {
     const r = checkRecord({ kind: 'compare', echo, candidates: [{ goldenId: 'G-LEGACY', legalName: 'Vela Processos', city: 'Cidade Exemplo', hasTaxId: false, groupName: 'Vela Holdings' }],
-      outcome: { ai: 'available', proposal: { verdict: 'unsure', golden_id: 'G-LEGACY', groupRelation: 'suggested', reasons: [] }, model: 'openai/gpt-4.1-mini', usage: { inputTokens: 430, outputTokens: 130 }, cost: 0.00038, generationId: 'gen_1' } } as never)
-    expect(r?.ai).toEqual({ verdict: 'unsure', goldenId: 'G-LEGACY', model: 'openai/gpt-4.1-mini', inputTokens: 430, outputTokens: 130, cost: 0.00038, generationId: 'gen_1', unavailable: null })
+      outcome: { ai: 'available', proposal: { verdict: 'unsure', golden_id: 'G-LEGACY', groupRelation: 'suggested', reasons: [] }, model: 'openai/gpt-4.1-mini', usage: { inputTokens: 430, outputTokens: 130 }, cost: 0.00038, generationId: 'gen_1', attempts: [{ model: 'openai/gpt-4.1-mini', ok: true }], ms: 812 } } as never)
+    expect(r?.ai).toEqual({ verdict: 'unsure', goldenId: 'G-LEGACY', model: 'openai/gpt-4.1-mini', inputTokens: 430, outputTokens: 130, cost: 0.00038, generationId: 'gen_1', unavailable: null, attempts: [{ model: 'openai/gpt-4.1-mini', ok: true }], ms: 812 })
     expect(r?.matchedName).toBe('Vela Processos')
   })
   it('a model that was unavailable is recorded as such, not as a verdict', () => {
@@ -25,7 +25,9 @@ describe('what a check leaves behind', () => {
   })
   it('the timeline line names the reading and its cost, and says who decides', () => {
     expect(describeCheck({ route: 'compare', matchedName: 'Vela Processos', ai: { verdict: 'unsure', goldenId: null, model: 'openai/gpt-4.1-mini', inputTokens: 1, outputTokens: 1, cost: 0.00038, generationId: null, unavailable: null } }))
-      .toBe('Checked against the hub: a possible match by name, Vela Processos, with no tax ID on file. The AI reading was "unsure" (openai/gpt-4.1-mini, $0.0004); the reviewer decides.')
+      .toBe('Checked against the hub: a possible match by name, Vela Processos, with no tax ID on file. The AI reading was "unsure" (openai/gpt-4.1-mini, $0.0004); the central team decides.')
     expect(describeCheck({ route: 'clear' })).toBe('Checked against the hub before the form opened: no match')
+    expect(describeCheck({ route: 'compare', matchedName: 'Vela Processos', ai: { verdict: 'unsure', goldenId: null, model: 'openai/gpt-4.1-mini', inputTokens: 1, outputTokens: 1, cost: 0.00038, generationId: null, unavailable: null, attempts: [{ model: 'anthropic/claude-haiku-4.5', ok: false }, { model: 'openai/gpt-4.1-mini', ok: true }] } }))
+      .toContain('anthropic/claude-haiku-4.5 did not answer; served by openai/gpt-4.1-mini')
   })
 })

@@ -11,9 +11,9 @@ export async function recordCheck(principal: Principal, domain: Domain, region: 
   const a = rec.ai
   try {
     await sql()`insert into hub_checks (check_id, requester_email, domain, region, tax_canonical, route, matched_golden_id, matched_name, matched_region,
-        ai_verdict, ai_golden_id, ai_model, ai_input_tokens, ai_output_tokens, ai_cost, ai_generation_id, ai_unavailable)
+        ai_verdict, ai_golden_id, ai_model, ai_input_tokens, ai_output_tokens, ai_cost, ai_generation_id, ai_unavailable, ai_attempts, ai_ms)
       values (${id()}, ${principal.email}, ${domain}, ${region}, ${rec.taxCanonical}, ${rec.route}, ${rec.matchedGoldenId}, ${rec.matchedName}, ${rec.matchedRegion},
-        ${a?.verdict ?? null}, ${a?.goldenId ?? null}, ${a?.model ?? null}, ${a?.inputTokens ?? null}, ${a?.outputTokens ?? null}, ${a?.cost ?? null}, ${a?.generationId ?? null}, ${a?.unavailable ?? null})`
+        ${a?.verdict ?? null}, ${a?.goldenId ?? null}, ${a?.model ?? null}, ${a?.inputTokens ?? null}, ${a?.outputTokens ?? null}, ${a?.cost ?? null}, ${a?.generationId ?? null}, ${a?.unavailable ?? null}, ${a?.attempts ? JSON.stringify(a.attempts) : null}::jsonb, ${a?.ms ?? null})`
   } catch (e) {
     console.error('hub check not recorded', e instanceof Error ? e.message : e)
   }
@@ -28,10 +28,10 @@ export async function linkLatestCheck(principal: Principal, domain: Domain, taxC
     const rows = await db`update hub_checks set request_id = ${requestId}
       where check_id = (select check_id from hub_checks where requester_email = ${principal.email} and domain = ${domain} and tax_canonical = ${taxCanonical}
         and request_id is null and at > now() - interval '2 hours' order by at desc limit 1)
-      returning route, matched_name, matched_region, ai_verdict, ai_golden_id, ai_model, ai_input_tokens, ai_output_tokens, ai_cost, ai_unavailable`
+      returning route, matched_name, matched_region, ai_verdict, ai_golden_id, ai_model, ai_input_tokens, ai_output_tokens, ai_cost, ai_unavailable, ai_attempts, ai_ms`
     const r = rows[0]
     if (!r) return
-    const ai = r.route === 'compare' ? { verdict: r.ai_verdict ?? null, goldenId: r.ai_golden_id ?? null, model: r.ai_model ?? null, inputTokens: r.ai_input_tokens ?? null, outputTokens: r.ai_output_tokens ?? null, cost: r.ai_cost == null ? null : Number(r.ai_cost), generationId: null, unavailable: r.ai_unavailable ?? null } : null
+    const ai = r.route === 'compare' ? { verdict: r.ai_verdict ?? null, goldenId: r.ai_golden_id ?? null, model: r.ai_model ?? null, inputTokens: r.ai_input_tokens ?? null, outputTokens: r.ai_output_tokens ?? null, cost: r.ai_cost == null ? null : Number(r.ai_cost), generationId: null, unavailable: r.ai_unavailable ?? null, attempts: r.ai_attempts ?? null, ms: r.ai_ms ?? null } : null
     await db`insert into request_events (request_id, kind, actor, detail) values (${requestId}, 'hub_checked', 'hub', ${JSON.stringify({ route: r.route, matchedName: r.matched_name, matchedRegion: r.matched_region, ai })}::jsonb)`
   } catch (e) {
     console.error('hub check not linked', e instanceof Error ? e.message : e)

@@ -1,4 +1,5 @@
 import type { CheckResult } from './types'
+import { describeFallback } from '@/features/ai/models'
 
 // Pure. What one on-entry check leaves behind: the route it took, the record it matched (never a foreign record's
 // id, only its region), and on the compare route what the model proposed and what that cost. Null for results that
@@ -9,7 +10,7 @@ export type CheckRecord = {
   matchedGoldenId: string | null
   matchedName: string | null
   matchedRegion: string | null
-  ai: { verdict: string | null; goldenId: string | null; model: string | null; inputTokens: number | null; outputTokens: number | null; cost: number | null; generationId: string | null; unavailable: string | null } | null
+  ai: { verdict: string | null; goldenId: string | null; model: string | null; inputTokens: number | null; outputTokens: number | null; cost: number | null; generationId: string | null; unavailable: string | null; attempts?: { model: string; ok: boolean }[] | null; ms?: number | null } | null
 }
 
 export function checkRecord(r: CheckResult): CheckRecord | null {
@@ -25,7 +26,7 @@ export function checkRecord(r: CheckResult): CheckRecord | null {
       return {
         route: 'compare', taxCanonical: r.echo.taxCanonical, matchedGoldenId: about?.goldenId ?? null, matchedName: about?.legalName ?? null, matchedRegion: r.echo.region,
         ai: o.ai === 'available'
-          ? { verdict: o.proposal.verdict, goldenId: o.proposal.golden_id, model: o.model, inputTokens: o.usage?.inputTokens ?? null, outputTokens: o.usage?.outputTokens ?? null, cost: o.cost ?? null, generationId: o.generationId ?? null, unavailable: null }
+          ? { verdict: o.proposal.verdict, goldenId: o.proposal.golden_id, model: o.model, inputTokens: o.usage?.inputTokens ?? null, outputTokens: o.usage?.outputTokens ?? null, cost: o.cost ?? null, generationId: o.generationId ?? null, unavailable: null, attempts: o.attempts ?? null, ms: o.ms ?? null }
           : { verdict: null, goldenId: null, model: null, inputTokens: null, outputTokens: null, cost: null, generationId: null, unavailable: o.reason },
       }
     }
@@ -35,7 +36,8 @@ export function checkRecord(r: CheckResult): CheckRecord | null {
 // The timeline line a linked check becomes on the request it led to.
 export function describeCheck(d: { route?: string; matchedName?: string | null; matchedRegion?: string | null; ai?: CheckRecord['ai'] }): string {
   const ai = d.ai
-  const reading = ai ? (ai.verdict ? ` The AI reading was "${ai.verdict}"${ai.model ? ` (${ai.model}${ai.cost != null ? `, $${ai.cost.toFixed(4)}` : ''})` : ''}; the reviewer decides.` : ' No AI reading was available; the reviewer compares by hand.') : ''
+  const fell = describeFallback(ai?.attempts)
+  const reading = ai ? (ai.verdict ? ` The AI reading was "${ai.verdict}"${ai.model ? ` (${ai.model}${ai.cost != null ? `, $${ai.cost.toFixed(4)}` : ''})` : ''}${fell ? `; ${fell}` : ''}; the central team decides.` : ' No AI reading was available; the central team compares by hand.') : ''
   switch (d.route) {
     case 'clear': return 'Checked against the hub before the form opened: no match'
     case 'related': return `Checked against the hub: same company as ${d.matchedName ?? 'an existing record'}, a different establishment`
