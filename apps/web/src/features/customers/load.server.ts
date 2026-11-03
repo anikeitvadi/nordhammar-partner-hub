@@ -1,14 +1,14 @@
 import 'server-only'
 import { transition, type CanonicalPayload, type Domain, type Region, type RequestState } from '@intake/contracts'
 import { sql } from '@/lib/db'
-import type { Principal } from '@/features/auth/scope'
+import { isCentral, type Principal } from '@/features/auth/scope'
 
 // Stands in for the nightly hub load: every request the ERP created since the last load becomes a golden record
 // (matched to the request by tax ID, as the real load does), the request gains its golden id, and the identity
 // reservation is released because the hub now holds the identity. Until this runs, search cannot see the partner
 // and the request page says so. That limit is real and stated, not hidden behind a cache trick.
 export async function runDailyLoad(principal: Principal): Promise<{ loaded: number; regions: Region[] }> {
-  if (!(principal.globalIdentity && (principal.role === 'operator' || principal.role === 'reviewer'))) return { loaded: 0, regions: [] }
+  if (!isCentral(principal)) return { loaded: 0, regions: [] }
   const db = sql()
   const rows = await db`select r.request_id, r.domain, r.region, r.state, v.payload from requests r join request_revisions v on v.request_id = r.request_id and v.revision = r.current_revision where r.state_kind = 'created' and (r.state->>'goldenId') is null`
   const regions = new Set<Region>()

@@ -1,7 +1,7 @@
 import 'server-only'
 import { transition, type Approval, type RequestState } from '@intake/contracts'
 import { sql } from '@/lib/db'
-import type { Principal } from '@/features/auth/scope'
+import { isCentral, type Principal } from '@/features/auth/scope'
 
 // Boundary 2 of 3. The only writer of a review decision.
 // Fresh authorization at execution time (the caller passes the principal it just loaded, not one from a form).
@@ -15,7 +15,7 @@ export type DecideInput = { requestId: string; revision: number; payloadHash: st
 export type DecideResult = { ok: true; next: RequestState; decisionId: string } | { ok: false; reason: 'not_reviewer' | 'not_found' | 'stale' | 'already_decided' | 'reason_required' | 'invalid_transition' }
 
 export async function decide(principal: Principal, input: DecideInput): Promise<DecideResult> {
-  if (!(principal.globalIdentity && principal.role === 'reviewer')) return { ok: false, reason: 'not_reviewer' }
+  if (!isCentral(principal)) return { ok: false, reason: 'not_reviewer' }
   if ((input.decision === 'decline' || input.decision === 'send_back') && !input.reason?.trim()) return { ok: false, reason: 'reason_required' }
   const db = sql()
   const rows = await db`select r.state, r.current_revision, v.payload_hash from requests r join request_revisions v on v.request_id = r.request_id and v.revision = r.current_revision where r.request_id = ${input.requestId}`
@@ -46,7 +46,7 @@ export async function decide(principal: Principal, input: DecideInput): Promise<
 
 // submitted → under_review when a reviewer opens it. Idempotent: opening twice is a no-op.
 export async function openReview(principal: Principal, requestId: string, revision: number): Promise<void> {
-  if (!(principal.globalIdentity && principal.role === 'reviewer')) return
+  if (!isCentral(principal)) return
   const rows = await sql()`select state from requests where request_id = ${requestId} and current_revision = ${revision}`
   const state = rows[0]?.state as RequestState | undefined
   if (!state || state.kind !== 'submitted') return

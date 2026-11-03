@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { typeLabel } from '@/features/requests/payload'
 import { notFound } from 'next/navigation'
 import { requirePrincipal } from '@/features/auth/principal.server'
+import { isCentral } from '@/features/auth/scope'
 import { getRequest } from '@/features/requests/store.server'
 import { decideAction, openReviewAction } from '@/features/reviews/actions'
 import { StatusBadge } from '@/features/requests/status'
@@ -22,7 +23,7 @@ const KIND: Record<string, string> = { bill_to: 'Bill-to', ship_to: 'Ship-to', r
 export default async function ReviewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const principal = await requirePrincipal()
-  if (!(principal.globalIdentity && principal.role === 'reviewer')) return <section className="narrow card" style={{ marginTop: 48 }}><h1>Reviews</h1><p>Your role cannot decide requests. Reviewers on the North America and India shifts do.</p></section>
+  if (!isCentral(principal)) return <section className="narrow card" style={{ marginTop: 48 }}><h1>Reviews</h1><p>Requests are decided by the central master data team.</p></section>
   const r = await getRequest(principal, id)
   if (!r) notFound()
   const s = r.state

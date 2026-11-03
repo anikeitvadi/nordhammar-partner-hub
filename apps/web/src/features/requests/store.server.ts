@@ -1,7 +1,7 @@
 import 'server-only'
 import { payloadHash, transition, type CanonicalPayload, type Domain, type Region, type RequestState } from '@intake/contracts'
 import { sql } from '@/lib/db'
-import { canSeeIdentity, type Principal } from '@/features/auth/scope'
+import { canSeeIdentity, isCentral, type Principal } from '@/features/auth/scope'
 
 // Owns every write to the request tables except the review decision (decide.server.ts) and the execution steps.
 // Reads are scoped: a requester sees their own requests; a global reviewer or operator sees all.
@@ -119,7 +119,7 @@ export async function listMyRequests(principal: Principal): Promise<RequestSumma
 
 // The review queue: all regions, oldest first. Only a global reviewer may list it.
 export async function listQueue(principal: Principal): Promise<RequestSummary[]> {
-  if (!(principal.globalIdentity && (principal.role === 'reviewer' || principal.role === 'operator'))) return []
+  if (!isCentral(principal)) return []
   const rows = await sql()`select r.*, v.payload from requests r join request_revisions v on v.request_id = r.request_id and v.revision = r.current_revision where r.state_kind in ('submitted','under_review') order by r.created_at asc limit 50`
   return rows.map(toSummary)
 }

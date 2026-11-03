@@ -1,12 +1,12 @@
 import 'server-only'
 import { transition, type CanonicalPayload, type Region, type RequestState } from '@intake/contracts'
 import { sql } from '@/lib/db'
-import type { Principal } from '@/features/auth/scope'
+import { isCentral, type Principal } from '@/features/auth/scope'
 import { lookupOperation } from '@/features/erp/erp.server'
 
 // The operator's view: what needs a human, and the two things a human may do about an execution that stopped.
 // Neither path calls the ERP create. Recovery re-delivers; reconciliation reads the ERP's own ledger by key.
-export function isOperator(p: Principal) { return p.globalIdentity && (p.role === 'operator' || p.role === 'reviewer') }
+export const isOperator = isCentral
 
 export type AttentionRow = { requestId: string; domain: string; region: Region; legalName: string; revision: number; state: RequestState; pendingDeliveries: { kind: string; attempts: number; lastError: string | null }[] }
 

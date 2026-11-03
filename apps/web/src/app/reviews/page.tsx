@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { requirePrincipal } from '@/features/auth/principal.server'
+import { isCentral } from '@/features/auth/scope'
 import { listQueue } from '@/features/requests/store.server'
 import { StatusBadge } from '@/features/requests/status'
 import { LocalTime } from '@/features/ui/time.client'
@@ -10,7 +11,7 @@ export const metadata: Metadata = { title: 'Reviews' }
 // One queue, all regions, oldest first. The two shifts are coverage, not ownership.
 export default async function ReviewQueuePage() {
   const principal = await requirePrincipal()
-  if (!(principal.globalIdentity && (principal.role === 'reviewer' || principal.role === 'operator'))) return <section className="narrow card" style={{ marginTop: 48 }}><h1>Reviews</h1><p>Your role does not include the review queue.</p></section>
+  if (!isCentral(principal)) return <section className="narrow card" style={{ marginTop: 48 }}><h1>Reviews</h1><p>The review queue belongs to the central master data team.</p></section>
   const rows = await listQueue(principal)
   return (
     <section>

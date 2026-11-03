@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { canSeeIdentity, canSeeMoney, hasAnyRegion, visibleRegions, type Principal } from './scope'
+import { canSeeIdentity, canSeeMoney, hasAnyRegion, isCentral, visibleRegions, type Principal } from './scope'
 
 const requesterBR: Principal = { email: 'ana@example.com', displayName: 'Ana', role: 'requester', regions: ['BR'], globalIdentity: false, moneyRegions: ['BR'] }
 const reviewer: Principal = { email: 'priya@example.com', displayName: 'Priya', role: 'reviewer', regions: ['BR', 'EU', 'US', 'IN', 'CN'], globalIdentity: true, moneyRegions: [] }
@@ -23,5 +23,18 @@ describe('scope', () => {
     expect(hasAnyRegion(noRegion)).toBe(false)
     expect(visibleRegions(noRegion)).toEqual([])
     expect(canSeeIdentity(noRegion, 'BR')).toBe(false)
+  })
+})
+
+describe('the two roles', () => {
+  const central = (role: Principal['role']): Principal => ({ email: 'c@example.com', displayName: 'C', role, regions: ['BR', 'EU', 'US', 'IN', 'CN'], globalIdentity: true, moneyRegions: ['BR', 'EU', 'US', 'IN', 'CN'] })
+  it('the central team is steward, and the earlier reviewer and operator values read the same', () => {
+    expect(isCentral(central('steward'))).toBe(true)
+    expect(isCentral(central('reviewer'))).toBe(true)
+    expect(isCentral(central('operator'))).toBe(true)
+  })
+  it('a regional user is never central, and a central role without global identity is not either', () => {
+    expect(isCentral(requesterBR)).toBe(false)
+    expect(isCentral({ ...central('steward'), globalIdentity: false })).toBe(false)
   })
 })
