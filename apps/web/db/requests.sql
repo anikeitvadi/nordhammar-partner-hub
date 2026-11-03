@@ -77,3 +77,31 @@ create table if not exists deliveries (
   updated_at timestamptz not null default now(),
   primary key (request_id, revision, kind)
 );
+
+-- Every on-entry check, whatever it found. "Duplicates stopped at entry" is counted from here: an exact tax-ID match
+-- the form would not continue past. Written best-effort by the check (a failed write never blocks the form) and
+-- linked to the request that follows, if one does. On the compare route it also holds what the model proposed and
+-- what that cost, read from the Gateway's response, so the request carries its own AI record without trusting the browser.
+create table if not exists hub_checks (
+  check_id text primary key,
+  at timestamptz not null default now(),
+  requester_email text not null,
+  domain text not null check (domain in ('customer','supplier')),
+  region text not null,
+  tax_canonical text not null,
+  route text not null check (route in ('exact_visible','exact_foreign','related','compare','clear')),
+  matched_golden_id text,               -- null on exact_foreign: the requester only ever saw the region
+  matched_name text,
+  matched_region text,
+  ai_verdict text,
+  ai_golden_id text,
+  ai_model text,
+  ai_input_tokens int,
+  ai_output_tokens int,
+  ai_cost numeric,
+  ai_generation_id text,
+  ai_unavailable text,
+  request_id text references requests(request_id)
+);
+create index if not exists hub_checks_latest on hub_checks (requester_email, domain, tax_canonical, at desc);
+create index if not exists hub_checks_by_month on hub_checks (at, route);

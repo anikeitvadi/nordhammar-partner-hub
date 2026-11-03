@@ -1,20 +1,29 @@
 'use server'
 import type { Domain, Region } from '@intake/contracts'
 import { requirePrincipal } from '@/features/auth/principal.server'
-import { visibleRegions } from '@/features/auth/scope'
+import { visibleRegions, type Principal } from '@/features/auth/scope'
 import { exactTaxIdLookup, findNameCandidates } from '@/features/customers/hub.server'
 import { normalizeTaxId } from './normalize'
 import { preflight } from './match'
 import { proposeMatch } from './agent.server'
 import { aiSuggestion } from '@/features/flags/flags'
 import type { CheckResult } from './types'
+import { checkRecord } from './check-record'
+import { recordCheck } from './checks.server'
 
 const COUNTRY_BY_REGION: Record<Region, string[]> = { BR: ['BR'], EU: ['DE', 'FR', 'NL', 'SE', 'IT', 'ES', 'NO', 'PT', 'AT', 'BE', 'DK', 'FI', 'PL', 'IE'], US: ['US'], IN: ['IN'], CN: ['CN'] }
 
 // Server Action: the only way the form reaches the hub. Re-derives the principal and the region on every call;
-// nothing from the form is trusted for either. Returns a DTO the client island renders.
+// nothing from the form is trusted for either. Returns a DTO the client island renders, and records what it found.
 export async function checkMatches(_prev: CheckResult | null, formData: FormData): Promise<CheckResult> {
   const principal = await requirePrincipal()
+  const result = await runCheck(principal, formData)
+  const rec = checkRecord(result)
+  if (rec && 'echo' in result) await recordCheck(principal, result.echo.domain, result.echo.region, rec)
+  return result
+}
+
+async function runCheck(principal: Principal, formData: FormData): Promise<CheckResult> {
   const domain: Domain = formData.get('domain') === 'supplier' ? 'supplier' : 'customer'
   const region = String(formData.get('region') ?? '') as Region
   if (!visibleRegions(principal).includes(region)) return { kind: 'error', message: 'You are not entitled to request in that region.' }

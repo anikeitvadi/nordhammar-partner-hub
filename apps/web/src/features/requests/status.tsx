@@ -1,4 +1,5 @@
 import type { Domain, RequestState } from '@intake/contracts'
+import { describeCheck } from '@/features/intake/check-record'
 
 export const STATE_LABEL: Record<RequestState['kind'], string> = { draft: 'Draft', submitted: 'Submitted', under_review: 'Under review', approved: 'Approved', creating: 'Creating in ERP', created: 'Created', declined: 'Declined', stopped: 'Stopped' }
 
@@ -53,6 +54,7 @@ export function describeEvent(e: TimelineEvent): string {
     case 'stopped': return d.outcome === 'transient' ? 'Stopped: the ERP did not answer after several tries. An operator will check whether it was created before anything is retried' : `Stopped: ${String(d.reason ?? '')}`
     case 'reconciled': return d.outcome === 'created' ? 'Checked with the ERP: it had been created. Marked as created' : 'Checked with the ERP: nothing was created'
     case 'returned_to_requester': return 'Returned to the requester as a draft'
+    case 'hub_checked': return describeCheck(d as Parameters<typeof describeCheck>[0])
     case 'hub_loaded': return `Picked up by the hub load as ${String(d.goldenId ?? '')}. Search finds it from now`
     default: return e.kind.replace(/_/g, ' ')
   }
@@ -83,6 +85,11 @@ export function technicalEvent(e: TimelineEvent): string | null {
   const d = (e.detail ?? {}) as Record<string, unknown>
   if (e.kind === 'erp_attempt') return [d.phase ? `phase ${String(d.phase)}` : null, d.credential ? `credential ${String(d.credential)}` : null, d.reason ? `reason "${String(d.reason)}"` : null, d.operationKey ? `key ${String(d.operationKey)}` : null].filter(Boolean).join(', ')
   if (e.kind === 'creating') return d.operationKey ? `operation key ${String(d.operationKey)}; run ${String(d.workflowRunId ?? '')}` : null
+  if (e.kind === 'hub_checked') {
+    const ai = d.ai as { model?: string | null; inputTokens?: number | null; outputTokens?: number | null; cost?: number | null; unavailable?: string | null } | null | undefined
+    if (!ai) return d.route ? `route ${String(d.route)}` : null
+    return [`route ${String(d.route)}`, ai.model ? `served by ${ai.model}` : null, ai.inputTokens != null ? `${ai.inputTokens} in / ${ai.outputTokens ?? 0} out tokens` : null, ai.cost != null ? `$${ai.cost.toFixed(5)}` : null, ai.unavailable ? `unavailable: ${ai.unavailable}` : null].filter(Boolean).join(', ')
+  }
   if (e.kind === 'approve') return d.decisionId ? `decision ${String(d.decisionId)}, revision ${String(d.revision ?? '')}` : null
   return null
 }

@@ -433,3 +433,4 @@ button.strip-tile:hover { background: var(--canvas); }
 .split-table .strip-regions { grid-column: 1 / -1; }
 .strip:not(:has(.strip-regions)) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 @media (max-width: 720px) { .strip:not(:has(.strip-regions)) { grid-template-columns: 1fr 1fr; } }
+.stat-inline { font-family: var(--sans); font-size: 1.4rem; font-weight: 600; font-variant-numeric: tabular-nums; margin-right: 2px; }

@@ -2,6 +2,7 @@ import 'server-only'
 import { payloadHash, transition, type CanonicalPayload, type Domain, type Region, type RequestState } from '@intake/contracts'
 import { sql } from '@/lib/db'
 import { canSeeIdentity, isCentral, type Principal } from '@/features/auth/scope'
+import { linkLatestCheck } from '@/features/intake/checks.server'
 
 // Owns every write to the request tables except the review decision (decide.server.ts) and the execution steps.
 // Reads are scoped: a requester sees their own requests; a global reviewer or operator sees all.
@@ -42,6 +43,7 @@ export async function submitRequest(principal: Principal, input: { domain: Domai
     if (e instanceof Error && /identity_reservations/.test(e.message)) throw new ConflictError(`An open ${input.domain} request already exists for this tax ID.`)
     throw e
   }
+  await linkLatestCheck(principal, input.domain, input.payload.identity.canonical, requestId)
   return { requestId }
 }
 
@@ -83,6 +85,7 @@ export async function resubmitRequest(principal: Principal, requestId: string, p
     if (e instanceof Error && /identity_reservations/.test(e.message)) throw new ConflictError(`An open ${current.domain} request already exists for this tax ID.`)
     throw e
   }
+  if (firstSubmission) await linkLatestCheck(principal, current.domain, payload.identity.canonical, requestId)
 }
 
 async function loadState(requestId: string): Promise<{ state: RequestState; requesterEmail: string; region: Region; domain: Domain } | null> {

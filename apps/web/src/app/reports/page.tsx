@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import type { RequestState } from '@intake/contracts'
 import { requirePrincipal } from '@/features/auth/principal.server'
-import { reportExposure, reportIntake, reportOnHold } from '@/features/customers/reports.server'
+import { reportExposure, reportIntake, reportOnHold, reportStoppedAtEntry } from '@/features/customers/reports.server'
 import { STATE_LABEL } from '@/features/requests/status'
 
 export const metadata: Metadata = { title: 'Reports' }
@@ -13,7 +13,7 @@ const money = (currency: string, n: number) => new Intl.NumberFormat('en', { sty
 export default async function ReportsPage() {
   const principal = await requirePrincipal()
   if (!principal.globalIdentity) return <section><h1>Reports</h1><p>Reports are for global roles.</p></section>
-  const [hold, intake, exposure] = await Promise.all([reportOnHold(principal), reportIntake(principal), reportExposure(principal)])
+  const [hold, intake, exposure, stopped] = await Promise.all([reportOnHold(principal), reportIntake(principal), reportExposure(principal), reportStoppedAtEntry(principal)])
   return (
     <section>
       <h1>Reports</h1>
@@ -23,6 +23,8 @@ export default async function ReportsPage() {
         <table className="results"><thead><tr><th>Region</th><th className="num">Customers on hold</th><th className="num">Suppliers on hold</th><th>Oldest last activity</th></tr></thead>
           <tbody>{hold.map((r) => <tr key={r.region}><td>{r.region}</td><td className="num">{r.customers}</td><td className="num">{r.suppliers}</td><td>{r.oldestActivity ?? '—'}</td></tr>)}</tbody></table>
       )}
+      <h2>Duplicates stopped at entry this month</h2>
+      <p><strong className="stat-inline">{stopped.stopped}</strong> {stopped.stopped === 1 ? 'request' : 'requests'} stopped before they were raised, because the tax ID already exists: {stopped.sameRegion} in the requester&apos;s own region, {stopped.otherRegion} in a region they cannot see. Out of {stopped.checks} {stopped.checks === 1 ? 'check' : 'checks'} run.</p>
       <h2>Intake this month</h2>
       {intake.length === 0 ? <p className="muted">No requests this month yet.</p> : (
         <table className="results"><thead><tr><th>State</th><th className="num">Customers</th><th className="num">Suppliers</th><th className="num">Median hours, submitted to created</th></tr></thead>
