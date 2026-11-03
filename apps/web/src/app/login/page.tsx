@@ -62,12 +62,12 @@ export default function LoginPage({ searchParams }: { searchParams: Params }) {
       </div>
       <div className="bento">
         <div className="tile span2">
-          <p className="runin"><strong>Every customer and supplier we already have.</strong> Five regions, two ERPs, one search box.</p>
+          <p className="runin"><strong>Every customer and supplier we already have.</strong> Five regions, three ERPs, one search box.</p>
           <div className="tile-body fragment" aria-hidden="true">
             <ul className="rows">
-              <li className="nolead"><span><span className="t">Aurora Industrial Ltda</span><span className="s">Cidade Exemplo · BR · ERP-1 25002</span></span><span className="badge badge-created">Active</span></li>
-              <li className="nolead"><span><span className="t">Aurora Nordic AB</span><span className="s">Göteborg · EU · ERP-2 30012</span></span><span className="badge badge-created">Active</span></li>
-              <li className="nolead"><span><span className="t">Vela Processos</span><span className="s">Cidade Exemplo · BR · ERP-1 25010</span></span><span className="badge badge-stopped">On hold</span></li>
+              <li className="nolead"><span><span className="t">Aurora Industrial Ltda</span><span className="s">Cidade Exemplo · BR · ERP-1 110001</span></span><span className="badge badge-created">Active</span></li>
+              <li className="nolead"><span><span className="t">Aurora Nordic AB</span><span className="s">Göteborg · EU · ERP-2 210006</span></span><span className="badge badge-created">Active</span></li>
+              <li className="nolead"><span><span className="t">Vela Processos</span><span className="s">Cidade Exemplo · BR · ERP-1 110002</span></span><span className="badge badge-stopped">On hold</span></li>
             </ul>
           </div>
         </div>
@@ -80,7 +80,7 @@ export default function LoginPage({ searchParams }: { searchParams: Params }) {
         </div>
         <div className="tile dark">
           <p className="runin"><strong>One search</strong> across the whole company.</p>
-          <div className="tile-body"><div className="stat">5<small>regions</small></div><p className="stat-label">Brazil, the US, India, China and Europe; two ERPs; one record per legal entity, checked on the tax ID before a request can continue.</p></div>
+          <div className="tile-body"><div className="stat">5<small>regions</small></div><p className="stat-label">Brazil, the US, India, China and Europe; three ERPs; one record per legal entity, checked on the tax ID before a request can continue.</p></div>
         </div>
         <div className="tile">
           <p className="runin"><strong>Three people, two roles.</strong> Sign in as any of them.</p>

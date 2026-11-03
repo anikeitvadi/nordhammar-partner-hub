@@ -5,8 +5,8 @@ import { revalidatePath, updateTag } from 'next/cache'
 import { requirePrincipal } from '@/features/auth/principal.server'
 import { deliverPending } from './deliver.server'
 import { isOperator, reconcile, recoverToDraft } from './operator.server'
-import { runDailyLoad } from '@/features/customers/load.server'
-import { armLostResponseFault } from '@/features/erp/erp.server'
+import { applyGoldenRecords, loadCursor } from '@/features/customers/load.server'
+import { armLostResponseFault, readGoldenRecords } from '@/features/erp/erp.server'
 
 function back(msg: string): never { redirect(`/operations?msg=${encodeURIComponent(msg)}`) }
 
@@ -35,16 +35,25 @@ export async function recoverAction(formData: FormData): Promise<void> {
   back(r.ok ? 'recovered' : 'noop')
 }
 
-// The simulated nightly hub load. In the customer's world this is the integration platform's nightly load; here it is the only thing that makes
-// a created customer searchable, and the only thing that invalidates the per-region search cache. updateTag is the
-// Server-Action form of invalidation: immediate expiry, the next read misses the cache and sees the new golden record.
+// The nightly hub load: read the integration platform's golden-record feed from where the last load stopped, page by
+// page, and write it into the hub. It is the only thing that makes a created partner searchable, and the only thing that
+// invalidates the per-region search cache. updateTag is the Server-Action form of invalidation: immediate expiry, the
+// next read misses the cache and sees the new golden record.
 export async function dailyLoadAction(): Promise<void> {
   const principal = await requirePrincipal()
   if (!isOperator(principal)) back('not_operator')
-  const r = await runDailyLoad(principal)
-  for (const region of r.regions) updateTag(`hub:${region}`)
+  let since = await loadCursor()
+  const totals = { loaded: 0, linked: 0, regions: new Set<string>() }
+  for (let pages = 0; pages < 50; pages++) {
+    const feed = await readGoldenRecords(since)
+    if (feed.records.length === 0) break
+    const r = await applyGoldenRecords(principal, feed.records, feed.next)
+    totals.loaded += r.loaded; totals.linked += r.linked; r.regions.forEach((x) => totals.regions.add(x))
+    since = feed.next
+  }
+  for (const region of totals.regions) updateTag(`hub:${region}`)
   revalidatePath('/operations')
-  back(`loaded:${r.loaded}:${r.regions.join(',')}`)
+  back(`loaded:${totals.loaded}:${[...totals.regions].join(',')}`)
 }
 
 // Demo control: the next successful ERP create loses its response, once. What a viewer sees: attempt 1 commits

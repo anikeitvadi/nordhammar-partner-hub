@@ -33,7 +33,7 @@ export default async function HomePage() {
           <form method="get" action="/customers" className="tile-body" role="search">
             <input type="hidden" name="region" value={region} />
             <div className="row" style={{ margin: 0 }}>
-              <input name="q" placeholder="Aurora, 61.000.101/0001-57, Joinville, 25002…" aria-label="Search" style={{ flex: 1, minWidth: 200 }} />
+              <input name="q" placeholder="Aurora, 61.000.101/0001-57, Joinville, 110001…" aria-label="Search" style={{ flex: 1, minWidth: 200 }} />
               <button type="submit">Search customers</button>
               <button type="submit" formAction="/suppliers" className="secondary">Suppliers</button>
             </div>

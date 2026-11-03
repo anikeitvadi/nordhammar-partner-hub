@@ -11,8 +11,11 @@
 // can only honestly write states whose run has already finished.
 //
 // Every seeded request id starts with R-SEED, so --reset can never touch a request someone raised in the app.
+// ERP numbers sit in each ERP's seed range (x10101 to x10200 customers, x50101 to x50200 suppliers), below where live
+// creates start, so a seeded number can never collide with one the stand-in assigns. A partner the ERP created is
+// also published to the golden-record feed, as the customer's pipeline would, and arrives in the hub on the next load.
 import { neon } from '@neondatabase/serverless'
-import { operationKey, payloadHash, type Approval, type CanonicalPayload, type Domain, type Region, type RequestState } from '@intake/contracts'
+import { goldenFromPayload, operationKey, payloadHash, type Approval, type CanonicalPayload, type Domain, type Region, type RequestState } from '@intake/contracts'
 import { normalizeTaxId } from '../src/features/intake/normalize'
 import { buildPayload } from '../src/features/requests/payload'
 
@@ -56,10 +59,10 @@ const rows: Row[] = [
   // Brazil: Ana
   { id: 'R-SEEDBR01', phase: 'history', daysAgo: 40, region: 'BR', domain: 'customer', requester: REQ.BR, country: 'BR', tax: cnpj('62110204', '0001'),
     values: { legalName: 'Ferroquímica Paulista Ltda', typeCode: 'end_user', industry: 'Chemicals', reasonText: 'New end user for dosing pumps; first order quoted.', ...addr('Avenida dos Químicos', '480', 'Cubatão', { district: 'Vila Parisi', regionCode: 'SP', postalCode: '11573-000' }) },
-    outcome: { kind: 'created', erpNumber: '25510' } },
+    outcome: { kind: 'created', erpNumber: '110101' } },
   { id: 'R-SEEDBR02', phase: 'history', daysAgo: 33, region: 'BR', domain: 'supplier', requester: REQ.BR, country: 'BR', tax: cnpj('62110318', '0001'),
     values: { legalName: 'Transportes Serra Azul Ltda', typeCode: 'logistics', industry: 'Logistics', reasonText: 'Road freight for the Joinville plant; replaces a carrier that closed.', ...addr('Rodovia BR-101', 'km 42', 'Joinville', { district: 'Distrito Industrial', regionCode: 'SC', postalCode: '89239-000' }) },
-    outcome: { kind: 'created', erpNumber: '70010' } },
+    outcome: { kind: 'created', erpNumber: '150101' } },
   { id: 'R-SEEDBR03', phase: 'history', daysAgo: 25, region: 'BR', domain: 'customer', requester: REQ.BR, country: 'BR', tax: cnpj('62110421', '0001'), dupChoice: 'new',
     values: { legalName: 'Usina Vale do Mogi S.A.', typeCode: 'end_user', industry: 'Biofuels', reasonText: 'Ethanol plant asking for a heat-exchanger retrofit quote.', ...addr('Estrada Municipal', 's/n', 'Mogi Guaçu', { district: 'Zona Rural', regionCode: 'SP' }) },
     outcome: { kind: 'declined', reason: 'Credit check failed upstream; finance will not open the account this quarter.' } },
@@ -68,7 +71,7 @@ const rows: Row[] = [
     outcome: { kind: 'sent_back', reason: 'The bill-to is the warehouse. Use the registered address on the CNPJ card.' } },
   { id: 'R-SEEDBR05', phase: 'history', daysAgo: 3, region: 'BR', domain: 'customer', requester: REQ.BR, country: 'BR', tax: cnpj('62110649', '0001'),
     values: { legalName: 'Metalúrgica Itaúna Ltda', typeCode: 'oem', industry: 'Metals', reasonText: 'OEM building our skid frames under licence.', ...addr('Rua da Fundição', '1200', 'Itaúna', { district: 'Distrito Industrial', regionCode: 'MG' }) },
-    outcome: { kind: 'stopped_unknown', ledger: 'created', erpNumber: '25511' } },
+    outcome: { kind: 'stopped_unknown', ledger: 'created', erpNumber: '110102' } },
   { id: 'R-SEEDBR06', phase: 'history', daysAgo: 1, region: 'BR', domain: 'customer', requester: REQ.BR, country: 'BR', tax: cnpj('62110752', '0001'),
     values: { legalName: 'Granja Boa Vista Ltda', typeCode: 'end_user', industry: 'Food & beverage processing', reasonText: 'Draft: waiting for the CNPJ card from the customer.', ...addr('Estrada da Granja', '9', 'Chapecó', { district: 'Linha Bela Vista', regionCode: 'SC' }) },
     outcome: { kind: 'draft' } },
@@ -76,13 +79,13 @@ const rows: Row[] = [
   // Europe: Jonas
   { id: 'R-SEEDEU01', phase: 'history', daysAgo: 38, region: 'EU', domain: 'customer', requester: REQ.EU, country: 'DE', tax: 'DE412345670',
     values: { legalName: 'Kestrel Marine GmbH', typeCode: 'oem', industry: 'Marine equipment', reasonText: 'Shipyard OEM; framework agreement signed.', ...addr('Am Kaiserkai', '12', 'Hamburg', { postalCode: '20457' }) },
-    outcome: { kind: 'created', erpNumber: '25512' } },
+    outcome: { kind: 'created', erpNumber: '210101' } },
   { id: 'R-SEEDEU02', phase: 'history', daysAgo: 30, region: 'EU', domain: 'supplier', requester: REQ.EU, country: 'NO', tax: 'NO918273645MVA',
     values: { legalName: 'Nordvik Logistikk AS', typeCode: 'logistics', industry: 'Logistics', reasonText: 'Sea freight Bergen to Göteborg.', ...addr('Strandkaien', '4', 'Bergen', { postalCode: '5013' }) },
-    outcome: { kind: 'created', erpNumber: '70011' } },
+    outcome: { kind: 'created', erpNumber: '250101' } },
   { id: 'R-SEEDEU03', phase: 'history', daysAgo: 18, region: 'EU', domain: 'customer', requester: REQ.EU, country: 'NL', tax: 'NL812345678B01',
     values: { legalName: 'Brabant Process BV', typeCode: 'distributor', industry: 'Industrial distribution', reasonText: 'Distributor for the Benelux; replaces direct sales.', ...addr('Industrieweg', '33', 'Eindhoven', { postalCode: '5651 BD' }) },
-    outcome: { kind: 'created', erpNumber: '25513' } },
+    outcome: { kind: 'created', erpNumber: '210102' } },
   { id: 'R-SEEDEU04', phase: 'history', daysAgo: 14, region: 'EU', domain: 'supplier', requester: REQ.EU, country: 'IT', tax: 'IT07123450961',
     values: { legalName: 'Lumen Coatings Srl', typeCode: 'raw_material', industry: 'Chemicals', reasonText: 'Second source for plate coatings.', ...addr('Via dell’Industria', '18', 'Bergamo', { postalCode: '24126' }) },
     outcome: { kind: 'declined', reason: 'Procurement has the supplier on audit hold; no new vendor accounts until it closes.' } },
@@ -96,10 +99,10 @@ const rows: Row[] = [
   // United States
   { id: 'R-SEEDUS01', phase: 'history', daysAgo: 35, region: 'US', domain: 'customer', requester: REQ.US, country: 'US', tax: '361234508',
     values: { legalName: 'Great Lakes Fabrication Inc.', typeCode: 'contractor', industry: 'Machinery', reasonText: 'Contractor installing our skids in Ohio.', ...addr('W 150th St', '4100', 'Cleveland', { regionCode: 'OH', postalCode: '44135' }) },
-    outcome: { kind: 'created', erpNumber: '25514' } },
+    outcome: { kind: 'created', erpNumber: '110103' } },
   { id: 'R-SEEDUS02', phase: 'history', daysAgo: 21, region: 'US', domain: 'supplier', requester: REQ.US, country: 'US', tax: '471230986',
     values: { legalName: 'Prairie Freight LLC', typeCode: 'logistics', industry: 'Logistics', reasonText: 'Flatbed freight for the Midwest.', ...addr('Industrial Pkwy', '820', 'Omaha', { regionCode: 'NE', postalCode: '68110' }) },
-    outcome: { kind: 'created', erpNumber: '70012' } },
+    outcome: { kind: 'created', erpNumber: '150102' } },
   { id: 'R-SEEDUS03', phase: 'history', daysAgo: 7, region: 'US', domain: 'customer', requester: REQ.US, country: 'US', tax: '760998123',
     values: { legalName: 'Gulf Coast Biofuels LLC', typeCode: 'end_user', industry: 'Biofuels', reasonText: 'Renewable diesel plant, heat recovery.', ...addr('Refinery Rd', '15', 'Port Arthur', { regionCode: 'TX', postalCode: '77640' }) },
     outcome: { kind: 'sent_back', reason: 'Add the Texas state tax ID; the ERP needs it for a Texas ship-to.' } },
@@ -107,10 +110,10 @@ const rows: Row[] = [
   // India
   { id: 'R-SEEDIN01', phase: 'history', daysAgo: 28, region: 'IN', domain: 'customer', requester: REQ.IN, country: 'IN', tax: '27AAKCS4821M1ZQ',
     values: { legalName: 'Shakti Process Engineering Pvt Ltd', typeCode: 'contractor', industry: 'Engineering services', reasonText: 'EPC contractor for a refinery in Maharashtra.', id_PAN: 'AAKCS4821M', ...addr('MIDC Road', 'Plot 14', 'Pune', { regionCode: 'MH', postalCode: '411019' }) },
-    outcome: { kind: 'created', erpNumber: '25515' } },
+    outcome: { kind: 'created', erpNumber: '110104' } },
   { id: 'R-SEEDIN02', phase: 'history', daysAgo: 16, region: 'IN', domain: 'supplier', requester: REQ.IN, country: 'IN', tax: '27AAFCK7310P1Z2',
     values: { legalName: 'Konkan Castings Pvt Ltd', typeCode: 'components', industry: 'Castings & forgings', reasonText: 'Local castings to cut lead time on frames.', id_PAN: 'AAFCK7310P', ...addr('Lote Parshuram MIDC', 'B-7', 'Khed', { regionCode: 'MH', postalCode: '415722' }) },
-    outcome: { kind: 'created', erpNumber: '70013' } },
+    outcome: { kind: 'created', erpNumber: '150103' } },
   { id: 'R-SEEDIN03', phase: 'history', daysAgo: 11, region: 'IN', domain: 'customer', requester: REQ.IN, country: 'IN', tax: '29AAGCM5512K1Z8',
     values: { legalName: 'Mysore Agro Foods Pvt Ltd', typeCode: 'end_user', industry: 'Food & beverage processing', reasonText: 'Juice concentrate line.', id_PAN: 'AAGCM5512K', ...addr('Hebbal Industrial Area', '22', 'Mysuru', { regionCode: 'KA', postalCode: '570016' }) },
     outcome: { kind: 'declined', reason: 'The customer is buying through our distributor; no direct account.' } },
@@ -118,21 +121,21 @@ const rows: Row[] = [
   // China
   { id: 'R-SEEDCN01', phase: 'history', daysAgo: 26, region: 'CN', domain: 'customer', requester: REQ.CN, country: 'CN', tax: '91320594MA1PQ4R72K',
     values: { legalName: 'Suzhou Hengtai Valve Co., Ltd.', localName: '苏州恒泰阀门有限公司', typeCode: 'oem', industry: 'Machinery', reasonText: 'Valve OEM, packaged units for export.', ...addr('Xinghu Street', '218', 'Suzhou', { postalCode: '215123' }) },
-    outcome: { kind: 'created', erpNumber: '25516' } },
+    outcome: { kind: 'created', erpNumber: '310101' } },
   { id: 'R-SEEDCN02', phase: 'history', daysAgo: 12, region: 'CN', domain: 'supplier', requester: REQ.CN, country: 'CN', tax: '91440300MA5H7K2L9X',
     values: { legalName: 'Shenzhen Jiahe Electronics Co., Ltd.', localName: '深圳佳和电子有限公司', typeCode: 'components', industry: 'Machinery', reasonText: 'Control panels for the Asia skids.', ...addr('Keyuan Road', '9', 'Shenzhen', { postalCode: '518057' }) },
-    outcome: { kind: 'created', erpNumber: '70014' } },
+    outcome: { kind: 'created', erpNumber: '350101' } },
 
   // Recent: created, waiting for the next hub load (written after the load has run once)
   { id: 'R-SEEDBR07', phase: 'recent', daysAgo: 1, region: 'BR', domain: 'customer', requester: REQ.BR, country: 'BR', tax: cnpj('62110866', '0001'),
     values: { legalName: 'Cerâmica Rio Claro Ltda', typeCode: 'end_user', industry: 'Machinery', reasonText: 'Kiln heat recovery.', ...addr('Avenida Brasil', '3300', 'Rio Claro', { district: 'Jardim Paulista', regionCode: 'SP' }) },
-    outcome: { kind: 'created', erpNumber: '25517' } },
+    outcome: { kind: 'created', erpNumber: '110105' } },
   { id: 'R-SEEDEU07', phase: 'recent', daysAgo: 0.5, region: 'EU', domain: 'supplier', requester: REQ.EU, country: 'SE', tax: 'SE556123456701',
     values: { legalName: 'Vänern Stål AB', typeCode: 'raw_material', industry: 'Steel', reasonText: 'Stainless plate, second source.', ...addr('Hamngatan', '6', 'Karlstad', { postalCode: '652 24' }) },
-    outcome: { kind: 'created', erpNumber: '70015' } },
+    outcome: { kind: 'created', erpNumber: '250102' } },
   { id: 'R-SEEDIN04', phase: 'recent', daysAgo: 0.2, region: 'IN', domain: 'customer', requester: REQ.IN, country: 'IN', tax: '32AAHCM9034R1Z5',
     values: { legalName: 'Malabar Spice Processing Pvt Ltd', typeCode: 'end_user', industry: 'Food & beverage processing', reasonText: 'Oleoresin extraction line.', id_PAN: 'AAHCM9034R', ...addr('Kakkanad Industrial Area', '41', 'Kochi', { regionCode: 'KL', postalCode: '682030' }) },
-    outcome: { kind: 'created', erpNumber: '25518' } },
+    outcome: { kind: 'created', erpNumber: '110106' } },
 ]
 
 // Raised in the app after the seed, as the signed-in requester, so each has a real Workflow run.
@@ -243,9 +246,12 @@ async function main() {
   const erp = neon(erpUrl)
 
   if (reset) {
-    const golden = (await db`select state->>'goldenId' as g from requests where request_id like 'R-SEED%' and state->>'goldenId' is not null`).map((r) => r.g as string)
+    // Every golden id a seeded create could have produced, loaded into the hub or not.
+    const golden = built.filter((b) => b.ledger?.number).map((b) => goldenFromPayload(b.payload, b.ledger!.number!, iso(0)).goldenId)
     await db.transaction([
       db`delete from party_sources where golden_id = any(${golden})`,
+      db`delete from regional_credit where golden_id = any(${golden})`,
+      db`delete from regional_spend where golden_id = any(${golden})`,
       db`delete from party_addresses where golden_id = any(${golden})`,
       db`delete from parties where golden_id = any(${golden})`,
       db`delete from deliveries where request_id like 'R-SEED%'`,
@@ -256,6 +262,7 @@ async function main() {
       db`delete from requests where request_id like 'R-SEED%'`,
     ])
     await erp`delete from operations where operation_key like 'intake:%:R-SEED%'`
+    await erp`delete from golden_records where golden_id = any(${golden})`
     console.log(`\nReset: seeded requests removed, ${golden.length} golden records from them removed, ledger rows removed.`)
     if (!apply) return
   }
@@ -279,7 +286,11 @@ async function main() {
     await db.transaction(q)
     if (b.ledger) {
       const key = operationKey(r.domain, r.id, 1)
-      await erp`insert into operations (operation_key, domain, payload_hash, status, customer_number, reason, received_at) values (${key}, ${r.domain}, ${b.hash}, ${b.ledger.status}, ${b.ledger.number}, ${b.ledger.reason}, ${iso(r.daysAgo, 241)}) on conflict (operation_key) do nothing`
+      await erp`insert into operations (operation_key, erp, domain, payload_hash, status, customer_number, reason, received_at) values (${key}, ${b.payload.destination.erp}, ${r.domain}, ${b.hash}, ${b.ledger.status}, ${b.ledger.number}, ${b.ledger.reason}, ${iso(r.daysAgo, 241)}) on conflict (operation_key) do nothing`
+      if (b.ledger.status === 'created' && b.ledger.number) {
+        const g = goldenFromPayload(b.payload, b.ledger.number, iso(r.daysAgo, 241))
+        await erp`insert into golden_records (golden_id, doc, updated_at) values (${g.goldenId}, ${JSON.stringify(g)}::jsonb, date_trunc('milliseconds', now())) on conflict (golden_id) do nothing`
+      }
     }
   }
   console.log(`\nWrote ${todo.length} ${apply} requests.${apply === 'history' ? ' Next: run the hub load once in the app, then --apply recent.' : ' Next: raise the form-phase requests in the app.'}`)

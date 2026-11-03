@@ -1,4 +1,5 @@
--- The "hub": golden business-partner records across regions. In the real engagement this is the MDH export; here it is Neon.
+-- The "hub": golden business-partner records across regions, filled by the nightly load from the customer's
+-- integration platform (GET /integration/v1/golden-records). Nothing here is typed in by this app.
 -- Idempotent. Run with: pnpm --filter web db:schema (add --reset to drop first)
 create table if not exists groups (
   group_id text primary key,
@@ -24,7 +25,7 @@ create table if not exists parties (
   duns_rating text,
   region text not null check (region in ('BR','EU','US','IN','CN')),
   country text not null,
-  erp_system text check (erp_system in ('ERP-1','ERP-2')),
+  erp_system text check (erp_system in ('ERP-1','ERP-2','ERP-3')),
   erp_number text,
   erp_segment text,                      -- the ERP segment / company the record sits in
   user_ref text,                         -- the number people type in the ERP every day
@@ -72,7 +73,7 @@ create table if not exists party_addresses (
 -- Lineage: which source contributed to the golden record and when it was last loaded.
 create table if not exists party_sources (
   golden_id text not null references parties(golden_id),
-  source_system text not null,           -- ERP1_BR, ERP2_EU, LAKE_CN, HIERARCHY ...
+  source_system text not null,           -- ERP1_BR, ERP2_EU, ERP3_CN, HIERARCHY ...
   source_id text not null,
   loaded_at timestamptz not null default now(),
   primary key (golden_id, source_system)
@@ -105,4 +106,18 @@ create table if not exists entitlements (
   regions text[] not null default '{}',
   global_identity boolean not null default false,
   money_regions text[] not null default '{}'
+);
+
+-- Three ERPs since the stage-set split (docs/STAGE-SET-CONTRACT.md). For a database created before it, the check is
+-- replaced; for a new one this restates the line above.
+alter table parties drop constraint if exists parties_erp_system_check;
+alter table parties add constraint parties_erp_system_check check (erp_system in ('ERP-1','ERP-2','ERP-3'));
+
+-- Where the last load stopped in the golden-record feed. One row. A load reads from here and moves it forward only
+-- after the page it read is written, so a load that fails halfway repeats that page next time (upserts are safe twice).
+create table if not exists hub_load_state (
+  id int primary key default 1 check (id = 1),
+  cursor text,
+  last_run_at timestamptz,
+  last_count int
 );

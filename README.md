@@ -2,7 +2,7 @@
 
 ## Start here
 
-Nordhammar Partner Hub is the front door to a master data hub for a fictional manufacturer with five regions and two ERPs. You search before you request, the hub checks the tax ID as you type it, one reviewer approves, and a durable workflow writes the new partner to the right ERP.
+Nordhammar Partner Hub is the front door to a master data hub for a fictional manufacturer with five regions and three ERPs. You search before you request, the hub checks the tax ID as you type it, one reviewer approves, and a durable workflow writes the new partner to the right ERP.
 
 - **Live app:** https://staging-nordhammar.vercel.app
 - **Demo logins:** provided in the submission email. The sign-in page lists the four people and what each can do.
@@ -12,7 +12,7 @@ Nordhammar Partner Hub is the front door to a master data hub for a fictional ma
   3. `/how-it-works` in the app, the request path with the names used in the code.
   4. The three boundary files listed under Layout below.
 
-A small, defensible partner-intake application for a fictional European manufacturer whose customers and suppliers are scattered across two regional ERPs and five regions.
+A small, defensible partner-intake application for a fictional European manufacturer whose customers and suppliers are scattered across three regional ERPs and five regions.
 
 Search the golden records → request a new customer or supplier, checked against the hub the moment the tax ID is typed → one global reviewer approves → a durable Workflow writes one keyed command through an authenticated ERP boundary, effectively once → the request shows the ERP number live → the nightly hub load makes it searchable.
 

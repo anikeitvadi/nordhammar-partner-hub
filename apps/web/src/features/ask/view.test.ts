@@ -25,8 +25,8 @@ describe('presence view', () => {
 })
 
 describe('the sentence may only cite what the tool returned', () => {
-  const result = { found: true, requestId: 'R-MVY4OEBEBJ7W', erpNumber: 'V-70101' }
-  it('accepts a sentence that cites the result', () => { expect(citesOnlyKnown('R-MVY4OEBEBJ7W is created with number V-70101.', result)).toBe(true) })
+  const result = { found: true, requestId: 'R-MVY4OEBEBJ7W', erpNumber: '150201' }
+  it('accepts a sentence that cites the result', () => { expect(citesOnlyKnown('R-MVY4OEBEBJ7W is created with number 150201.', result)).toBe(true) })
   it('rejects an invented request id or number', () => {
     expect(citesOnlyKnown('R-ZZZZZZZZZZZZ is created.', result)).toBe(false)
     expect(citesOnlyKnown('The number is 26009.', result)).toBe(false)
