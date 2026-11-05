@@ -175,12 +175,15 @@ button.link.small { height: auto; padding: 0; }
 .split { display: grid; grid-template-columns: minmax(280px, 5fr) minmax(320px, 7fr); gap: 40px; align-items: start; }
 .split-table { grid-template-columns: minmax(0, 7fr) minmax(320px, 5fr); }
 .split-table .hub-table .col-secondary { display: none; }
-.split-detail { position: sticky; top: 84px; padding-left: 32px; border-left: 1px solid var(--rule); }
+.split-detail { position: sticky; top: 84px; padding-left: 32px; border-left: 1px solid var(--rule); scroll-margin-top: 84px; }
 
 /* a partner's record */
 .party h2 { margin-top: 28px; }
 .party-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.party.compact .party-head { padding-top: 28px; }
 .party-name { font: 400 28px/1.2 var(--serif); color: var(--ink); margin: 0 0 4px; }
+.party-head .party-name { margin-top: 0; }
+.party-close { flex: none; padding-top: 8px; }
 .party-local { color: var(--ink-2); margin: 0 0 4px; }
 .party-sub { display: flex; align-items: center; gap: 4px 10px; flex-wrap: wrap; margin: 0; color: var(--ink-3); font-size: 13px; }
 .party .facts { grid-template-columns: 140px 1fr; }

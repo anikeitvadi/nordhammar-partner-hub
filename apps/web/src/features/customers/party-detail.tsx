@@ -8,7 +8,7 @@ const fmt = (n: number, c: string) => new Intl.NumberFormat('en', { style: 'curr
 
 // WF-03: one golden record. What the ERPs hold, where each piece came from, and how the company sits in its group.
 // The two actions the spec names (request a change, set parent) are not built; they are labelled as coming, not drawn as buttons.
-export function PartyDetail({ party: p, compact = false }: { party: Party; compact?: boolean }) {
+export function PartyDetail({ party: p, compact = false, closeHref }: { party: Party; compact?: boolean; closeHref?: string }) {
   const path = p.domain === 'customer' ? '/customers' : '/suppliers'
   return (
     <article className={compact ? 'party compact' : 'party'}>
@@ -18,6 +18,7 @@ export function PartyDetail({ party: p, compact = false }: { party: Party; compa
           {p.localName ? <p className="party-local">{p.localName}</p> : null}
           <p className="party-sub"><span><code>{p.goldenId}</code> · {p.region}{p.country !== p.region ? ` · ${p.country}` : ''}{p.typeCode ? ` · ${typeLabel(p.typeCode)}` : ''}</span><span className={`badge ${p.status === 'active' ? 'badge-active' : 'badge-hold'}`}>{p.status === 'hold' ? 'On hold' : p.status}</span></p>
         </div>
+        {compact && closeHref ? <Link href={closeHref} className="muted party-close" aria-label="Close this record">Close</Link> : null}
         {!compact ? <Link href={`${path}?${new URLSearchParams({ q: p.legalName, id: p.goldenId }).toString()}`} className="muted">Back to search</Link> : null}
       </header>
 

@@ -25,6 +25,8 @@ export async function HubPage({ domain, searchParams }: { domain: Domain; search
   const { q = '', id } = searchParams
   const initialFilter = { region: regions.find((r) => r === searchParams.in) ?? null, status: STRIP_FILTERS.find((x) => x === searchParams.status) ?? null, erp: searchParams.erp && /^ERP-[123]$/.test(searchParams.erp) ? searchParams.erp : null }
   const [rows, selected] = await Promise.all([browseParties(principal, domain, regions), id ? getParty(principal, id) : Promise.resolve(null)])
+  // Closing the record keeps the search the person typed.
+  const closeHref = q ? `${w.path}?${new URLSearchParams({ q }).toString()}` : w.path
   return (
     <section className="hub">
       <header className="hub-head">
@@ -35,7 +37,7 @@ export async function HubPage({ domain, searchParams }: { domain: Domain; search
       </header>
       <div className={selected ? 'split split-table' : undefined}>
         <HubTable rows={rows} regions={regions} domain={domain} path={w.path} selectedId={selected?.goldenId ?? null} initialQuery={q} initialFilter={initialFilter} />
-        {selected ? <div className="split-detail" id="detail"><div className="party-body" key={selected.goldenId}><PartyDetail party={selected} compact /></div></div> : null}
+        {selected ? <div className="split-detail" id="detail"><div className="party-body" key={selected.goldenId}><PartyDetail party={selected} compact closeHref={closeHref} /></div></div> : null}
       </div>
     </section>
   )
