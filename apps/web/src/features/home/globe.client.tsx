@@ -31,10 +31,16 @@ const turn = (from: number, to: number) => ((((to - from) % 360) + 540) % 360) -
 export function Globe({ data }: { data: GlobeData }) {
   const box = useRef<HTMLDivElement>(null)
   const canvas = useRef<HTMLCanvasElement>(null)
-  // face the middle of this person's partners (a plain mean of longitudes is fine for the regions the hub has)
-  const focus = data.points.some((p) => p.mine) ? data.points.filter((p) => p.mine) : data.points
-  const [lon0, lat0] = focus.length ? [focus.reduce((n, p) => n + p.at[0], 0) / focus.length, focus.reduce((n, p) => n + p.at[1], 0) / focus.length] : [-8, 26]
-  const state = useRef({ lambda: -lon0, phi: Math.max(-40, Math.min(40, -lat0 + 12)), drag: null as null | { x: number; y: number; l: number; p: number }, resumeAt: 0 })
+  // The opening view: this person's partners, leaning part of the way toward the far ends of the arcs that leave
+  // their region, so a group that reaches another region shows whole, and the land fills the disc instead of the
+  // ocean on either side of one country. The latitude is pulled toward the equator, where the land is.
+  const mine = data.points.some((p) => p.mine) ? data.points.filter((p) => p.mine) : data.points
+  const home = middle(mine.map((p) => p.at)) ?? [-8, 26]
+  const here = new Set(mine.map((p) => p.at.join()))
+  const away = middle(data.arcs.filter((a) => a.cross && a.mine).flatMap((a) => [a.from, a.to]).filter((at) => !here.has(at.join())))
+  const lon0 = away ? home[0] + turn(home[0], away[0]) * 0.4 : home[0]
+  const lat0 = (away ? home[1] + (away[1] - home[1]) * 0.4 : home[1]) * 0.75
+  const state = useRef({ lambda: -lon0, phi: Math.max(-40, Math.min(40, -lat0)), drag: null as null | { x: number; y: number; l: number; p: number }, resumeAt: 0 })
   const hit = useRef<{ points: { p: GlobePoint; x: number; y: number }[]; arcs: { a: GlobeArc; pts: Screen[] }[] }>({ points: [], arcs: [] })
   const [tip, setTip] = useState<{ x: number; y: number; text: string } | null>(null)
 
@@ -50,9 +56,12 @@ export function Globe({ data }: { data: GlobeData }) {
     let amt = 0, shown: Lens | null = null
     const proj = geoOrthographic().clipAngle(90).precision(0.2)
     const path = geoPath(proj, ctx)
-    // Each arc's great-circle samples.
+    // Each arc's great-circle samples, running out from the person's own city when one end is theirs, so an arc
+    // draws on from home rather than hanging from the far end.
+    const own = new Set(data.points.filter((p) => p.mine).map((p) => p.at.join()))
     const arcs = data.arcs.map((a, i) => {
-        const f = geoInterpolate(a.from, a.to)
+      const flip = own.has(a.to.join()) && !own.has(a.from.join())
+      const f = geoInterpolate(flip ? a.to : a.from, flip ? a.from : a.to)
       const len = geoDistance(a.from, a.to)
       return { a, i, len, geo: Array.from({ length: SAMPLES + 1 }, (_, k) => f(k / SAMPLES)) }
     })
@@ -109,7 +118,7 @@ export function Globe({ data }: { data: GlobeData }) {
       if (aim) {
         const k = still ? 1 : Math.min(1, dt / 220)
         st.lambda += turn(st.lambda, -aim[0]) * k
-        st.phi += (Math.max(-40, Math.min(40, -aim[1] + 12)) - st.phi) * k
+        st.phi += (Math.max(-40, Math.min(40, -aim[1] * 0.75)) - st.phi) * k
         st.resumeAt = now + 1200
       } else if (!still && !st.drag && now > st.resumeAt) st.lambda += dt * 0.006 // one turn a minute
       const dim = (on: boolean) => (L && !on ? 1 - 0.78 * amt : 1)
@@ -199,7 +208,8 @@ export function Globe({ data }: { data: GlobeData }) {
     }
 
     size(); raf = requestAnimationFrame(frame)
-    const ro = new ResizeObserver(() => { size(); if (still) requestAnimationFrame(frame) })
+    // Setting the canvas size clears it, so only resize when the width has changed, and redraw in the same tick.
+    const ro = new ResizeObserver(() => { if (wrap.clientWidth === S) return; size(); cancelAnimationFrame(raf); frame(performance.now()) })
     ro.observe(wrap)
     return () => { cancelAnimationFrame(raf); ro.disconnect() }
   }, [data])
